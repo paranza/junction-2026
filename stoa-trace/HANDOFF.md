@@ -110,7 +110,7 @@ On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe` in thes
 
 The frozen 50-case diagnostic has **22/50 answered**, including **21/21 answered numeric questions matching supplied labels** and one text answer requiring manual review. Across all 44 numeric cases, it is **21/44** because abstentions count as failures. The separate three-call vision check had **2/3 correct**: two areas correct, one window count wrong and flagged for review. These samples do not establish general or competition accuracy. Coordinate validation does not establish citation correctness.
 
-The frozen manifest records the original machine's data directory. Pass `--dataset-root` with your own preview directory to validate its source-label hash locally.
+The frozen manifest defaults to `./datasets/junction-dataset-preview`. Pass `--dataset-root` with your own location when using another preview directory. Historical report metadata can contain the original machine's paths; those paths are not required for setup.
 
 Read `ops/reports/benchmark-native-50-final.json` and `ops/reports/benchmark-vision-3.json` for the actual cases and limitations. The benchmark defaults to native mode. Paid modes require `--allow-paid` and at most five questions per invocation; that guard does not grant a spending allowance.
 
