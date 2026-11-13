@@ -1,0 +1,35 @@
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Local agent/editor state, keep shared instructions and skills tracked
+.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.override.md
+.codex/
+.vscode/
+.idea/
+
+# Common generated files; narrow these once the stack is chosen
+node_modules/
+dist/
+build/
+.next/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+Thumbs.db
+
+# Team-local notes, contacts and credentials
+.local/
