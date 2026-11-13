@@ -7,6 +7,8 @@ import math
 import os
 import re
 import time
+import contextvars
+from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
@@ -17,6 +19,37 @@ from . import store
 MODEL = os.environ.get('STOA_MODEL', 'gpt-6-astra')
 KEY = os.environ.get('OPENAI_API_KEY', '')
 MAX_CALLS = int(os.environ.get('STOA_MAX_MODEL_CALLS', '500'))
+PROMPT_REVISION = 'trace-evidence-inventory-v2'
+_usage = contextvars.ContextVar('trace_model_usage', default=None)
+
+
+@contextmanager
+def usage_scope():
+    token = _usage.set({'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0, 'unknown_usage': False})
+    try:
+        yield
+    finally:
+        _usage.reset(token)
+
+
+def usage_snapshot(cache_hit=False):
+    current = dict(_usage.get() or {'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0})
+    unknown = current.pop('unknown_usage', False)
+    current.update(cache_hit=bool(cache_hit), cost_estimate_usd=0.0 if not current['model_calls'] else None,
+                   cost_basis='native' if not current['model_calls'] else 'unconfigured')
+    if current['model_calls'] and not unknown:
+        try:
+            input_rate = float(os.environ['STOA_INPUT_USD_PER_MILLION'])
+            output_rate = float(os.environ['STOA_OUTPUT_USD_PER_MILLION'])
+            cached_rate = float(os.environ.get('STOA_CACHED_INPUT_USD_PER_MILLION', input_rate))
+            if all(math.isfinite(x) and x >= 0 for x in (input_rate, output_rate, cached_rate)):
+                current['cost_estimate_usd'] = round(((current['input_tokens'] - current['cached_input_tokens']) * input_rate + current['cached_input_tokens'] * cached_rate + current['output_tokens'] * output_rate) / 1_000_000, 8)
+                current['cost_basis'] = 'configured_rates'
+        except (KeyError, TypeError, ValueError):
+            pass
+    if unknown:
+        current['usage_incomplete'] = True
+    return current
 
 EVIDENCE_SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
     'label': {'type': 'string'}, 'object_id': {'type': ['string', 'null']},
@@ -52,11 +85,12 @@ def model_available():
 def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
     if not KEY:
         raise ModelError('Vision is not configured on this server. Native drawing tools remain available.')
-    with store.connection() as db:
-        count = db.execute("SELECT COUNT(*) FROM events WHERE kind='model_request'").fetchone()[0]
-    if count >= MAX_CALLS:
+    if not store.reserve_model_request(MAX_CALLS, {'model': MODEL, 'images': sum(x.get('type') == 'input_image' for x in content)}):
         raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
-    store.record_event('model_request', {'model': MODEL, 'images': sum(x.get('type') == 'input_image' for x in content)})
+    ledger = _usage.get()
+    if ledger is not None:
+        ledger['model_calls'] += 1
+        ledger['unknown_usage'] += 1
     payload = {'model': MODEL, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
                'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
                'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
@@ -69,6 +103,13 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
         reason = {401: 'Model authentication failed.', 403: 'This model is not enabled for this project.', 429: 'The model account reached a rate or credit limit.'}.get(response.status_code, 'The model service could not complete this request.')
         raise ModelError(reason)
     body = response.json()
+    usage = body.get('usage')
+    if ledger is not None and isinstance(usage, dict):
+        ledger['input_tokens'] += int(usage.get('input_tokens', 0))
+        ledger['output_tokens'] += int(usage.get('output_tokens', 0))
+        ledger['cached_input_tokens'] += int(usage.get('input_tokens_details', {}).get('cached_tokens', 0))
+        ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
+    store.record_event('model_response', {'model': MODEL, 'usage': usage, 'status': body.get('status')})
     if body.get('status') != 'completed':
         raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
     text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')
@@ -87,17 +128,49 @@ def translate_question(question):
 
 
 def _native_context(document, question):
+    """Bound context structurally; never slice serialized JSON or hide omissions."""
     objects = document.get('objects', [])
     words = set(re.findall(r'[\w.-]+', question.lower()))
     ranked = sorted(objects, key=lambda o: -len(words & set(re.findall(r'[\w.-]+', json.dumps(o, default=str).lower()))))
-    context = {'metadata': document.get('metadata', {}), 'object_counts_by_type': dict(collections.Counter(str(o.get('type', 'unknown')) for o in objects)), 'objects': ranked[:160], 'pages': []}
+    context = {'metadata': document.get('metadata', {}),
+               'object_counts_by_type': dict(collections.Counter(str(o.get('type', 'unknown')) for o in objects)),
+               'objects': [], 'pages': [],
+               'context_limits': {'omitted_objects': len(objects), 'omitted_pages': len(document.get('pages', [])), 'truncated_page_text': False}}
+    encode = lambda: json.dumps(context, ensure_ascii=False, default=str)
+    if len(encode()) > 16000:
+        context['metadata'] = {'omitted': True, 'reason': 'Metadata exceeds the bounded source context.'}
+    for obj in ranked[:160]:
+        context['objects'].append(obj)
+        if len(encode()) > 52000:
+            context['objects'].pop()
+            break
+    context['context_limits']['omitted_objects'] = len(objects) - len(context['objects'])
     for page in document.get('pages', [])[:20]:
-        context['pages'].append({'page': page.get('page'), 'text': page.get('text', '')[:16000]})
-    return json.dumps(context, ensure_ascii=False, default=str)[:70000]
+        remaining = 69000 - len(encode())
+        if remaining < 300:
+            break
+        text = page.get('text', '')
+        included = text[:min(16000, max(0, remaining // 2))]
+        context['pages'].append({'page': page.get('page'), 'text': included})
+        context['context_limits']['truncated_page_text'] |= included != text
+    context['context_limits']['omitted_pages'] = len(document.get('pages', [])) - len(context['pages'])
+    return encode()
+
+
+def evidence_category(label):
+    text = str(label or '').casefold()
+    for category, pattern in (('door', r'\bdoors?\b'), ('window', r'\bwindows?\b'),
+                              ('toilet', r'\b(toilets?|wc)\b'), ('sink', r'\bsinks?\b'),
+                              ('bathtub', r'\b(bathtubs?|baths?)\b'), ('shower', r'\bshowers?\b'),
+                              ('bedroom', r'\bbedrooms?\b'), ('bathroom', r'\bbathrooms?\b'),
+                              ('room', r'\brooms?\b')):
+        if re.search(pattern, text):
+            return category
+    return text
 
 
 def _mapped_box(box, region):
-    if not isinstance(box, list) or len(box) != 4 or not all(isinstance(x, (int, float)) and math.isfinite(x) for x in box):
+    if not isinstance(box, list) or len(box) != 4 or not all(type(x) in (int, float) and math.isfinite(x) and 0 <= x <= 1 for x in box):
         return None
     x0, y0, x1, y1 = [max(0, min(1, x)) for x in box]
     if x1 <= x0 or y1 <= y0:
@@ -178,6 +251,7 @@ def answer_with_model(question, document, path, page=1, scope='document', region
     result = _request(content)
     native = {str(o['id']): o for o in scoped.get('objects', []) if o.get('id') is not None}
     evidence = []
+    grounding_warnings = []
     seen_native = set()
     for item in result['evidence']:
         linked = native.get(str(item.get('object_id')))
@@ -185,18 +259,24 @@ def answer_with_model(question, document, path, page=1, scope='document', region
             if str(linked['id']) in seen_native:
                 continue
             seen_native.add(str(linked['id']))
-            evidence.append({**linked, 'label': item['label'] or linked.get('label'), 'quoted_text': item['quoted_text'], 'value': item['value'], 'unit': item['unit']})
+            from .verification import ground_native_evidence
+            grounded, notes = ground_native_evidence(linked, item, result['operation'], question)
+            evidence.append(grounded)
+            grounding_warnings.extend(notes)
             continue
         index = item.get('image_index')
         if not isinstance(index, int) or not 0 <= index < len(inputs):
             continue
         box = _mapped_box(item.get('bbox'), inputs[index]['region'])
         if box:
-            candidate = {'id': f'vision-{len(evidence) + 1}', 'label': item['label'], 'page': inputs[index]['page'], 'bbox': box, 'quoted_text': item['quoted_text'], 'value': item['value'], 'unit': item['unit']}
-            if any(e.get('page') == candidate['page'] and e.get('bbox') and _overlap(e['bbox'], box) > .35 for e in evidence):
+            candidate = {'id': f'vision-{len(evidence) + 1}', 'label': item['label'], 'page': inputs[index]['page'], 'bbox': box, 'quoted_text': item['quoted_text'], 'value': item['value'], 'unit': item['unit'], 'evidence_kind': 'visual', 'source_verified': False, 'category': evidence_category(item['label'])}
+            from .verification import ground_visual_evidence
+            candidate, notes = ground_visual_evidence(candidate, scoped, result['operation'], question)
+            grounding_warnings.extend(notes)
+            if any(e.get('page') == candidate['page'] and e.get('bbox') and evidence_category(e.get('category') or e.get('label')) == candidate['category'] and _overlap(e['bbox'], box) > .65 for e in evidence):
                 continue
             evidence.append(candidate)
-    warnings = list(result.get('warnings', []))
+    warnings = list(result.get('warnings', [])) + grounding_warnings
     if render_warning:
         warnings.append(render_warning)
     operation = result['operation']
@@ -218,7 +298,13 @@ def answer_with_model(question, document, path, page=1, scope='document', region
         if len(quantities) == len(evidence) and quantities and (len(quantities) == 1 or re.search(r'total|sum|combined|all|complessiv|totaal', question, re.I)):
             value = sum(e['value'] for e in quantities)
             calculation = ' + '.join(str(e['value']) for e in quantities) + f' = {value:g} {unit}'
-            answer = f'{value:g} {unit}, calculated from the cited source quantities.'
+            fully_grounded = all(e.get('source_verified') for e in quantities)
+            if fully_grounded:
+                answer = f'{value:g} {unit}, calculated from checked source quantities.'
+            else:
+                answer = f'{value:g} {unit}, calculated from visually read quantities; confirm the marked labels.'
+                status = 'needs_review'
+                warnings.append('These operands were read visually and have not been checked against native source text.')
         else:
             value, status = None, 'needs_review'
             answer = 'I could not reproduce a numeric answer from the cited source quantities and units.'

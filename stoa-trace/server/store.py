@@ -45,6 +45,8 @@ def initialize():
         CREATE TABLE IF NOT EXISTS answers (
           id TEXT PRIMARY KEY, document_id TEXT NOT NULL, question TEXT NOT NULL,
           result TEXT NOT NULL, original_result TEXT NOT NULL, created REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS analysis_cache (
+          key TEXT PRIMARY KEY, kind TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS events (
           id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, detail TEXT, created REAL NOT NULL);
         ''')
@@ -67,7 +69,7 @@ def register(path: Path, uploaded=False):
         old = db.execute('SELECT size,mtime FROM documents WHERE id=?', (doc_id,)).fetchone()
         changed = old is not None and (old['size'] != stat.st_size or old['mtime'] != stat.st_mtime)
         db.execute('''INSERT INTO documents(id,path,absolute_path,name,format,source,size,mtime,uploaded)
-          VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET size=excluded.size,mtime=excluded.mtime''',
+          VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET size=excluded.size,mtime=excluded.mtime,absolute_path=excluded.absolute_path''',
           (doc_id, relative, str(path), path.name, path.suffix[1:].lower(), source, stat.st_size, stat.st_mtime, int(uploaded)))
         if changed:
             db.execute('UPDATE documents SET indexed=0,error=NULL,page_count=NULL WHERE id=?', (doc_id,))
@@ -131,13 +133,17 @@ def cache_path(doc_id):
 
 def extract(doc_id):
     from .extraction import extract_document
+    path = get_path(doc_id)
+    register(path, uploaded=get_document(doc_id).get('uploaded', False))
+    fingerprint = source_fingerprint(doc_id)
     with _lock_guard:
         lock = _locks.setdefault(doc_id, threading.Lock())
     with lock:
         cached = cache_path(doc_id)
         if cached.exists():
             previous = json.loads(cached.read_text())
-            if previous.get('extractor_revision') == EXTRACTOR_REVISION and previous.get('source_sha256'):
+            if (previous.get('extractor_revision') == EXTRACTOR_REVISION
+                    and previous.get('source_fingerprint') == fingerprint):
                 return previous
         try:
             data = extract_document(get_path(doc_id), DATA_ROOT)
@@ -148,6 +154,7 @@ def extract(doc_id):
                     digest.update(chunk)
             data['source_sha256'] = digest.hexdigest()
             data['document_id'] = doc_id
+            data['source_fingerprint'] = fingerprint
             data.setdefault('warnings', [])
             data.setdefault('pages', [])
             data.setdefault('objects', [])
@@ -203,3 +210,73 @@ def attribution(doc):
         selected = [line for line in lines if doc['name'] in line]
         return '\n'.join(selected[:3])[:2500] if selected else '\n'.join(lines[:12])[:2500]
     return 'Source: ' + doc['source'] + '. See the dataset source licence.'
+
+
+def key_lock(key):
+    """Serialize one expensive analysis/review in this single-worker runtime."""
+    with _lock_guard:
+        return _locks.setdefault(key, threading.RLock())
+
+
+_digest_cache = {}
+
+
+def file_digest(path):
+    path = Path(path).resolve()
+    stat = path.stat()
+    key = (str(path), stat.st_size, stat.st_mtime_ns)
+    with _lock_guard:
+        previous = _digest_cache.get(key)
+    if previous is not None:
+        return previous
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    result = digest.hexdigest()
+    with _lock_guard:
+        _digest_cache[key] = result
+    return result
+
+
+def source_fingerprint(doc_id):
+    """Include paired exports/models so a changed sibling invalidates answers."""
+    source = get_path(doc_id)
+    stem = source.stem.split('_plan-', 1)[0]
+    related = {source}
+    for candidate in source.parent.iterdir():
+        if not candidate.is_file() or candidate.suffix.lower() not in FORMATS:
+            continue
+        if candidate.stem == stem or candidate.stem == source.stem or candidate.stem.startswith(stem + '_plan-'):
+            related.add(candidate)
+    parts = [(p.name, file_digest(p)) for p in sorted(related)]
+    return hashlib.sha256(json.dumps(parts).encode()).hexdigest()
+
+
+def analysis_key(kind, components):
+    return hashlib.sha256(json.dumps({'kind': kind, **components}, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
+
+
+def cached_analysis(key):
+    with connection() as db:
+        row = db.execute('SELECT result FROM analysis_cache WHERE key=?', (key,)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def save_analysis(key, kind, result):
+    # A cache contains immutable computed analysis, never a user's later review.
+    with connection() as db:
+        db.execute('INSERT OR REPLACE INTO analysis_cache VALUES(?,?,?,?)',
+                   (key, kind, json.dumps(result, ensure_ascii=False, default=str), time.time()))
+
+
+def reserve_model_request(limit, detail):
+    """Reserve an attempt atomically, including failed/translated/cross-check calls."""
+    with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
+        count = db.execute("SELECT COUNT(*) FROM events WHERE kind='model_request'").fetchone()[0]
+        if count >= limit:
+            return False
+        db.execute('INSERT INTO events(kind,detail,created) VALUES(?,?,?)',
+                   ('model_request', json.dumps(detail), time.time()))
+    return True
