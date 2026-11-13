@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from PIL import Image
+import pymupdf
 from fastapi.testclient import TestClient
 
 from server import app as api, inventory, llm, store
@@ -161,6 +162,88 @@ class BackendUpgrade(unittest.TestCase):
         result = self.client.post('/api/answers/typed/review', json={'added_evidence': [added]})
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(result.json()['added_evidence'][0]['category'], 'window')
+
+    def _write_pdf(self, path, color):
+        pdf = pymupdf.open()
+        page = pdf.new_page(width=100, height=100)
+        page.draw_rect(page.rect, color=color, fill=color)
+        pdf.save(path)
+        pdf.close()
+
+    def test_paired_pdf_preview_changes_and_browser_revalidates_when_dxf_is_unchanged(self):
+        source = self.runtime / 'uploads' / 'plan.dxf'
+        paired = source.with_suffix('.pdf')
+        source.write_text('source fixture; only the linked PDF is rendered')
+        self._write_pdf(paired, (1, 0, 0))
+        doc = store.register(source, uploaded=True)
+        route = f'/api/documents/{doc["id"]}/pages/1/image'
+        original_mtime = source.stat().st_mtime_ns
+        with patch.object(api.rendering, 'render_page', wraps=api.rendering.render_page) as renderer:
+            first = self.client.get(route)
+            self.assertEqual(first.status_code, 200, first.text if first.status_code != 200 else '')
+            self.assertEqual(first.headers['cache-control'], 'private, no-cache')
+            same = self.client.get(route, headers={'If-None-Match': first.headers['etag']})
+            self.assertEqual(same.status_code, 304)
+            self.assertEqual(renderer.call_count, 1)
+            self._write_pdf(paired, (0, 0, 1))
+            changed = self.client.get(route, headers={'If-None-Match': first.headers['etag']})
+            self.assertEqual(changed.status_code, 200)
+            self.assertNotEqual(changed.headers['etag'], first.headers['etag'])
+            self.assertNotEqual(changed.content, first.content)
+            self.assertEqual(renderer.call_count, 2)
+        self.assertEqual(source.stat().st_mtime_ns, original_mtime)
+
+    def test_ifc_nonplan_view_semantic_sibling_and_underlying_model_invalidate_fingerprints(self):
+        source = self.runtime / 'uploads' / 'model.ifc'
+        view = self.runtime / 'uploads' / 'model_section-west.pdf'
+        semantic = view.with_suffix('.svg')
+        source.write_text('model fixture')
+        self._write_pdf(view, (1, 0, 0))
+        semantic.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"/>')
+        doc = store.register(source, uploaded=True)
+        view_doc = store.register(view, uploaded=True)
+        route = f'/api/documents/{doc["id"]}/pages/1/image'
+        model_signature, view_signature = store.source_fingerprint(doc['id']), store.source_fingerprint(view_doc['id'])
+        with patch.object(api.rendering, 'render_page', wraps=api.rendering.render_page) as renderer:
+            first = self.client.get(route)
+            self._write_pdf(view, (0, 1, 0))
+            after_view = self.client.get(route)
+            self.assertNotEqual(first.content, after_view.content)
+            self.assertNotEqual(first.headers['etag'], after_view.headers['etag'])
+            self.assertNotEqual(model_signature, store.source_fingerprint(doc['id']))
+            semantic.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0,0 L10,10"/></svg>')
+            after_semantic = self.client.get(route)
+            self.assertNotEqual(after_semantic.headers['etag'], after_view.headers['etag'])
+            self.assertEqual(renderer.call_count, 3)
+        source.write_text('changed underlying model fixture')
+        self.assertNotEqual(view_signature, store.source_fingerprint(view_doc['id']))
+
+    def test_ifc_region_cannot_mix_projection_local_pages_or_launch_a_model_in_native_mode(self):
+        source = self.runtime / 'uploads' / 'model.ifc'
+        source.write_text('model fixture')
+        doc = store.register(source, uploaded=True)
+        data = {**self.native, 'document_id': doc['id'], 'objects': [
+            {'id': 'floor-a-door', 'type': 'IfcDoor', 'page': 1, 'bbox': [.1, .1, .2, .2], 'source_path': 'data/model_floor-a.svg'},
+            {'id': 'floor-b-door', 'type': 'IfcDoor', 'page': 1, 'bbox': [.1, .1, .2, .2], 'source_path': 'data/model_floor-b.svg'}]}
+        with patch.object(api, 'extracted', return_value=data), patch.object(inventory, 'native_region_count', side_effect=AssertionError('Unresolved IFC view must not be aggregated')), patch.object(llm, '_request', side_effect=AssertionError('Native mode must never invoke a model')):
+            response = self.client.post('/api/ask', json={'document_id': doc['id'], 'question': 'How many doors?', 'mode': 'native', 'page': 1, 'region': [0, 0, 1, 1]})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIsNone(response.json()['value'])
+        self.assertEqual(response.json()['status'], 'insufficient_evidence')
+
+    def test_native_pdf_region_refuses_objects_registered_to_a_different_view(self):
+        source = self.runtime / 'uploads' / 'floor-a.pdf'
+        self._write_pdf(source, (1, 1, 1))
+        data = {**self.native, 'objects': [
+            {'id': 'a', 'type': 'IfcDoor', 'page': 1, 'bbox': [.1, .1, .2, .2], 'source_path': str(source)},
+            {'id': 'b', 'type': 'IfcDoor', 'page': 1, 'bbox': [.1, .1, .2, .2], 'source_path': str(source.with_name('floor-b.pdf'))}]}
+        self.assertIsNone(api._native_region_answer('How many doors?', data, source, 1, [0, 0, 1, 1]))
+        data['objects'].pop()
+        self.assertEqual(api._native_region_answer('How many doors?', data, source, 1, [0, 0, 1, 1])['value'], 1)
+        unregistered = source.with_suffix('.dxf')
+        unregistered.write_text('fixture')
+        source.unlink()
+        self.assertIsNone(api._native_region_answer('How many doors?', data, unregistered, 1, [0, 0, 1, 1]))
 
     def test_native_context_stays_valid_json_and_reports_omissions(self):
         document = {'objects': [{'id': str(i), 'properties': {'long': 'A' * 3000}} for i in range(500)],

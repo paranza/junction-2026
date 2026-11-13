@@ -240,16 +240,28 @@ def file_digest(path):
 
 
 def source_fingerprint(doc_id):
-    """Include paired exports/models so a changed sibling invalidates answers."""
-    source = get_path(doc_id)
-    stem = source.stem.split('_plan-', 1)[0]
+    """Hash source, actual rendered views, semantic siblings and linked models.
+
+    IFC renderers accept every stem_* view, not only plans. A winning PDF view
+    can still depend on its same-name semantic SVG for extraction and evidence.
+    """
+    from .rendering import visual_sources
+    source = get_path(doc_id).resolve()
     related = {source}
-    for candidate in source.parent.iterdir():
-        if not candidate.is_file() or candidate.suffix.lower() not in FORMATS:
-            continue
-        if candidate.stem == stem or candidate.stem == source.stem or candidate.stem.startswith(stem + '_plan-'):
-            related.add(candidate)
-    parts = [(p.name, file_digest(p)) for p in sorted(related)]
+    models = {source} if source.suffix.lower() == '.ifc' else {
+        candidate.resolve() for candidate in source.parent.glob('*.ifc')
+        if source.stem == candidate.stem or source.stem.startswith(candidate.stem + '_')}
+    related.update(models)
+    for candidate in [source, *models]:
+        related.update(path.resolve() for path in visual_sources(candidate))
+    # Preserve every same-view export, including the SVG hidden by a PDF in
+    # visual_sources' display preference and the CAD used for PDF extraction.
+    for candidate in list(related):
+        for suffix in FORMATS:
+            sibling = candidate.with_suffix(suffix)
+            if sibling.is_file():
+                related.add(sibling.resolve())
+    parts = [(str(path), file_digest(path)) for path in sorted(related)]
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest()
 
 

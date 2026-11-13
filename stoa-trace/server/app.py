@@ -96,18 +96,31 @@ def document_detail(doc_id: str):
 
 
 @app.get('/api/documents/{doc_id}/pages/{page}/image')
-def document_image(doc_id: str, page: int, size: int = 2400):
+def document_image(doc_id: str, page: int, request: Request, size: int = 2400):
     known_document(doc_id)
     size = max(600, min(size, 4000))
     path = store.get_path(doc_id)
-    cache = store.RUNTIME / 'previews' / f'{doc_id}-{path.stat().st_mtime_ns}-{page}-{size}.png'
-    if not cache.exists():
-        try:
-            image, _ = rendering.render_page(path, page, size)
-            cache.write_bytes(rendering.png_bytes(image))
-        except Exception:
-            raise HTTPException(422, 'No two-dimensional preview is available. Native model objects can still be inspected.') from None
-    return FileResponse(cache, media_type='image/png', headers={'Cache-Control': 'private,max-age=3600'})
+    try:
+        fingerprint = store.source_fingerprint(doc_id)
+    except OSError:
+        raise HTTPException(422, 'The source or linked drawing preview is unavailable.') from None
+    render_revision = hashlib.sha256(Path(rendering.__file__).read_bytes()).hexdigest()[:16]
+    key = hashlib.sha256(f'{doc_id}:{fingerprint}:{render_revision}:{page}:{size}'.encode()).hexdigest()
+    etag = '"' + key + '"'
+    headers = {'Cache-Control': 'private, no-cache', 'ETag': etag}
+    if request.headers.get('if-none-match') == etag:
+        return Response(status_code=304, headers=headers)
+    cache = store.RUNTIME / 'previews' / f'{doc_id}-{key}.png'
+    with store.key_lock('preview:' + key):
+        if not cache.exists():
+            try:
+                image, _ = rendering.render_page(path, page, size)
+                staging = cache.with_suffix('.tmp')
+                staging.write_bytes(rendering.png_bytes(image))
+                staging.replace(cache)
+            except Exception:
+                raise HTTPException(422, 'No two-dimensional preview is available. Native model objects can still be inspected.') from None
+    return FileResponse(cache, media_type='image/png', headers=headers)
 
 
 @app.get('/api/documents/{doc_id}/original')
@@ -269,6 +282,39 @@ def _cross_check(payload, question, native_result, data, source):
             'reason': 'The independent visual candidates agree with the native count; agreement does not prove completeness.' if native_value == visual_value else 'Native source objects and independently located visual candidates disagree. Inspect both sets and their interpretation before choosing a working quantity.'}
 
 
+def _native_region_answer(question, data, source, page, region):
+    """Only count native boxes registered to this rendered view.
+
+    IFC object projections carry local page numbers from several separate
+    views, so page=1 alone cannot resolve a selected model view. Standalone DXF
+    extents also lack registration to the renderer's fitted layout viewport.
+    """
+    from . import inventory
+    if source.suffix.lower() in {'.ifc', '.dwg'}:
+        return None
+    views = rendering.visual_sources(source)
+    if not views:
+        return None
+    visible_source = views[0].resolve()
+    if source.suffix.lower() == '.dxf' and visible_source == source.resolve():
+        return None
+    category = inventory.count_category(question)
+    if category is None:
+        return None
+    for obj in data.get('objects', []):
+        if obj.get('page') != page:
+            continue
+        obj_category = inventory.canonical_category(obj.get('category') or obj.get('type'))
+        if obj_category != category or not obj.get('source_path'):
+            continue
+        object_source = Path(str(obj['source_path'])).expanduser()
+        if not object_source.is_absolute():
+            object_source = store.DATA_ROOT / object_source
+        if object_source.resolve() != visible_source:
+            return None
+    return inventory.native_region_count(question, data, page, region)
+
+
 def _compute_analysis(payload, question, data, source):
     from .native_qa import answer_native
     from . import inventory
@@ -281,13 +327,13 @@ def _compute_analysis(payload, question, data, source):
                        'objects': [o for o in data.get('objects', []) if o.get('page') == payload.page]}
     if payload.mode != 'vision':
         if payload.region:
-            result = inventory.native_region_count(question, data, payload.page, payload.region)
+            result = _native_region_answer(question, data, source, payload.page, payload.region)
         elif not (payload.scope == 'page' and source.suffix.lower() == '.ifc'):
             result = native_highlight(question, native_data, source, store.DATA_ROOT) if highlight_target(question) else answer_native(question, native_data, source, store.DATA_ROOT)
         if result is None and payload.mode == 'auto' and llm.model_available() and re.search(r'[^\x00-\x7f]', question):
             try:
                 translated = llm.translate_question(question)
-                result = answer_native(translated, native_data, source, store.DATA_ROOT) if not payload.region else inventory.native_region_count(translated, data, payload.page, payload.region)
+                result = answer_native(translated, native_data, source, store.DATA_ROOT) if not payload.region else _native_region_answer(translated, data, source, payload.page, payload.region)
                 if result:
                     result['interpreted_question'] = translated
             except llm.ModelError:
