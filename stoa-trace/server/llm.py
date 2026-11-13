@@ -264,6 +264,7 @@ def answer_with_model(question, document, path, page=1, scope='document', region
     result = _request(content)
     expected_operation = requested_quantity(question)
     reported_operation = result['operation']
+    conflicting_quantity_type = bool(expected_operation and reported_operation not in {expected_operation, 'text', 'unknown'})
     intent_warnings = []
     if expected_operation and reported_operation != expected_operation:
         result = {**result, 'operation': expected_operation}
@@ -306,7 +307,11 @@ def answer_with_model(question, document, path, page=1, scope='document', region
     value, unit = result['value'], result['unit']
     answer, calculation = result['answer'], result['calculation']
     status = 'needs_review' if result['needs_review'] or not result['complete'] else 'visual'
-    if uncovered:
+    if conflicting_quantity_type:
+        value, status = None, 'insufficient_evidence'
+        answer = 'The returned quantity type did not match the question. The cited items can be inspected, but no numeric answer was accepted.'
+        warnings.append('Conflicting quantity types cannot be substituted for the requested operation.')
+    elif uncovered:
         warnings.append('Only selected pages were inspected. A document-wide aggregate cannot be established.')
         operation, value, status = 'unknown', None, 'insufficient_evidence'
         answer = 'I could not establish a complete aggregate across every page. Select a page or narrow the scope.'
