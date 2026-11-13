@@ -24,6 +24,11 @@ class EvidenceAudit(unittest.TestCase):
         self.assertEqual(result['reviewed_cases'], 0)
         self.assertIsNone(result['answer_support_rate'])
 
+    def test_native_identity_does_not_excuse_wrong_projection(self):
+        gold = [{'id': 'room-1', 'bbox': [.1, .1, .2, .2]}]
+        prediction = [{'id': 'room-1', 'bbox': [.7, .7, .9, .9]}]
+        self.assertEqual(match_evidence(prediction, gold)['true_positive'], 0)
+
     def test_reviewed_case_requires_actual_judgment(self):
         report = {'results': [{'id': 'a', 'response': {'evidence': []}}]}
         with self.assertRaises(ValueError):

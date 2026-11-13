@@ -41,7 +41,9 @@ def match_evidence(predicted, expected, threshold=.5):
                 continue
             identity = any(gold.get(key) and prediction.get(key) == gold[key] for key in ('guid', 'id'))
             overlap = iou(prediction.get('bbox'), gold.get('bbox'))
-            if identity or overlap >= threshold:
+            located_gold = valid_box(gold.get('bbox'))
+            # An exact ID does not excuse an incorrect projected highlight.
+            if (located_gold and overlap >= threshold) or (not located_gold and identity):
                 edges.append((2 if identity else overlap, pi, ei))
     used_predicted, used_expected = set(), set()
     for _, pi, ei in sorted(edges, reverse=True):
