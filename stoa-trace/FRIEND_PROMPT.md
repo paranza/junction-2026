@@ -4,7 +4,7 @@ Copy the text below into a new Codex session with access to the cloned repositor
 
 ---
 
-Continue our **Trace** project for the Junction 2026 **Stoa challenge**. Treat this as an independent continuation: you do not have the previous chat, so establish the current state from the repository before changing code.
+Continue our **Trace** project for the Junction 2026 **Stoa challenge**. Use an attached shared-chat snapshot as background if provided, and establish the current implementation from the repository before changing code. A snapshot does not transfer the original agent's tools, files, running processes or credentials.
 
 We are four people with roughly 24 hours, aiming for a competitive demo. The challenge is to answer natural-language questions about construction drawings and BIM accurately and verifiably, showing exactly which drawing objects or source values support an answer. We want durable source extraction, geometry, scope controls and human verification that remain useful as models improve.
 

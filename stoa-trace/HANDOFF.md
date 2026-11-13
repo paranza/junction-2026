@@ -104,6 +104,8 @@ Last reported checks: **25 tests passed**. Re-run locally after changes:
 .venv/bin/python ops/benchmark.py --mode native --suite full
 ```
 
+The handoff checkout also passed a clean dependency install and frontend build, manifest validation against the separately supplied preview, and a fresh local backend check with model access disabled: 913 files, Opening Design's 81 files, a PNG preview, 13 window highlights and one room highlight. Windows commands are reviewed but were not executed on Windows. The GitHub Actions definition is included as `ops/ci/github-actions.yml.example`; it is not active because the publishing credential lacks GitHub's `workflow` scope. A suitably authorized maintainer can enable it later without changing the test commands.
+
 On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe` in these checks.
 
 The frozen 50-case diagnostic has **22/50 answered**, including **21/21 answered numeric questions matching supplied labels** and one text answer requiring manual review. Across all 44 numeric cases, it is **21/44** because abstentions count as failures. The separate three-call vision check had **2/3 correct**: two areas correct, one window count wrong and flagged for review. These samples do not establish general or competition accuracy. Coordinate validation does not establish citation correctness.
