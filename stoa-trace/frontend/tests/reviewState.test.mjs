@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -74,4 +74,17 @@ test('reused visual inventory is never labelled native just because follow-up us
   assert.equal(usageLabel({ usage: { inventory_cache_hit: true, model_calls: 0 } }), 'Prepared visual inventory reused');
   assert.equal(usageLabel({ inventory_cache_hit: true, usage: { cache_hit: true, model_calls: 0 } }), 'Saved answer reused');
   assert.equal(usageLabel({ usage: { model_calls: 0 } }), 'Native source tools');
+});
+
+
+test('evidence origin stays separate from quantity and semantic verification', () => {
+  assert.equal(evidenceKind({ evidence_kind: 'native', source_verified: false, verification: { identity: true, quantity: null } }), 'native');
+  assert.equal(evidenceKind({ evidence_kind: 'visual', source_verified: true }), 'visual');
+  assert.equal(evidenceKind({ evidence_kind: 'native', manual: true }), 'manual');
+  assert.equal(evidenceKind({ id: 'visual-inventory-1' }), 'visual');
+  assert.equal(evidenceKind({ id: 'native-1', source_verified: false }), 'native');
+  const notes = evidenceVerificationText({ verification: { identity: true, quantity: false, semantic_selection_verified: false } });
+  assert.ok(notes.includes('Source identifier exists.'));
+  assert.ok(notes.includes('Quantity is not supported by the cited source.'));
+  assert.ok(notes.includes('Object selection and count completeness still require review.'));
 });

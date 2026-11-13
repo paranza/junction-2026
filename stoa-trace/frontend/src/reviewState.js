@@ -14,8 +14,9 @@ export function evidenceBox(evidence) {
 }
 
 export function evidenceKind(item) {
-  if (item?.manual || item?.source === 'manual' || item?.method === 'manual' || item?.origin === 'human' || String(item?.id || '').startsWith('manual-')) return 'manual';
-  if (item?.source_verified === false || item?.method === 'vision' || item?.origin === 'visual' || String(item?.id || '').startsWith('vision-') || String(item?.id || '').startsWith('inventory-')) return 'visual';
+  if (item?.evidence_kind === 'manual' || item?.manual || item?.source === 'manual' || item?.method === 'manual' || item?.origin === 'human' || String(item?.id || '').startsWith('manual-')) return 'manual';
+  if (item?.evidence_kind === 'native' || item?.evidence_kind === 'visual') return item.evidence_kind;
+  if (item?.method === 'vision' || item?.origin === 'visual' || /^(?:vision|visual|inventory)-/.test(String(item?.id || ''))) return 'visual';
   return 'native';
 }
 
@@ -102,4 +103,18 @@ export function usageLabel(answer) {
   if (usage?.cache_hit) return 'Saved answer reused';
   if (answer?.inventory_cache_hit || usage?.inventory_cache_hit) return 'Prepared visual inventory reused';
   return Number.isFinite(usage?.model_calls) && usage.model_calls === 0 ? 'Native source tools' : 'Model analysis';
+}
+
+
+export function evidenceVerificationText(item) {
+  const checks = item?.verification;
+  if (!checks) return [];
+  const messages = [];
+  if (checks.identity === true) messages.push('Source identifier exists.');
+  if (checks.quote === true) messages.push('Quoted text matches the source.');
+  if (checks.quote === false) messages.push('Quoted text was not verified against the source.');
+  if (checks.quantity === true) messages.push('Quantity matches a compatible source value.');
+  if (checks.quantity === false) messages.push('Quantity is not supported by the cited source.');
+  if (checks.semantic_selection_verified === false) messages.push('Object selection and count completeness still require review.');
+  return messages;
 }
