@@ -1,7 +1,7 @@
 """Source identity cannot turn a model assertion into a source measurement."""
 import unittest
 
-from server.verification import ground_native_evidence, convert_quantity
+from server.verification import ground_native_evidence, ground_visual_evidence, convert_quantity
 
 
 class Grounding(unittest.TestCase):
@@ -63,6 +63,23 @@ class Grounding(unittest.TestCase):
             with self.subTest(value=value, unit=unit):
                 item, _ = self.check(value, unit)
                 self.assertIsNone(item['value'])
+
+    def test_visual_quote_must_be_inside_its_cited_region(self):
+        document = {'pages': [{'page': 1, 'words': [
+            {'text': '24.5', 'bbox': [.1, .1, .2, .2]}, {'text': 'm²', 'bbox': [.2, .1, .3, .2]}]}]}
+        assertion = {'page': 1, 'bbox': [.05, .05, .35, .25], 'quoted_text': '24.5 m²', 'value': 24.5, 'unit': 'm²'}
+        good, _ = ground_visual_evidence(assertion, document, 'area')
+        self.assertTrue(good['source_verified'])
+        wrong, _ = ground_visual_evidence({**assertion, 'bbox': [.5, .5, .7, .7]}, document, 'area')
+        self.assertIsNone(wrong['value'])
+        self.assertFalse(wrong['source_verified'])
+
+    def test_scan_reading_is_explicitly_provisional(self):
+        candidate = {'page': 1, 'bbox': [.1, .1, .2, .2], 'quoted_text': '24 m²', 'value': 24, 'unit': 'm²'}
+        item, _ = ground_visual_evidence(candidate, {'pages': [{'page': 1, 'words': []}]}, 'area')
+        self.assertEqual(item['value'], 24)
+        self.assertFalse(item['source_verified'])
+        self.assertIsNone(item['verification']['quantity'])
 
 
 if __name__ == '__main__':

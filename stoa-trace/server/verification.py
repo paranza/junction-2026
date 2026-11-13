@@ -168,3 +168,49 @@ Unsupported values stay null, so callers cannot silently sum them.
     grounded.update(value=converted, unit=unit, source_verified=True)
     checks.update(quantity=True, property_path=selected['property_path'])
     return grounded, warnings
+
+
+def ground_visual_evidence(candidate, document, operation, question=''):
+    """Check image assertions against native text in the actual cited region.
+
+An image with no native text stays a provisional visual reading. If native text
+is present, a mismatching quote/value cannot be labelled source-supported.
+"""
+    grounded = {**candidate, 'evidence_kind': 'visual', 'source_verified': False}
+    page = next((p for p in document.get('pages', []) if p.get('page') == candidate.get('page')), {})
+    words = page.get('words') or []
+    box = candidate.get('bbox')
+    quote = str(candidate.get('quoted_text') or '').strip()
+    grounded['verification'] = {'identity': False, 'quote': None, 'quantity': None,
+                                'property_path': None, 'semantic_selection_verified': False}
+    if not words or not box or len(box) != 4:
+        return grounded, []
+    def inside(word):
+        b = word.get('bbox') or []
+        return (len(b) == 4 and all(type(v) in (int, float) and math.isfinite(v) for v in b)
+                and b[0] >= box[0] - .002 and b[1] >= box[1] - .002
+                and b[2] <= box[2] + .002 and b[3] <= box[3] + .002)
+    local_text = ' '.join(str(w.get('text') or '') for w in words if inside(w))
+    quote_ok = bool(quote) and normalized(quote) in normalized(local_text)
+    grounded['verification']['quote'] = quote_ok
+    if not quote_ok:
+        grounded['quoted_text'] = ''
+        if operation in {'area', 'length', 'volume'}:
+            grounded['value'] = None
+        return grounded, ['A visual excerpt could not be matched to native text inside its cited region.']
+    if operation not in {'area', 'length', 'volume'}:
+        grounded['source_verified'] = True
+        return grounded, []
+    # Explicit net/gross wording must itself appear in the cited text.
+    role = _requested_role(question, operation)
+    if role and role not in normalized(quote):
+        grounded['value'] = None
+        grounded['verification']['quantity'] = False
+        return grounded, ['The cited text does not establish the requested net/gross quantity role.']
+    checked, warnings = ground_native_evidence({'id': 'native-region-text', 'text': local_text},
+                                               candidate, operation, question='')
+    grounded['value'], grounded['unit'] = checked['value'], checked['unit']
+    grounded['verification']['quantity'] = checked['verification']['quantity']
+    grounded['verification']['property_path'] = 'native_text_in_cited_region'
+    grounded['source_verified'] = checked['source_verified']
+    return grounded, warnings
