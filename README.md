@@ -2,7 +2,7 @@
 
 Four-person team at **Junction 2026: European Tech Renaissance**, 13-15 November 2026, Espoo, Finland.
 
-This repository currently contains team instructions, event notes and challenge research. The product, challenge and application stack are still open. There are no application dependencies or build commands yet.
+This repository currently contains team instructions, event notes and challenge research. The team selected Make Blueprints Talk and is focusing on explainable construction measurements. The application stack is still open. There are no application dependencies or build commands yet.
 
 ## Start here
 

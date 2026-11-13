@@ -1,6 +1,6 @@
 # Challenge research
 
-Research date: **13 November 2026**. No challenge has been selected.
+Research date: **13 November 2026**. The team selected **Make Blueprints Talk** after speaking with the partner at the event. The notes below distinguish partner guidance from the team's implementation hypotheses.
 
 ## Evidence and limits
 
@@ -24,7 +24,16 @@ Public exact-title searches did not reveal complete briefs. Public announcements
 | 8 | Break the Agent | Inference: test an AI agent's robustness or security, possibly an adversarial evaluation challenge. | Reproduce failures in an authorized test agent and show before/after defense results. | Provided target, permitted testing scope and scoring. |
 | 9 | Stop Simulating, Start Moving: See It. Detect It. Act on It. The Intel Physical AI Challenge | Intel is named in the title. An organizer announcement describes Intel x Ignite Next working with robot arms and cameras. [S3] | Detect one object type and move it to a specified location. | Required hardware/software, physical execution criteria and equipment availability. |
 | 10 | The Web Is Your Real-Time Database | Inference: search and extract fresh web information into structured, queryable records. Context.dev is a plausible partner because Junction announced its live-web/structured-data APIs, but the title mapping is unconfirmed. [S3] | Track a small set of changing facts with source links, timestamps and detected changes. | Partner, extraction/search APIs, freshness requirement and usage limits. |
-| 11 | Make Blueprints Talk | Inference: question-answering or extraction over architectural/engineering drawings, perhaps CAD or BIM. | Answer a question about a supplied plan and highlight the source region. | File formats, sample drawings, expected geometric accuracy and domain. |
+| 11 | Make Blueprints Talk | Partner guidance from the event: keep the interface simple and visually show why an answer is correct. Focus on a specific technical task, especially metric and material measurements relevant to construction engineers, rather than broad chatbot behavior. The partner has an internal model that performs poorly and could not share its details. | Calculate a focused quantity from a drawing and show the included geometry, extracted labels or dimensions, and calculation. Our hypothesis is to use vision models for rapid answers from drawing images, with deterministic geometry and arithmetic where possible. This is an implementation idea, not a partner recommendation. | Confirm file formats, target measurements, geometric accuracy, available sample drawings and how the partner will evaluate the result. |
+
+## Partner discussion: Make Blueprints Talk
+
+The team spoke with the partner at the event and selected this challenge. The partner emphasized two points:
+
+- Keep the UI/UX simple and use a visualization to show the customer why the answer was produced.
+- Solve a technical, specific subproblem well. Metric and material measurements are especially relevant to construction engineers. A general chatbot that answers broadly is not the goal.
+
+The partner said they have an internal model that works poorly, but could not share information about it. The team's idea of using vision models to answer quickly from images is a hypothesis, not a partner suggestion or requirement. A prototype should make measurements and their supporting drawing evidence visible and checkable.
 | 12 | AI Glasses for Everyone, Everyday | Inference: a practical wearable AI or AR experience, possibly accessibility or hands-free assistance. | Complete one everyday task using the provided glasses and their supported inputs. | Device, SDK, hardware access and whether a phone/browser substitute is allowed. |
 | 13 | Beyond the Clinic | Inference: support outside clinical visits, such as follow-up, care coordination or home monitoring. No specific sponsor mapping is confirmed. | Turn a supplied fictional care plan into a clear follow-up checklist and handoff summary. | Target population, clinical versus administrative scope and approved data. |
 | 14 | Equal Care Across Finland | Inference: improve access to care across regions, languages or patient groups. | Compare service availability and explain one access gap using provided or approved public data. | Intended inequality, Finnish datasets, geographical scope and success metric. |
