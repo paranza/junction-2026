@@ -58,7 +58,13 @@ def _measurement_language_supported(question, labels=()):
         if _normal(quoted[1:-1]) not in known:
             return False
     for label in sorted(known, key=len, reverse=True):
-        q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
+        if re.fullmatch(r"\d+", label):
+            # A numeric room name is consumed only in an explicit selector.
+            # Removing every known number can erase an unresolved second room
+            # or a numeric size/floor condition.
+            q = re.sub(r"\b(?:rooms?|spaces?)\s+['\"]?"+re.escape(label)+r"['\"]?(?!\w)", " room ", q)
+        else:
+            q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
     exclusion = re.search(r"\b(?:excluding|except|without|ohne|esclusi|exclus)\b(.+)$", q)
     if exclusion:
         outdoor_words = set("balcony balconies balcon loggia loggias terrace terraces outdoor outdoors spaces space shafts shaft void voids other and or all the any balconies loggien terrassen balkone cavedi vuoti".split())
@@ -303,7 +309,10 @@ def _native_ifc(question, document, source_path, root):
                 selected.append(room)
         if not selected:
             selected = [o for o in rooms if len(_compact(o.get("label"))) > 3 and _normal(o.get("label")) in q]
-        identifier = re.search(r"\b(?:room|space)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
+        identifiers = re.findall(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
+        if len(identifiers) > 1:
+            return None
+        identifier = re.search(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
         if identifier:
             selected = [o for o in rooms if identifier.group(1) in {
                 _normal(o.get("properties", {}).get("name")), _normal(o.get("properties", {}).get("room_number"))}]

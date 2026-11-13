@@ -54,6 +54,9 @@ class NativeQuantityQuality(unittest.TestCase):
         rooms = [{'id':f'r{i}', 'type':'IfcSpace', 'label':'Office', 'properties':{'name':str(i), 'net_area_m2':10}} for i in (1,2)]
         self.assertIsNone(self.answer('What is the area of room Office in m²?', rooms))
         self.assertIsNone(self.answer('What is the total area of all rooms 999 in m²?', rooms))
+        self.assertIsNone(self.answer('What is the total area of room 1 and 2 in m²?', rooms))
+        self.assertIsNone(self.answer('What is the total area of room 1 and room 2 in m²?', rooms))
+        self.assertEqual(self.answer('What is the area of room 1 in m²?', rooms)['value'], 10)
         self.assertEqual(self.answer('What is the total area of all rooms Office in m²?', rooms)['value'], 20)
 
     def test_project_records_are_native_fields(self):
