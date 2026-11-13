@@ -58,3 +58,48 @@ export function aggregateUsage(value) {
   total.cost_basis = value.every(item => item.cost_basis === 'native') ? 'native' : total.cost_estimate_usd == null ? 'unconfigured' : 'configured_rates';
   return total;
 }
+
+
+export const reviewCategories = ['door', 'window', 'apartment', 'toilet', 'sink', 'bathtub', 'shower', 'bedroom', 'kitchen', 'balcony', 'sauna', 'bathroom', 'room', 'sanitary_fixture', 'wall', 'column', 'beam', 'stair', 'storey'];
+
+export function canonicalCategory(value) {
+  const key = String(value || '').toLowerCase().replace(/[^a-z]/g, '');
+  const aliases = {
+    ifcdoor: 'door', scheduledoor: 'door', doorswing: 'door', doors: 'door',
+    ifcwindow: 'window', windows: 'window',
+    unit: 'apartment', units: 'apartment', apartments: 'apartment', residentialunit: 'apartment',
+    washbasin: 'sink', washbasins: 'sink', sinks: 'sink', toilets: 'toilet', wc: 'toilet',
+    bathtubs: 'bathtub', showers: 'shower', bedrooms: 'bedroom', kitchens: 'kitchen',
+    balconies: 'balcony', saunas: 'sauna', bathrooms: 'bathroom',
+    ifcspace: 'room', space: 'room', spaces: 'room', scheduleroom: 'room', rooms: 'room',
+    ifcsanitaryterminal: 'sanitary_fixture', sanitaryfixture: 'sanitary_fixture', sanitaryfixtures: 'sanitary_fixture',
+    ifcwall: 'wall', ifcwallstandardcase: 'wall', walls: 'wall',
+    ifccolumn: 'column', columns: 'column', ifcbeam: 'beam', beams: 'beam',
+    ifcstair: 'stair', ifcstairflight: 'stair', stairs: 'stair',
+    ifcbuildingstorey: 'storey', storeys: 'storey', stories: 'storey',
+  };
+  return aliases[key] || reviewCategories.find(category => category.replaceAll('_', '') === key) || null;
+}
+
+export function countedCategory(answer) {
+  const explicit = canonicalCategory(answer?.category || answer?.calculation?.category);
+  if (explicit) return explicit;
+  const evidence = originalEvidence(answer);
+  const categories = new Set(evidence.map(item => canonicalCategory(item.category || item.type)));
+  if (evidence.length && categories.size === 1 && !categories.has(null)) return [...categories][0];
+  const classes = answer?.calculation?.classes;
+  if (Array.isArray(classes)) {
+    const specific = classes.filter(value => !String(value).startsWith('Ifc')).map(canonicalCategory).filter(Boolean);
+    if (specific.length === 1) return specific[0];
+    const resolved = new Set(classes.map(canonicalCategory));
+    if (resolved.size === 1 && !resolved.has(null)) return [...resolved][0];
+  }
+  return null;
+}
+
+export function usageLabel(answer) {
+  const usage = answer?.usage;
+  if (usage?.cache_hit) return 'Saved answer reused';
+  if (answer?.inventory_cache_hit || usage?.inventory_cache_hit) return 'Prepared visual inventory reused';
+  return Number.isFinite(usage?.model_calls) && usage.model_calls === 0 ? 'Native source tools' : 'Model analysis';
+}

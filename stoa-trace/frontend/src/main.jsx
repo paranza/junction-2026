@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage } from './reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, reviewCategories, usageLabel } from './reviewState.js';
 
 const request = async (url, options = {}) => {
   const response = await fetch(url, options);
@@ -213,7 +213,7 @@ function UsageDetails({ answer }) {
   const initial = aggregateUsage(answer?.ingestion_usage || usage?.ingestion_usage);
   const callsKnown = Number.isFinite(usage?.model_calls);
   if (!usage) return null;
-  return <details className="usage-details"><summary>{usage.cache_hit ? 'Saved answer reused' : usage.inventory_cache_hit ? 'Prepared visual inventory reused' : callsKnown && usage.model_calls === 0 ? 'Native source tools' : 'Model analysis'} · {callsKnown ? `${usage.model_calls} model ${usage.model_calls === 1 ? 'call' : 'calls'}` : 'Call count unavailable'}</summary>
+  return <details className="usage-details"><summary>{usageLabel(answer)} · {callsKnown ? `${usage.model_calls} model ${usage.model_calls === 1 ? 'call' : 'calls'}` : 'Call count unavailable'}</summary>
     <dl><dt>This question</dt><dd>{costText(usage)}</dd><dt>Input / output tokens</dt><dd>{Number(usage.input_tokens || 0).toLocaleString()} / {Number(usage.output_tokens || 0).toLocaleString()}</dd>{Number(usage.cached_input_tokens || 0) > 0 && <><dt>Cached input tokens</dt><dd>{Number(usage.cached_input_tokens).toLocaleString()}</dd></>}{answer.model && <><dt>Model</dt><dd>{answer.model}</dd></>}{initial && <><dt>Initial visual extraction</dt><dd>{Number(initial.model_calls || 0)} calls · {costText(initial)}</dd></>}</dl>
     <p>{usage.cost_estimate_usd == null && usage.cost_basis !== 'native' ? 'No token prices are configured. Usage is recorded; dollar cost is unknown.' : usage.cost_basis === 'native' ? 'No model inference was needed. Hosting and storage costs are separate.' : 'Estimate uses configured token rates, not a provider invoice.'}</p>
   </details>;
@@ -221,7 +221,7 @@ function UsageDetails({ answer }) {
 
 function ReconciliationDetails({ result, onSelect }) {
   if (!result) return null;
-  return <section className={`reconciliation reconciliation-${result.status}`} aria-label="Count comparison"><div><strong>{({ agreement: 'Counts agree', disagreement: 'Counts disagree', scope_mismatch: 'Different scopes', unavailable: 'Comparison unavailable' })[result.status] || 'Count comparison'}</strong><span>{readable(result.status)}</span></div>{result.native_value != null && <dl><dt>Native source</dt><dd>{result.native_value} {result.unit || 'count'}</dd><dt>Visual candidates</dt><dd>{result.visual_value == null ? 'Unavailable' : `${result.visual_value} ${result.unit || 'count'}`}</dd></dl>}<p>{result.reason || 'Agreement between methods does not independently prove completeness.'}</p>{arrayOf(result.evidence).length > 0 && <details><summary>Inspect comparison candidates ({result.evidence.length})</summary>{result.evidence.map((item, index) => <button type="button" key={item.id || index} onClick={() => onSelect({ ...item, _key: `comparison-${item.id || index}`, _number: index + 1 })}><Eye size={14} /><span>{item.label || `Candidate ${index + 1}`}</span>{evidenceBBox(item) ? <Crosshair size={13} /> : <span>Record</span>}</button>)}</details>}</section>;
+  return <section className={`reconciliation reconciliation-${result.status}`} aria-label="Count comparison"><div><strong>{({ agreement: 'Counts agree', disagreement: 'Counts disagree', scope_mismatch: 'Different scopes', unavailable: 'Comparison unavailable' })[result.status] || 'Count comparison'}</strong><span>{readable(result.status)}</span></div>{result.native_value != null && <dl><dt>{result.native_label || 'Native source'}</dt><dd>{result.native_value} {result.unit || 'count'}</dd><dt>{result.visual_label || 'Visual candidates'}</dt><dd>{result.visual_value == null ? 'Unavailable' : `${result.visual_value} ${result.unit || 'count'}`}</dd></dl>}<p>{result.reason || 'Agreement between methods does not independently prove completeness.'}</p>{arrayOf(result.evidence).length > 0 && <details><summary>Inspect comparison candidates ({result.evidence.length})</summary>{result.evidence.map((item, index) => <button type="button" key={item.id || index} onClick={() => onSelect({ ...item, _key: `comparison-${item.id || index}`, _number: index + 1 })}><Eye size={14} /><span>{item.label || `Candidate ${index + 1}`}</span>{evidenceBBox(item) ? <Crosshair size={13} /> : <span>Record</span>}</button>)}</details>}</section>;
 }
 
 function App() {
@@ -289,6 +289,7 @@ function App() {
   const warnings = arrayOf(answer?.warnings);
   const resultStatus = getStatus(answer);
   const reviewedCount = reviewCount(answer, manualAdditions, excluded);
+  const knownManualCategory = countedCategory(answer);
   const hasReviewChanges = !!answer && reviewFingerprint(excluded, manualAdditions, reviewNote) !== reviewFingerprint(savedExclusions(answer), savedAdditions(answer), answer.review?.note || '');
   const cancelAsk = useCallback((showNotice = false) => {
     const active = activeAskRef.current;
@@ -402,10 +403,9 @@ function App() {
   const restoreOriginal = () => { snapshotReview(); setExcluded([]); setManualAdditions([]); setReviewNote(''); cancelManual(); };
   const startManual = () => {
     if (!answer?.can_review) return;
-    const first = evidence[0];
-    const category = String(first?.category || first?.type || first?.label || '').toLowerCase();
-    setManualCategory(['door', 'window', 'toilet', 'sink', 'bathtub', 'shower', 'room'].find(kind => category.includes(kind)) || 'other');
-    setManualLabel(''); setManualNote(''); setManualError('');
+    const category = countedCategory(answer);
+    setManualCategory(category || 'other');
+    setManualLabel(category ? `Missing ${readable(category)}` : ''); setManualNote(''); setManualError('');
     setPendingManual({ document_id: selectedId, page, bbox: [0.45, 0.45, 0.55, 0.55] }); setManualMode(true);
     requestAnimationFrame(() => manualLabelRef.current?.focus());
   };
@@ -416,7 +416,7 @@ function App() {
     if (!box || box.length !== 4 || !box.every(value => Number.isFinite(value) && value >= 0 && value <= 1) || box[0] >= box[2] || box[1] >= box[3]) { setManualError('Use page coordinates from 0 to 1, with left less than right and top less than bottom.'); return; }
     snapshotReview();
     const id = `manual-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
-    const item = { id, label: manualLabel.trim(), category: manualCategory, ...pendingManual, note: manualNote.trim(), manual: true };
+    const item = { id, label: manualLabel.trim(), category: knownManualCategory || manualCategory, ...pendingManual, note: manualNote.trim(), manual: true };
     setManualAdditions(items => [...items, item]); setSelectedEvidence(id); setFocusToken(value => value + 1); cancelManual();
   };
   const review = async () => {
@@ -502,7 +502,7 @@ function App() {
                   <div><strong>Mark a missed object</strong><button type="button" onClick={cancelManual} aria-label="Cancel missing object"><X size={16} /></button></div>
                   <p>Drag a box or click the drawing. You can also enter page coordinates below.</p>
                   <label>Object label<input ref={manualLabelRef} value={manualLabel} maxLength={160} onChange={event => setManualLabel(event.target.value)} placeholder="For example, window beside room 5.11" required /></label>
-                  <label>Category<select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{['door', 'window', 'toilet', 'sink', 'bathtub', 'shower', 'room', 'other'].map(kind => <option key={kind} value={kind}>{kind[0].toUpperCase() + kind.slice(1)}</option>)}</select></label>
+                  <label>Count category{knownManualCategory ? <><input value={readable(knownManualCategory)} readOnly aria-label="Count category, fixed by original answer" /><small>Matches the original count. Add an object of this category.</small></> : <select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{[...reviewCategories, 'other'].map(kind => <option key={kind} value={kind}>{readable(kind)[0].toUpperCase() + readable(kind).slice(1)}</option>)}</select>}</label>
                   <fieldset><legend>Object bounds · page coordinates from 0 to 1</legend><div>{['Left', 'Top', 'Right', 'Bottom'].map((label, index) => <label key={label}>{label}<input type="number" min="0" max="1" step="0.001" value={pendingManual.bbox[index]} onChange={event => setPendingManual(current => ({ ...current, bbox: current.bbox.map((value, i) => i === index ? Number(event.target.value) : value) }))} required /></label>)}</div></fieldset>
                   <label>Object note (optional)<input value={manualNote} maxLength={500} onChange={event => setManualNote(event.target.value)} /></label>
                   {manualError && <p className="manual-error" role="alert">{manualError}</p>}

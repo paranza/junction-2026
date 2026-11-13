@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -55,4 +55,23 @@ test('per-page initial usage is aggregated without treating unknown costs as fre
   assert.equal(combined.output_tokens, 60);
   assert.equal(combined.cost_estimate_usd, null);
   assert.equal(aggregateUsage([]), null);
+});
+
+
+test('manual additions inherit the counted category, including zero counts and IFC records', () => {
+  assert.equal(countedCategory({ category: 'window', value: 0, evidence: [] }), 'window');
+  assert.equal(countedCategory({ evidence: [{ type: 'IfcDoor' }, { type: 'IfcDoor' }] }), 'door');
+  assert.equal(countedCategory({ evidence: [{ type: 'apartment' }] }), 'apartment');
+  assert.equal(countedCategory({ evidence: [{ type: 'washbasin' }] }), 'sink');
+  assert.equal(countedCategory({ calculation: { classes: ['IfcSanitaryTerminal', 'washbasin'] }, evidence: [] }), 'sink');
+  assert.equal(countedCategory({ evidence: [{ type: 'door' }, { type: 'window' }] }), null);
+  assert.equal(countedCategory({ evidence: [{ label: 'Door beside lobby' }] }), null);
+  assert.equal(canonicalCategory('sanitary_fixture'), 'sanitary_fixture');
+});
+
+test('reused visual inventory is never labelled native just because follow-up uses zero calls', () => {
+  assert.equal(usageLabel({ inventory_cache_hit: true, usage: { model_calls: 0 } }), 'Prepared visual inventory reused');
+  assert.equal(usageLabel({ usage: { inventory_cache_hit: true, model_calls: 0 } }), 'Prepared visual inventory reused');
+  assert.equal(usageLabel({ inventory_cache_hit: true, usage: { cache_hit: true, model_calls: 0 } }), 'Saved answer reused');
+  assert.equal(usageLabel({ usage: { model_calls: 0 } }), 'Native source tools');
 });
