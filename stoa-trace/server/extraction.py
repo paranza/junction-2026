@@ -630,7 +630,7 @@ def _ifc_explicit_quantities(entity, metadata):
                 factor = metadata[dimension+"_unit_scale"]
                 unit_basis = "project "+dimension.upper()+"UNIT"
             raw = getattr(quantity, {"area": "AreaValue", "length": "LengthValue", "volume": "VolumeValue"}[dimension], None)
-            if type(raw) not in (int, float) or not math.isfinite(raw) or raw < 0 or not math.isfinite(factor) or factor <= 0:
+            if type(raw) not in (int, float) or not math.isfinite(raw) or raw < 0 or factor is None or not math.isfinite(factor) or factor <= 0:
                 continue
             value = float(raw)*factor
             path = f"{definition.Name}.{quantity.Name}"
@@ -659,11 +659,18 @@ def _ifc(path, root):
     model = ifcopenshell.open(str(path))
     prefix = _uid(path, root)
     storeys = model.by_type("IfcBuildingStorey")
+    projects = model.by_type("IfcProject")
+    units = getattr(projects[0], "UnitsInContext", None) if projects else None
+    assigned_types = {getattr(u, "UnitType", None) for u in units.Units} if units else set()
+    def project_unit_scale(kind):
+        # The library returns 1 for an absent assignment. Absence is not proof
+        # of an SI unit; keep quantities with unknown dimensional units absent.
+        return unit_util.calculate_unit_scale(model, kind) if kind in assigned_types else None
     result["metadata"].update({"schema": model.schema, "storeys": [
         {"guid": s.GlobalId, "name": s.Name, "elevation": s.Elevation} for s in storeys],
-        "linked_views": [], "length_unit_scale": unit_util.calculate_unit_scale(model),
-        "area_unit_scale": unit_util.calculate_unit_scale(model, "AREAUNIT"),
-        "volume_unit_scale": unit_util.calculate_unit_scale(model, "VOLUMEUNIT")})
+        "linked_views": [], "length_unit_scale": project_unit_scale("LENGTHUNIT"),
+        "area_unit_scale": project_unit_scale("AREAUNIT"),
+        "volume_unit_scale": project_unit_scale("VOLUMEUNIT")})
     projections = {}
     from .rendering import visual_sources
     views = visual_sources(path)
@@ -728,7 +735,7 @@ def _ifc(path, root):
                                 continue
                             candidates.append((0 if normalized_name.startswith("net") else 1,
                                                parsed, f"{set_name}.{property_name}"))
-                if candidates:
+                if candidates and result["metadata"]["area_unit_scale"] is not None:
                     _, value, property_path = min(candidates)
                     props["net_area_m2"] = value * result["metadata"]["area_unit_scale"]
                     props["area_source"] = property_path
@@ -759,8 +766,11 @@ def _ifc(path, root):
         # Dimensions are model length units, separate from area quantities.
         for key in ("OverallWidth", "OverallHeight"):
             value = getattr(entity, key, None)
-            if value is not None:
+            if value is not None and result["metadata"]["length_unit_scale"] is not None:
                 props[key] = value * result["metadata"]["length_unit_scale"]
+            elif value is not None:
+                props[key+"_raw"] = value
+                props["dimension_warning"] = "No project LENGTHUNIT assignment; raw dimensions are not SI quantities."
         label = " · ".join(str(v) for v in (props.get("name"), props.get("long_name")) if v) or entity.is_a()
         obj = {"id": f"{prefix}:{guid}", "guid": guid, "type": entity.is_a(),
                "label": label, "page": 1, "source_path": relative_path(path, root), "properties": props}

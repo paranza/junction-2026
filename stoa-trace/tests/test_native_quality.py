@@ -19,6 +19,7 @@ class NativeQuantityQuality(unittest.TestCase):
         del room['properties']['gross_area_m2']
         self.assertIsNone(self.answer('What is the gross floor area of room Office?', [room]))
         self.assertIsNone(self.answer('What is the net floor area of room Office with wooden walls?', [room]))
+        self.assertIsNone(self.answer('What is the net and gross floor area of room Office?', [room]))
 
     def test_all_schedule_constraints_are_consumed(self):
         rows = [{'id':f'd{i}', 'type':'schedule_door', 'label':f'Door 100.{i}', 'properties':{
@@ -49,6 +50,12 @@ class NativeQuantityQuality(unittest.TestCase):
         del walls[0]['properties']['length_m']
         self.assertIsNone(self.answer('What is the total length of all walls in the model?',walls))
 
+    def test_ambiguous_room_and_leftover_numeric_selector_abstain(self):
+        rooms = [{'id':f'r{i}', 'type':'IfcSpace', 'label':'Office', 'properties':{'name':str(i), 'net_area_m2':10}} for i in (1,2)]
+        self.assertIsNone(self.answer('What is the area of room Office in m²?', rooms))
+        self.assertIsNone(self.answer('What is the total area of all rooms 999 in m²?', rooms))
+        self.assertEqual(self.answer('What is the total area of all rooms Office in m²?', rooms)['value'], 20)
+
     def test_project_records_are_native_fields(self):
         rows = [{'id':'p','type':'IfcProject','label':'Project','properties':{'name':'Real project'}},
                 {'id':'s','type':'IfcSite','label':'Site','properties':{'name':'Site A','RefLatitude':[60,10,1]}}]
@@ -75,6 +82,13 @@ class NativeQuantityQuality(unittest.TestCase):
         props=next(o for o in doc['objects'] if o['type']=='IfcWall')['properties']
         self.assertEqual(props['length_m'],2); self.assertEqual(props['net_volume_m3'],3)
         self.assertEqual(props['quantity_sources']['length_m']['property_path'],'Qto_WallBaseQuantities.Length')
+        # A missing unit assignment cannot silently become metres.
+        model.by_type('IfcProject')[0].UnitsInContext = None
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'unitless.ifc'; model.write(path)
+            doc=extract_document(path,Path(folder))
+        props=next(o for o in doc['objects'] if o['type']=='IfcWall')['properties']
+        self.assertNotIn('length_m',props); self.assertNotIn('net_volume_m3',props)
 
 class SwissExporterCompatibility(unittest.TestCase):
     def drawing(self,semantic=True):

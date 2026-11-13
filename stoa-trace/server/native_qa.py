@@ -67,12 +67,16 @@ def _measurement_language_supported(question, labels=()):
         q = q[:exclusion.start()]+" outdoor "
     if re.search(r"[<>]|\b(?:more than|less than|between|over|under|at least|at most|only|with|whose|having|except)\b", q):
         return False
+    if re.search(r"\d", re.sub(r"\b(?:m|ft)[23]\b", "", q)):
+        return False
     safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
     return all(word in safe for word in re.findall(r"[a-z]+", q))
 
 
 def _quantity_key(question, target):
     q = _normal(question)
+    if re.search(r"\bnet\b", q) and re.search(r"\bgross\b", q):
+        return None
     if re.search(r"\bvolume\b", q):
         return "gross_volume_m3" if re.search(r"\bgross\b", q) else "net_volume_m3" if re.search(r"\bnet\b", q) else None
     if re.search(r"\blength\b", q):
@@ -307,6 +311,8 @@ def _native_ifc(question, document, source_path, root):
                 return None
         if not selected and re.search(r"\b(?:all|total)\b", q):
             selected = rooms
+        if len(selected) > 1 and not re.search(r"\b(?:all|total|sum|combined|rooms labelled|rooms labeled|rooms named)\b", q):
+            return None
         if selected and all(_finite_quantity(o, key) for o in selected):
             total = round(sum(o["properties"][key] for o in selected), 4)
             unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
@@ -394,6 +400,8 @@ def _native_cad(question, document):
                   and o["properties"].get("spatial_kind") != "shaft_or_void"]
     if not chosen or not all("net_area_m2" in o["properties"] for o in chosen):
         return None
+    if len(chosen) > 1 and not re.search(r"\b(?:all|total|sum|summing|combined|apartment|wohnung|appartamento|rooms labelled|rooms labeled|rooms named)\b", q):
+        return None
     terms = [o["properties"]["net_area_m2"] for o in chosen]
     total = round(sum(terms), 4)
     result = _result(total, "m²", chosen, "native_cad_area_annotations", "Selected floor drawing",
@@ -439,7 +447,7 @@ def _schedule_language_supported(question, consumed=(), labels=()):
             q = q.replace(_normal(text), " ")
     for label in labels:
         q = re.sub(r"(?<!\w)"+re.escape(_normal(label))+r"(?!\w)", " ", q)
-    if re.search(r"[<>]", q):
+    if re.search(r"[<>]", q) or re.search(r"\d", re.sub(r"\b(?:m|ft)[23]\b", "", q)):
         return False
     safe = set("how many what is are the a an of for in on at this that selected all total combined sum number numbers doors door rooms room schedule schedules finish listed list have has with which that do does shown area areas width height hardware material type group and from to square feet foot ft sf m sqm meters metres mm cm named labelled labeled floor base notes note".split())
     return all(token in safe for token in re.findall(r"[a-z]+", q))
