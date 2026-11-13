@@ -1,0 +1,810 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-13T22:53:54.961087+00:00",
+  "mode": "vision",
+  "suite": "full",
+  "dry_run": false,
+  "manifest": "/Users/mazz/Documents/ChatGPT/stoa-junction-2026/ops/benchmark-config.json",
+  "manifest_sha256": "053bde068a0747ba53d9697f9407e5d548cc81e4eab1315679eaf18a04c53412",
+  "base_url": "http://127.0.0.1:8787",
+  "selected_cases": 3,
+  "validation": {
+    "manifest_hash_valid": true,
+    "local_labels_checked": true,
+    "missing_drawing_paths": []
+  },
+  "case_ids": [
+    "stoa-f11b23fc14c5",
+    "stoa-c238f3b0dd7b",
+    "stoa-8345b9b3fde2"
+  ],
+  "selected_groups": [
+    "cubicasa5k:high_quality_architectural-10370",
+    "opening_design:Sports_Complex",
+    "swiss_dwellings:site1102_bldg2242"
+  ],
+  "selection_by_source_type": {
+    "swiss_dwellings/area": 1,
+    "opening_design/area": 1,
+    "cubicasa5k/count": 1
+  },
+  "evaluation_limits": [
+    "This stratified diagnostic sample deliberately oversamples rare task types; its percentage is not an estimate of full-dataset or competition accuracy.",
+    "Preview labels may themselves contain ambiguity or errors; results compare with supplied labels, not independent engineering ground truth.",
+    "Geometry checks validate finite normalized coordinates, nondegenerate shapes, pages and IDs only. They do not verify cited content, count completeness, actual source alignment, or semantic correctness.",
+    "Unprojected native IFC source IDs are legitimate evidence references but cannot count as 2D highlight coverage.",
+    "All gold labels remain exclusively in evaluator/config/report files and are never included in inference requests.",
+    "Auto/vision execution requires explicit operator opt-in and is capped at five questions per invocation; native is the zero-API default."
+  ],
+  "results": [
+    {
+      "id": "stoa-f11b23fc14c5",
+      "path": "data/swiss_dwellings/site1102_bldg2242_floor10281.pdf",
+      "question": "What is the net floor area of room 5.11 ('Stanza') in m²?",
+      "expected": 13.62,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1102_bldg2242",
+      "source_line": 5653,
+      "request_attempted": true,
+      "client_duration_ms": 5610.705,
+      "response": {
+        "answer": "13.62 m², calculated from the cited source quantities.",
+        "value": 13.62,
+        "unit": "m²",
+        "operation": "area",
+        "method": "vision",
+        "status": "visual",
+        "scope": "Document, page 1: room 5.11 ('Stanza'), net floor area.",
+        "evidence": [
+          {
+            "id": "e78997fba9d7:9E",
+            "type": "room",
+            "label": "5.11 — Stanza",
+            "page": 1,
+            "bbox": [
+              0.366678,
+              0.491148,
+              0.479165,
+              0.588193
+            ],
+            "polygon": [
+              [
+                0.366678,
+                0.588193
+              ],
+              [
+                0.366678,
+                0.491148
+              ],
+              [
+                0.479165,
+                0.491148
+              ],
+              [
+                0.479165,
+                0.588193
+              ]
+            ],
+            "source_path": "data/swiss_dwellings/site1102_bldg2242_floor10281.pdf",
+            "properties": {
+              "layer": "ROOM_OUTLINE",
+              "cad_handle": "9E",
+              "room_number": "5.11",
+              "cad_anchor": [
+                -2.511334366121862,
+                -3.2841476796747866
+              ],
+              "net_area_m2": 13.62,
+              "area_source": "native room area annotation",
+              "native_source_path": "data/swiss_dwellings/site1102_bldg2242_floor10281.dxf",
+              "projection_mean_error": 6.1e-05
+            },
+            "quoted_text": "Stanza\n5.11\n13.62 m²",
+            "value": 13.62,
+            "unit": "m²",
+            "document_id": "b0b40fab711b0231be5c"
+          }
+        ],
+        "calculation": "13.62 = 13.62 m²",
+        "warnings": [],
+        "can_review": false,
+        "coverage": {
+          "inspected_pages": [
+            1
+          ],
+          "total_pages": 1,
+          "complete_scope_claimed": true
+        },
+        "model": "gpt-6-astra",
+        "usage": {
+          "input_tokens": 26899,
+          "input_tokens_details": {
+            "cache_write_tokens": 26896,
+            "cached_tokens": 0
+          },
+          "output_tokens": 157,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 27056
+        },
+        "question": "What is the net floor area of room 5.11 ('Stanza') in m²?",
+        "document_id": "b0b40fab711b0231be5c",
+        "document": {
+          "id": "b0b40fab711b0231be5c",
+          "path": "data/swiss_dwellings/site1102_bldg2242_floor10281.pdf",
+          "name": "site1102_bldg2242_floor10281.pdf",
+          "format": "pdf",
+          "source": "swiss_dwellings",
+          "size": 47826,
+          "mtime": 1793890122.0,
+          "indexed": true,
+          "page_count": 1,
+          "error": null,
+          "uploaded": false
+        },
+        "id": "c0c527a4053042cf90fe324358c42b9a",
+        "duration_ms": 5604,
+        "attribution": "# swiss_dwellings\n\nFloor plans drawn by us from Swiss Dwellings v3.0.0 by Matthias Standfest, Michael Franzen, Yvonne Schröder,\nLuis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck, Yen-Ling Tan, Milena Niedzwiecka,\nRachele Colmegna (Archilyse AG), https://doi.org/10.5281/zenodo.7788422, licensed under CC BY 4.0\n(https://creativecommons.org/licenses/by/4.0/).\n\nChanges: the PDF, DXF and PNG drawings were rendered by us from the published geometry. We added the\ndrawing style, room and unit numbers, room names in an assigned language (de, fr or it), door swings and\nthe title block. Archilyse AG does not endorse these drawings. They are shared under CC BY 4.0.\n\nAll files: CC-BY-4.0. Credit: Swiss Dwellings v3.0.0 by Matthias Standfest, Michael Franzen, Yvonne Schröder, Luis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck, Yen-Ling Tan, Milena Niedzwiecka, Rachele Colmegna (Archilyse AG), doi:10.5281/zenodo.7788422, CC BY 4.0. Drawing rendered by us from the dataset geometry (derived work; labels, language and numbering added).",
+        "provenance": {
+          "source_path": "data/swiss_dwellings/site1102_bldg2242_floor10281.pdf",
+          "file_size": 47826,
+          "file_modified": 1793890122.0,
+          "scope": "document",
+          "page": 1,
+          "region": null,
+          "question_source": "user"
+        }
+      },
+      "score": {
+        "answered": true,
+        "correct": true,
+        "outcome": "correct",
+        "value_in_expected_unit": 13.62,
+        "absolute_error": 0.0,
+        "relative_error": 0.0,
+        "allowed_absolute_error": 0.2724
+      },
+      "evidence_validation": {
+        "items": 1,
+        "valid_boxes": 1,
+        "invalid_boxes": 0,
+        "valid_polygons": 1,
+        "invalid_polygons": 0,
+        "items_without_geometry": 0,
+        "items_with_source_id": 1,
+        "invalid_pages": 0,
+        "non_object_items": 0,
+        "duplicate_source_ids": 0,
+        "polygon_outside_bbox": 0,
+        "schema_valid": true,
+        "geometry_present": true,
+        "geometry_valid": true
+      }
+    },
+    {
+      "id": "stoa-c238f3b0dd7b",
+      "path": "data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf",
+      "question": "On sheet A-801 of the Xcel Sports Complex drawings, what is the area of room 128 (Fieldhouse) in the finish room schedule?",
+      "expected": 29690,
+      "unit": "ft2",
+      "type": "area",
+      "source": "opening_design",
+      "group": "opening_design:Sports_Complex",
+      "source_line": 5593,
+      "request_attempted": true,
+      "client_duration_ms": 8182.796,
+      "response": {
+        "answer": "29690 SF, calculated from the cited source quantities.",
+        "value": 29690,
+        "unit": "SF",
+        "operation": "area",
+        "method": "vision",
+        "status": "visual",
+        "scope": "Sheet A-801, page 1, Finish Room Schedule, room 128 (FIELDHOUSE); scheduled area, not a geometric measurement.",
+        "evidence": [
+          {
+            "id": "eb1d713b3697:p1:room:128",
+            "type": "schedule_room",
+            "label": "Room 128 · FIELDHOUSE",
+            "page": 1,
+            "bbox": [
+              0.046111,
+              0.619489,
+              0.218938,
+              0.625247
+            ],
+            "properties": {
+              "room_number": "128",
+              "room_name": "FIELDHOUSE",
+              "area_ft2": 29690.0,
+              "floor_finish": "F2 F3",
+              "base_finish": "B1",
+              "cells": [
+                29690.0,
+                "FIELDHOUSE",
+                "F2 F3",
+                "B1"
+              ]
+            },
+            "source_path": "data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf",
+            "quoted_text": "29690 SF\n128\nFIELDHOUSE",
+            "value": 29690,
+            "unit": "SF",
+            "document_id": "074ec85f504ff6977ba3"
+          }
+        ],
+        "calculation": "29690 = 29690 SF",
+        "warnings": [],
+        "can_review": false,
+        "coverage": {
+          "inspected_pages": [
+            1
+          ],
+          "total_pages": 1,
+          "complete_scope_claimed": true
+        },
+        "model": "gpt-6-astra",
+        "usage": {
+          "input_tokens": 34182,
+          "input_tokens_details": {
+            "cache_write_tokens": 34179,
+            "cached_tokens": 0
+          },
+          "output_tokens": 208,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 34390
+        },
+        "question": "On sheet A-801 of the Xcel Sports Complex drawings, what is the area of room 128 (Fieldhouse) in the finish room schedule?",
+        "document_id": "074ec85f504ff6977ba3",
+        "document": {
+          "id": "074ec85f504ff6977ba3",
+          "path": "data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf",
+          "name": "A-801 - Door and Finish Schedules & Wall Types.pdf",
+          "format": "pdf",
+          "source": "opening_design",
+          "size": 440698,
+          "mtime": 1793889402.0,
+          "indexed": true,
+          "page_count": 1,
+          "error": null,
+          "uploaded": false
+        },
+        "id": "f702d9b8d2f54c258bf70ff55cd7e596",
+        "duration_ms": 8173,
+        "attribution": "| Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf | A-801 - Door and Finish Schedules & Wall Types | CC-BY-SA-4.0 | OpeningDesign, Sports_Complex (https://github.com/OpeningDesign/Sports_Complex); attribution to the entire project team | https://github.com/OpeningDesign/Sports_Complex/blob/master/Sheets%20-%20Current%20Set/A-801%20-%20Door%20and%20Finish%20Schedules%20%26%20Wall%20Types.pdf |\n| Sports_Complex/Transfer/_Archive/20150814 - Issued for Permit/XSC - A-801 - Door and Finish Schedules & Wall Types.pdf | XSC - A-801 - Door and Finish Schedules & Wall Types | CC-BY-SA-4.0 | OpeningDesign, Sports_Complex (https://github.com/OpeningDesign/Sports_Complex); attribution to the entire project team | https://github.com/OpeningDesign/Sports_Complex/blob/master/Transfer/_Archive/20150814%20-%20Issued%20for%20Permit/XSC%20-%20A-801%20-%20Door%20and%20Finish%20Schedules%20%26%20Wall%20Types.pdf |",
+        "provenance": {
+          "source_path": "data/opening_design/Sports_Complex/Sheets - Current Set/A-801 - Door and Finish Schedules & Wall Types.pdf",
+          "file_size": 440698,
+          "file_modified": 1793889402.0,
+          "scope": "document",
+          "page": 1,
+          "region": null,
+          "question_source": "user"
+        }
+      },
+      "score": {
+        "answered": true,
+        "correct": true,
+        "outcome": "correct",
+        "value_in_expected_unit": 29690.0,
+        "absolute_error": 0.0,
+        "relative_error": 0.0,
+        "allowed_absolute_error": 593.8000000000001
+      },
+      "evidence_validation": {
+        "items": 1,
+        "valid_boxes": 1,
+        "invalid_boxes": 0,
+        "valid_polygons": 0,
+        "invalid_polygons": 0,
+        "items_without_geometry": 0,
+        "items_with_source_id": 1,
+        "invalid_pages": 0,
+        "non_object_items": 0,
+        "duplicate_source_ids": 0,
+        "polygon_outside_bbox": 0,
+        "schema_valid": true,
+        "geometry_present": true,
+        "geometry_valid": true
+      }
+    },
+    {
+      "id": "stoa-8345b9b3fde2",
+      "path": "data/cubicasa5k/high_quality_architectural-10370.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-10370",
+      "source_line": 1219,
+      "request_attempted": true,
+      "client_duration_ms": 26044.02,
+      "response": {
+        "answer": "4 located candidates. Review the marked objects to confirm the interpretation and coverage.",
+        "value": 4,
+        "unit": "count",
+        "operation": "count",
+        "method": "vision",
+        "status": "needs_review",
+        "scope": "Page 1, entire supplied floor-plan image.",
+        "evidence": [
+          {
+            "id": "vision-1",
+            "label": "Top-wall window",
+            "page": 1,
+            "bbox": [
+              0.635,
+              0.03,
+              0.895,
+              0.058
+            ],
+            "quoted_text": "",
+            "value": 1,
+            "unit": "window",
+            "document_id": "a13872e93b632ad0e0b3"
+          },
+          {
+            "id": "vision-2",
+            "label": "Left-wall window beside OLOHUONE",
+            "page": 1,
+            "bbox": [
+              0.043,
+              0.207,
+              0.094,
+              0.412
+            ],
+            "quoted_text": "",
+            "value": 1,
+            "unit": "window",
+            "document_id": "a13872e93b632ad0e0b3"
+          },
+          {
+            "id": "vision-3",
+            "label": "Left-wall window beside KEITTIÖ",
+            "page": 1,
+            "bbox": [
+              0.043,
+              0.613,
+              0.092,
+              0.819
+            ],
+            "quoted_text": "",
+            "value": 1,
+            "unit": "window",
+            "document_id": "a13872e93b632ad0e0b3"
+          },
+          {
+            "id": "vision-4",
+            "label": "Partially visible bottom-left window",
+            "page": 1,
+            "bbox": [
+              0.053,
+              0.936,
+              0.092,
+              1
+            ],
+            "quoted_text": "",
+            "value": 1,
+            "unit": "window",
+            "document_id": "a13872e93b632ad0e0b3"
+          }
+        ],
+        "calculation": "Count of 4 distinct located evidence items after overlap deduplication.",
+        "warnings": [
+          "The bottom-left window is cut off by the image boundary; its full extent cannot be checked.",
+          "Visual detection completeness has not been independently verified. Review all marked candidates."
+        ],
+        "can_review": true,
+        "coverage": {
+          "inspected_pages": [
+            1
+          ],
+          "total_pages": 1,
+          "complete_scope_claimed": true
+        },
+        "model": "gpt-6-astra",
+        "usage": {
+          "input_tokens": 1469,
+          "input_tokens_details": {
+            "cache_write_tokens": 1466,
+            "cached_tokens": 0
+          },
+          "output_tokens": 964,
+          "output_tokens_details": {
+            "reasoning_tokens": 665
+          },
+          "total_tokens": 2433
+        },
+        "question": "How many windows are shown on this floor plan?",
+        "document_id": "a13872e93b632ad0e0b3",
+        "document": {
+          "id": "a13872e93b632ad0e0b3",
+          "path": "data/cubicasa5k/high_quality_architectural-10370.png",
+          "name": "high_quality_architectural-10370.png",
+          "format": "png",
+          "source": "cubicasa5k",
+          "size": 133533,
+          "mtime": 1544042628.0,
+          "indexed": true,
+          "page_count": 1,
+          "error": null,
+          "uploaded": false
+        },
+        "id": "45db17ffdb264c21a235bc733b5a3539",
+        "duration_ms": 26032,
+        "attribution": "# cubicasa5k\n\nFloor plan images from CubiCasa5K, Copyright (c) 2019 CubiCasa, licensed under\nCC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/). Non-commercial use only.\n\nCredit: Ahti Kalervo, Juha Ylioinas, Markus Häikiö, Antti Karhu, Juho Kannala. \"CubiCasa5K: A Dataset and\nan Improved Multi-Task Model for Floorplan Image Analysis.\" SCIA 2019. https://zenodo.org/records/2613548\n\nThe GitHub repository states CC BY-NC 4.0 and the Zenodo record states CC BY-NC-SA 4.0. We apply the\nstricter one. Changes: files renamed. Questions about these plans are shared under the same licence.\n\nAll files: CC-BY-NC-SA-4.0. Credit: CubiCasa5K, (c) 2019 CubiCasa. Kalervo, Ylioinas, Häikiö, Karhu, Kannala: 'CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis', SCIA 2019. CC BY-NC-SA 4.0.",
+        "provenance": {
+          "source_path": "data/cubicasa5k/high_quality_architectural-10370.png",
+          "file_size": 133533,
+          "file_modified": 1544042628.0,
+          "scope": "document",
+          "page": 1,
+          "region": null,
+          "question_source": "user"
+        }
+      },
+      "score": {
+        "answered": true,
+        "correct": false,
+        "outcome": "incorrect",
+        "value_in_expected_unit": 4.0,
+        "absolute_error": 1.0,
+        "relative_error": 0.3333333333333333,
+        "allowed_absolute_error": 0
+      },
+      "evidence_validation": {
+        "items": 4,
+        "valid_boxes": 4,
+        "invalid_boxes": 0,
+        "valid_polygons": 0,
+        "invalid_polygons": 0,
+        "items_without_geometry": 0,
+        "items_with_source_id": 4,
+        "invalid_pages": 0,
+        "non_object_items": 0,
+        "duplicate_source_ids": 0,
+        "polygon_outside_bbox": 0,
+        "schema_valid": true,
+        "geometry_present": true,
+        "geometry_valid": true
+      }
+    }
+  ],
+  "summary": {
+    "cases": 3,
+    "answered": 3,
+    "coverage": 1.0,
+    "numeric_cases": 3,
+    "numeric_answered": 3,
+    "numeric_correct": 2,
+    "accuracy_all": 0.6666666666666666,
+    "accuracy_answered": 0.6666666666666666,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 0,
+    "text_answered_for_manual_review": 0,
+    "review_flagged_answers": 1,
+    "errors": 0,
+    "methods": {
+      "vision": 3
+    },
+    "statuses": {
+      "visual": 2,
+      "needs_review": 1
+    },
+    "latency_ms": {
+      "requests": 3,
+      "total": 39837.52,
+      "p50": 8182.8,
+      "p95": 26044.02
+    },
+    "evidence": {
+      "items": 6,
+      "answers_with_evidence": 3,
+      "answers_with_geometry": 3,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 0,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": 0.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 1,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "needs_review": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 26044.02,
+        "p50": 26044.02,
+        "p95": 26044.02
+      },
+      "evidence": {
+        "items": 4,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "opening_design": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 1,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "visual": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 8182.8,
+        "p50": 8182.8,
+        "p95": 8182.8
+      },
+      "evidence": {
+        "items": 1,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "swiss_dwellings": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 1,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "visual": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 5610.7,
+        "p50": 5610.7,
+        "p95": 5610.7
+      },
+      "evidence": {
+        "items": 1,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_type": {
+    "area": {
+      "cases": 2,
+      "answered": 2,
+      "coverage": 1.0,
+      "numeric_cases": 2,
+      "numeric_answered": 2,
+      "numeric_correct": 2,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "vision": 2
+      },
+      "statuses": {
+        "visual": 2
+      },
+      "latency_ms": {
+        "requests": 2,
+        "total": 13793.5,
+        "p50": 6896.75,
+        "p95": 8182.8
+      },
+      "evidence": {
+        "items": 2,
+        "answers_with_evidence": 2,
+        "answers_with_geometry": 2,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "count": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": 0.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 1,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "needs_review": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 26044.02,
+        "p50": 26044.02,
+        "p95": 26044.02
+      },
+      "evidence": {
+        "items": 4,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_group": {
+    "cubicasa5k:high_quality_architectural-10370": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": 0.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 1,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "needs_review": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 26044.02,
+        "p50": 26044.02,
+        "p95": 26044.02
+      },
+      "evidence": {
+        "items": 4,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "opening_design:Sports_Complex": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 1,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "visual": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 8182.8,
+        "p50": 8182.8,
+        "p95": 8182.8
+      },
+      "evidence": {
+        "items": 1,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "swiss_dwellings:site1102_bldg2242": {
+      "cases": 1,
+      "answered": 1,
+      "coverage": 1.0,
+      "numeric_cases": 1,
+      "numeric_answered": 1,
+      "numeric_correct": 1,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "vision": 1
+      },
+      "statuses": {
+        "visual": 1
+      },
+      "latency_ms": {
+        "requests": 1,
+        "total": 5610.7,
+        "p50": 5610.7,
+        "p95": 5610.7
+      },
+      "evidence": {
+        "items": 1,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 1,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  }
+}

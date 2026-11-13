@@ -4,9 +4,9 @@
 
 - Four-person team at Junction 2026, European Tech Renaissance.
 - Read README.md and relevant docs before changing the project.
-- Product, challenge and stack are undecided. No application or test commands exist yet.
+- The selected challenge is Stoa's Make Blueprints Talk. The Trace prototype is in `stoa-trace/`; read its `README.md` and `HANDOFF.md` before application work.
 - docs/challenges.md separates observed titles, published clues and hypotheses. Never present a hypothesis as an official requirement or sponsor assignment.
-- docs/event.md and docs/submission.md contain event constraints. Check the clock and latest organizer information before starting product code; the published start is 2026-11-13 19:30 Europe/Helsinki. This foundation contains documentation and configuration only.
+- docs/event.md and docs/submission.md contain event constraints. Check the clock and latest organizer information before submission work; the published hacking start was 2026-11-13 19:30 Europe/Helsinki. Earlier foundation notes and `INFRA/architecture_pipeline.md` describe proposals; the implementation and measured results are documented in `stoa-trace/`.
 
 ## Working together
 
