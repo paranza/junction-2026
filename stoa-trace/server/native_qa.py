@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
+import math
 import re
 import unicodedata
 
@@ -43,6 +44,52 @@ def _area_question(question):
     return bool(re.search(r"\b(area|superficie|flache|pinta-ala|pind|netop|floor area)\b|m²|m2|ft²|ft2|square feet", _normal(question)))
 
 
+def _measurement_question(question):
+    return _area_question(question) or bool(re.search(r"\b(length|volume|longueur|volumen|pikkus|pikkus|pikkuse|maht)\b", _normal(question)))
+
+
+def _measurement_language_supported(question, labels=()):
+    """A native quantity needs a wholly resolved question, not one matching noun."""
+    q = _without_model_titles(question)
+    # A drawing title is context only when explicitly introduced before a comma.
+    q = re.sub(r"^on sheet [\w.-]+ of .+? drawings,\s*", "", q)
+    known = {_normal(v) for v in labels if v}
+    for quoted in re.findall(_QUOTED_TEXT, q):
+        if _normal(quoted[1:-1]) not in known:
+            return False
+    for label in sorted(known, key=len, reverse=True):
+        q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
+    exclusion = re.search(r"\b(?:excluding|except|without|ohne|esclusi|exclus)\b(.+)$", q)
+    if exclusion:
+        outdoor_words = set("balcony balconies balcon loggia loggias terrace terraces outdoor outdoors spaces space shafts shaft void voids other and or all the any balconies loggien terrassen balkone cavedi vuoti".split())
+        if any(w not in outdoor_words for w in re.findall(r"[a-z]+", exclusion.group(1))):
+            return False
+        q = q[:exclusion.start()]+" outdoor "
+    if re.search(r"[<>]|\b(?:more than|less than|between|over|under|at least|at most|only|with|whose|having|except)\b", q):
+        return False
+    safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
+    return all(word in safe for word in re.findall(r"[a-z]+", q))
+
+
+def _quantity_key(question, target):
+    q = _normal(question)
+    if re.search(r"\bvolume\b", q):
+        return "gross_volume_m3" if re.search(r"\bgross\b", q) else "net_volume_m3" if re.search(r"\bnet\b", q) else None
+    if re.search(r"\blength\b", q):
+        return "gross_length_m" if re.search(r"\bgross\b", q) else "net_length_m" if re.search(r"\bnet\b", q) else "length_m"
+    if _area_question(question):
+        prefix = "gross" if re.search(r"\bgross\b", q) else "net"
+        if target == "IfcWall":
+            return prefix+"_side_area_m2" if re.search(r"\bside\b", q) else None
+        return prefix+"_area_m2"
+    return None
+
+
+def _finite_quantity(obj, key):
+    value = obj.get("properties", {}).get(key)
+    return type(value) in (int, float) and math.isfinite(value) and value >= 0
+
+
 _QUOTED_TEXT = r'''(?:"[^"]*"|'[^']*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
 
 
@@ -67,18 +114,23 @@ def _simple_count_language(question, extra=()):
     # replacing label words could erase a qualifier in e.g. "Office doors".
     known={_normal(phrase) for phrase in extra}
     q=re.sub(_QUOTED_TEXT,lambda match:" " if _normal(match.group(0)[1:-1]) in known else match.group(0),q)
-    safe=set("how many number of count total the a an are is there in on at this that selected entire whole all model building drawn shown floor plan for storey storeys stories levels floors door doors window windows room rooms space spaces wall walls column columns beam beams stair stairs sanitary fixture fixtures residential units apartments labelled labeled interior entrance together and does contain have visible objects units mitu ust akent ruumi seina posti tala treppi korrust on mudelis korruse plaanil naidatud montako kuinka monta ikkunaa pohjapiirustuksessa kuvan piirustuksessa quante quanti sono rappresentati rappresentate disegnati disegnate questa pianta piano appartamenti unita abitative locali con la denominazione wie viele wohnungen raume sind auf diesem grundriss dargestellt geschoss der die das im gebaude fenster turen".split())
+    safe=set("how many number of count total the a an are is there in on at this that selected entire whole all model building drawn shown floor plan for storey storeys stories levels floors door doors window windows room rooms space spaces wall walls column columns beam beams stair stairs sanitary fixture fixtures toilet toilets wc washbasin washbasins sink sinks bathtub bathtubs shower showers residential units apartments labelled labeled interior entrance together and does contain have visible objects units mitu ust akent ruumi seina posti tala treppi korrust on mudelis korruse plaanil naidatud montako kuinka monta ikkunaa pohjapiirustuksessa kuvan piirustuksessa quante quanti sono rappresentati rappresentate disegnati disegnate questa pianta piano appartamenti unita abitative locali con la denominazione wie viele wohnungen raume sind auf diesem grundriss dargestellt geschoss der die das im gebaude fenster turen".split())
     return all(token in safe for token in re.findall(r"[a-z]+",q))
 
 
 def _target_class(question):
     q = _without_model_titles(question)
     rules = [
+        (r"\b(toilets?|wc|water closets?)\b", ("IfcSanitaryTerminal", "toilet")),
+        (r"\b(washbasins?|sinks?|lavabos?)\b", ("IfcSanitaryTerminal", "washbasin")),
+        (r"\b(bathtubs?|baths?|baignoires?)\b", ("IfcSanitaryTerminal", "bathtub")),
+        (r"\b(showers?|douches?)\b", ("IfcSanitaryTerminal", "shower")),
         (r"sanitary fixtures?|sanita[a-z]*\s+fixture", ("IfcSanitaryTerminal", "sanitary_fixture")),
         (r"\b(doors?|porte|portas|turen|ture|ovet|ovia|ust|uksed)\b", ("IfcDoor", "door")),
         (r"\b(windows?|finestre|fenster|ikkunat|ikkunaa|akent|aknad)\b", ("IfcWindow", "window")),
         (r"\b(rooms?|spaces?|raume|locali|ruumi|ruumid)\b", ("IfcSpace", "room")),
         (r"\b(walls?|wande|seinad|seina)\b", ("IfcWall",)),
+        (r"\b(slabs?|decks?)\b", ("IfcSlab",)),
         (r"\b(columns?|stutzen|posti|postid)\b", ("IfcColumn",)),
         (r"\b(beams?|balken|tala|talad)\b", ("IfcBeam",)),
         (r"\b(stairs?|treppen|treppi|trepid)\b", ("IfcStair",)),
@@ -174,7 +226,7 @@ def _native_ifc(question, document, source_path, root):
         return None
     q = _normal(question)
     types = _target_class(question)
-    if _count_question(question) and types and not _area_question(question):
+    if _count_question(question) and types and not _measurement_question(question):
         known_storeys=[s['name'] for s in doc.get('metadata',{}).get('storeys',[])
                        if s.get('name') and re.search(
                            r"\b(?:on|of|at|in|floor|storey|level|korruse|korrusel|im)\s+[\"'«“„]?"+
@@ -188,6 +240,17 @@ def _native_ifc(question, document, source_path, root):
                 (r"\bdoors?\b",r"\bwindows?\b",r"\brooms?\b",r"\bwalls?\b",r"\bcolumns?\b",r"\bbeams?\b",r"\bstairs?\b",r"\blevels?\b"))>1:
             return None
         selected = [o for o in scoped if _is_type(o, types)]
+        if len(types) > 1 and types[1] in {"toilet", "washbasin", "bathtub", "shower"}:
+            synonyms = {"toilet": r"\b(toilet|wc|water closet|wcseat)\b", "washbasin": r"\b(sink|washbasin|lavatory|basin)\b",
+                        "bathtub": r"\b(bathtub|bath|tub)\b", "shower": r"\bshower\b"}
+            classified = []
+            for obj in selected:
+                text = _normal(str(obj.get("properties", {}).get("predefined_type") or "")+" "+obj.get("label", ""))
+                if not any(re.search(pattern, text) for pattern in synonyms.values()):
+                    return None
+                if re.search(synonyms[types[1]], text):
+                    classified.append(obj)
+            selected = classified
         if "sanitary_fixture" in types:
             sanitary = r"lavatory|sink|water closet|toilet|urinal|shower|bathtub|drinking fountain|mop basin"
             selected += [o for o in scoped if o.get("type") == "IfcFlowTerminal" and re.search(sanitary, _normal(o.get("label")))]
@@ -200,7 +263,30 @@ def _native_ifc(question, document, source_path, root):
         result["answer"] = f"{len(unique)} {noun}."
         result["calculation"] = {"operation":"count_distinct_guid", "classes":list(types), "count":len(unique)}
         return result
-    if _area_question(question):
+    if _measurement_question(question):
+        target = types[0] if types else "IfcSpace"
+        if target not in {"IfcSpace", "IfcWall", "IfcSlab", "IfcBeam", "IfcColumn"}:
+            return None
+        key = _quantity_key(question, target)
+        if key is None:
+            return None
+        labels = [s.get("name") for s in doc.get("metadata", {}).get("storeys", [])]
+        labels += [o.get("label") for o in scoped]
+        labels += [str(o.get("properties", {}).get(k) or "") for o in scoped for k in ("name", "long_name")]
+        labels += [f"{o.get('properties', {}).get('long_name') or ''} ({o.get('properties', {}).get('name') or ''})" for o in scoped]
+        if not _measurement_language_supported(question, labels):
+            return None
+        if target != "IfcSpace":
+            selected = [o for o in scoped if _is_type(o, (target,))]
+            if not re.search(r"\b(total|all|sum|combined)\b", q):
+                return None
+            if not selected or not all(_finite_quantity(o, key) for o in selected):
+                return None
+            terms = [o["properties"][key] for o in selected]
+            unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
+            return _result(round(sum(terms), 6), unit, selected, "native_ifc_quantity", scope,
+                           calculation={"operation": "sum", "property": key, "terms": terms,
+                                        "unit": unit, "basis": "explicit native quantities; no missing terms"})
         rooms = [o for o in scoped if o.get("type") == "IfcSpace"]
         quoted = re.findall(r"['\"«“„]([^'\"»”“]+)['\"»”“]", question)
         selected = []
@@ -213,11 +299,35 @@ def _native_ifc(question, document, source_path, root):
                 selected.append(room)
         if not selected:
             selected = [o for o in rooms if len(_compact(o.get("label"))) > 3 and _normal(o.get("label")) in q]
-        if selected and all("net_area_m2" in o["properties"] for o in selected):
-            total = round(sum(o["properties"]["net_area_m2"] for o in selected), 4)
-            return _result(total, "m²", selected, "native_ifc_quantity", scope,
-                           calculation={"operation":"sum", "property":"net_area_m2",
-                                        "terms":[o["properties"]["net_area_m2"] for o in selected]})
+        identifier = re.search(r"\b(?:room|space)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
+        if identifier:
+            selected = [o for o in rooms if identifier.group(1) in {
+                _normal(o.get("properties", {}).get("name")), _normal(o.get("properties", {}).get("room_number"))}]
+            if len(selected) != 1:
+                return None
+        if not selected and re.search(r"\b(?:all|total)\b", q):
+            selected = rooms
+        if selected and all(_finite_quantity(o, key) for o in selected):
+            total = round(sum(o["properties"][key] for o in selected), 4)
+            unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
+            return _result(total, unit, selected, "native_ifc_quantity", scope,
+                           calculation={"operation":"sum", "property":key,
+                                        "terms":[o["properties"][key] for o in selected]})
+    if re.search(r"\b(project information|site location|building details|project name|site name)\b", q):
+        # A bounded factual header view. It does not infer building usage or
+        # geocode locations absent from the IFC source.
+        if any(word not in set("what is are the and project information site location building details name for this model give list describe".split())
+               for word in re.findall(r"[a-z]+", _without_model_titles(question))):
+            return None
+        selected = [o for o in doc.get("objects", []) if o.get("type") in {"IfcProject", "IfcSite", "IfcBuilding"}]
+        if selected:
+            lines = []
+            for obj in selected:
+                props = {k: v for k, v in obj.get("properties", {}).items()
+                         if k in {"name", "long_name", "description", "RefLatitude", "RefLongitude", "RefElevation", "Phase", "ObjectType"} and v is not None}
+                lines.append(obj["type"]+": "+"; ".join(f"{k}: {v}" for k, v in props.items()))
+            return _result("\n".join(lines), None, selected, "native_ifc_project_records", "IFC project/site/building records",
+                           warnings=["Only explicit IFC fields are shown; location and usage are not independently inferred."])
     if "software" in q or "ifc standard" in q or "ifc version" in q:
         return None  # Header text remains available for a sourced model fallback.
     return None
@@ -226,7 +336,7 @@ def _native_ifc(question, document, source_path, root):
 def _native_cad(question, document):
     objects = document.get("objects", [])
     rooms = [o for o in objects if o.get("type") == "room"]
-    if not rooms:
+    if not rooms and not document.get("metadata", {}).get("semantic_inventory"):
         return None
     q = _normal(question)
     if _unsupported_constraints(question, cad=True):
@@ -243,7 +353,7 @@ def _native_cad(question, document):
         return result
     if _count_question(question) and not _area_question(question):
         types = _target_class(question)
-        if types and types[0] in ("IfcDoor", "IfcWindow"):
+        if types and len(types) > 1 and types[1] in {"door", "window", "toilet", "washbasin", "bathtub", "shower"}:
             selected = [o for o in objects if o.get("type") == types[1]]
             if selected or types[1] in document.get("metadata", {}).get("semantic_inventory", {}):
                 result = _result(len(selected), "count", selected, "native_cad_symbol_inventory", "Selected floor drawing")
@@ -252,9 +362,9 @@ def _native_cad(question, document):
     labels = {_normal(o["label"]):o["label"] for o in rooms if o["label"] != "Room"}
     mentioned = [label for label in labels if re.search(r"(?<!\w)"+re.escape(label)+r"(?!\w)", q)]
     chosen = [o for o in rooms if _normal(o["label"]) in mentioned] if mentioned else []
-    numbers = re.findall(r"\b\d+\.\d+(?:\.\d+)?\b", question)
+    numbers = re.findall(r"\b[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?\b", question)
     if numbers:
-        numbered = [o for o in rooms if o["properties"].get("room_number") in numbers]
+        numbered = [o for o in rooms if str(o["properties"].get("room_number", "")).casefold() in {n.casefold() for n in numbers}]
         if not numbered:
             return None
         chosen = numbered
@@ -263,6 +373,11 @@ def _native_cad(question, document):
         result["answer"] = f"{len(chosen)} rooms labelled {', '.join(labels[x] for x in mentioned)}."
         return result
     if not _area_question(question):
+        return None
+    if _quantity_key(question, "IfcSpace") != "net_area_m2":
+        return None
+    known = [o["label"] for o in rooms]+[o.get("properties", {}).get("room_number") for o in rooms]
+    if not _measurement_language_supported(question, known):
         return None
     apartment = re.search(r"(?:apartment|appartamento|wohnung|appartement|unit)\s+([a-z])\b", q)
     if apartment:
@@ -316,6 +431,35 @@ def _schedule_rows(document):
     return doors, rooms
 
 
+def _schedule_language_supported(question, consumed=(), labels=()):
+    q = _normal(question)
+    q = re.sub(r"^on sheet [\w.-]+ of .+? drawings(?:\s*\([^)]*\))?,\s*", "", q)
+    for text in consumed:
+        if text:
+            q = q.replace(_normal(text), " ")
+    for label in labels:
+        q = re.sub(r"(?<!\w)"+re.escape(_normal(label))+r"(?!\w)", " ", q)
+    if re.search(r"[<>]", q):
+        return False
+    safe = set("how many what is are the a an of for in on at this that selected all total combined sum number numbers doors door rooms room schedule schedules finish listed list have has with which that do does shown area areas width height hardware material type group and from to square feet foot ft sf m sqm meters metres mm cm named labelled labeled floor base notes note".split())
+    return all(token in safe for token in re.findall(r"[a-z]+", q))
+
+
+def _dimension_metres(value):
+    """Parse explicit metric values or architectural feet/inches, never bare units."""
+    text = str(value or "").strip().casefold().replace("’", "'").replace("″", '"')
+    metric = re.fullmatch(r"([0-9]+(?:[.,][0-9]+)?)\s*(mm|cm|m|ft|feet|in|inch|inches)", text)
+    if metric:
+        return float(metric.group(1).replace(",", "."))*{"mm": .001, "cm": .01, "m": 1, "ft": .3048, "feet": .3048, "in": .0254, "inch": .0254, "inches": .0254}[metric.group(2)]
+    imperial = re.fullmatch(r"(\d+)\s*'\s*-?\s*(\d+)(?:\s+(\d+)\s*/\s*(\d+))?\s*\"", text)
+    if imperial:
+        feet, inches, numerator, denominator = imperial.groups()
+        if denominator and int(denominator) == 0:
+            return None
+        return (int(feet)*12+int(inches)+(int(numerator)/int(denominator) if numerator else 0))*.0254
+    return None
+
+
 def _native_schedule(question, document):
     q = _normal(question)
     if not re.search(r"schedule|door\s+\d|room\s+\d", q):
@@ -323,10 +467,14 @@ def _native_schedule(question, document):
     doors, rooms = _schedule_rows(document)
     if doors and "door" in q:
         selected = doors
+        consumed = []
         specific = re.search(r"\bdoor\s+(\d{2,4}\.[A-Z]\d?)", question, re.I)
         if specific:
+            consumed.append(specific.group(0))
             selected = [o for o in doors if o["properties"]["door_number"].casefold() == specific.group(1).casefold()]
             if len(selected) == 1 and not _count_question(question):
+                if not _schedule_language_supported(question, consumed):
+                    return None
                 props=selected[0]["properties"]
                 fields=[field for word,field in (("width","width"),("height","height"),("hardware","hardware_group"),
                         ("door material","door_material"),("door type","door_type")) if word in q and field in props]
@@ -336,47 +484,90 @@ def _native_schedule(question, document):
                 return None
         door_type = re.search(r"door\s+type\s+([a-z]\d+)", q)
         if door_type:
+            consumed.append(door_type.group(0))
+            if any(not o["properties"].get("door_type") for o in selected):
+                return None
             selected = [o for o in selected if o["properties"].get("door_type", "").casefold() == door_type.group(1)]
         materials = re.findall(r"\b(wd-\d|stl-\d|al-\d)\b", q)
         if materials:
+            consumed.extend(materials)
             field="frame_material" if "frame" in q else "door_material"
+            if any(not o["properties"].get(field) for o in selected):
+                return None
             selected=[o for o in selected if o["properties"].get(field,"").casefold() in materials]
         note=re.search(r"\bnotes?\s+([a-c])\b",q)
         if note:
+            consumed.append(note.group(0))
+            if any("notes" not in o["properties"] for o in selected):
+                return None
             selected=[o for o in selected if re.search(r"\b"+note.group(1)+r"\b",_normal(o["properties"].get("notes"))) ]
         dimension=re.search(r"(\d+\s*'\s*-\s*\d+(?:\s+\d/\d+)?\s*\")\s+(wide|high)",q)
         if dimension:
+            consumed.append(dimension.group(0))
             field="width" if dimension.group(2)=="wide" else "height"
+            if any(not o["properties"].get(field) for o in selected):
+                return None
             compact=lambda v:re.sub(r"\s+","",v)
             selected=[o for o in selected if compact(o["properties"].get(field,""))==compact(dimension.group(1))]
+        comparison = re.search(r"\b(wider|narrower|taller|shorter)\s+than\s+(\d+(?:[.,]\d+)?\s*(?:mm|cm|m|ft|feet|inches|inch|in))\b", q)
+        if comparison:
+            consumed.append(comparison.group(0))
+            comparator, raw = comparison.groups()
+            threshold = _dimension_metres(raw)
+            field = "width" if comparator in {"wider", "narrower"} else "height"
+            measurements = [(o, _dimension_metres(o["properties"].get(field))) for o in selected]
+            if threshold is None or any(value is None for _, value in measurements):
+                return None
+            selected = [o for o, value in measurements if (value > threshold if comparator in {"wider", "taller"} else value < threshold)]
         room = re.search(r"\broom\s+(\d{2,4})\b", q)
         if room:
+            consumed.append(room.group(0))
             selected = [o for o in selected if o["properties"]["door_number"].startswith(room.group(1)+".")]
         simple_total=bool(re.search(r"how many doors?\s*\(door numbers\)\s*are listed|how many doors? are (?:listed )?in (?:the )?door schedule\??$|total number of doors\??$",q))
-        if _count_question(question) and (door_type or room or materials or note or dimension or simple_total):
+        if _count_question(question) and (door_type or room or materials or note or dimension or comparison or specific or simple_total):
+            if not _schedule_language_supported(question, consumed):
+                return None
             result = _result(len(selected), "count", selected, "native_pdf_schedule_rows", "Selected door schedule")
             result["answer"] = f"{len(selected)} matching door schedule rows."
             return result
     if rooms and re.search(r"room|area|finish", q):
         selected = rooms
+        consumed = []
         room = re.search(r"\broom\s+(\d{2,4})\b", q)
         if room:
+            consumed.append(room.group(0))
             selected = [o for o in rooms if o["properties"]["room_number"] == room.group(1)]
         named = re.search(r"rooms?\s+(?:named|labelled)\s+['\"]?([a-z ]+)", q)
         if named:
             name = named.group(1).split(" in ")[0].split(" on ")[0].strip()
             selected = [o for o in rooms if name in _normal(o["label"])]
+            consumed.append(name)
         floor = re.search(r"\b(?:floor finish|finish)\s+(f\d+)\b",q)
         base = re.search(r"\bbase\b.*?\b(b\d+)\b",q)
         if floor:
+            consumed.append(floor.group(0))
+            if any("floor_finish" not in o["properties"] for o in selected):
+                return None
             selected=[o for o in selected if floor.group(1) in _normal(o["properties"].get("floor_finish")).split()]
         if base:
+            consumed.append(base.group(0))
+            if any("base_finish" not in o["properties"] for o in selected):
+                return None
             selected=[o for o in selected if o["properties"].get("base_finish","").casefold()==base.group(1)]
         locker="locker rooms" in q
         if locker:
+            consumed.append("locker")
             selected=[o for o in selected if "locker" in _normal(o["label"])]
         total=bool(re.search(r"total area of all rooms|all rooms that have an area listed",q))
+        labels = [str(o.get("label", "")).split("·")[-1].strip() for o in selected]
+        if not _schedule_language_supported(question, consumed, labels):
+            return None
+        if re.search(r"\b(gross|net|interior|exterior)\b", q):
+            # A finish schedule's AREA column does not establish these roles.
+            return None
         if _area_question(question) and selected and (room or named or floor or base or locker or total):
+            if not all(_finite_quantity(o, "area_ft2") for o in selected):
+                return None
             terms = [o["properties"]["area_ft2"] for o in selected]
             result=_result(sum(terms), "ft²", selected, "native_pdf_schedule_area", "Selected finish schedule",
                            calculation={"operation":"sum", "terms":terms})

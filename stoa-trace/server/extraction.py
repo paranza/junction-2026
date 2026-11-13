@@ -361,7 +361,7 @@ def _dxf(path, root):
     width, height = maxx-minx or 1, maxy-miny or 1
     norm = lambda x, y: [round((x-minx)/width, 6), round((maxy-y)/height, 6)]
     prefix = _uid(path, root)
-    text_items, outlines, unit_outlines, arcs, windows, room_lines = [], [], [], [], [], []
+    text_items, outlines, unit_outlines, arcs, windows, room_lines, fixtures = [], [], [], [], [], [], []
     layers = {}
     for entity in model:
         layer, kind = entity.dxf.layer.upper(), entity.dxftype()
@@ -371,18 +371,21 @@ def _dxf(path, root):
             point = entity.dxf.insert
             text_items.append({"text": value.strip(), "point": (point.x, point.y),
                                "layer": layer, "handle": entity.dxf.handle})
-        elif kind == "LWPOLYLINE" and layer in ("ROOM_OUTLINE", "UNIT_OUTLINE") and entity.closed:
+        elif kind == "LWPOLYLINE" and layer in ("ROOM_OUTLINE", "UNIT_OUTLINE"):
             points = [(v[0], v[1]) for v in entity.get_points()]
-            if len(points) >= 3:
+            closed = bool(entity.closed or (len(points) >= 4 and math.dist(points[0], points[-1]) <= 1e-7))
+            if closed and len(points) >= 3 and not any(abs(v[4]) > 1e-12 for v in entity.get_points()):
                 polygon = Polygon(points)
                 if polygon.is_valid and polygon.area:
                     (outlines if layer == "ROOM_OUTLINE" else unit_outlines).append((entity.dxf.handle, points, polygon))
+            elif layer == "ROOM_OUTLINE" and len(points) == 2:
+                room_lines.append(points)
         elif kind == "ARC" and layer == "DOOR":
             arcs.append(entity)
         elif kind == "LWPOLYLINE" and layer == "WINDOW" and entity.closed:
             windows.append(entity)
-        elif kind == "LWPOLYLINE" and layer == "ROOM_OUTLINE" and len(entity) == 2:
-            room_lines.append([(v[0],v[1]) for v in entity.get_points()])
+        elif layer == "FIXTURE":
+            fixtures.append(entity)
     result["metadata"].update({"layers": layers, "cad_extents": [minx, miny, maxx, maxy],
                                 "insunits": drawing.units,
                                 "cad_text": [{**t, "point": list(t["point"])} for t in text_items]})
@@ -393,7 +396,7 @@ def _dxf(path, root):
     result.update(page_count=1, pages=[{"page": 1, "width": width, "height": height,
                                       "text": "\n".join(t["text"] for t in text_items), "words": words}])
     for handle, points, polygon in unit_outlines:
-        assigned = [t for t in text_items if t["text"].casefold().startswith(("app.", "apt", "wohnung"))
+        assigned = [t for t in text_items if re.fullmatch(r"(?:app\.?|apt\.?|wohnung|whg\.?|appartement|unita)\s+[A-Z]", t["text"], re.I)
                     and polygon.covers(Point(t["point"]))]
         label = assigned[0]["text"] if assigned else f"Residential unit {handle}"
         poly = [norm(x,y) for x,y in points]
@@ -404,8 +407,9 @@ def _dxf(path, root):
     for handle, points, polygon in outlines:
         inside = [t for t in text_items if t["layer"] == "ROOM_TEXT" and polygon.covers(Point(t["point"]))]
         areas = [t for t in inside if re.search(r"\d[\d.,]*\s*m[²2]", t["text"], re.I)]
-        numbers = [t for t in inside if re.fullmatch(r"\d+[.\-]\d+(?:[.\-]\d+)?", t["text"])]
-        names = [t for t in inside if t not in areas + numbers and not t["text"].casefold().startswith(("app.", "apt"))]
+        numbers = [t for t in inside if re.fullmatch(r"[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?", t["text"])]
+        names = [t for t in inside if t not in areas + numbers and not re.fullmatch(
+            r"(?:app\.?|apt\.?|wohnung|whg\.?)\s+[A-Z]", t["text"], re.I)]
         label = names[0]["text"] if names else "Room"
         props = {"layer": "ROOM_OUTLINE", "cad_handle": handle,
                  "room_number": numbers[0]["text"] if numbers else None,
@@ -421,10 +425,14 @@ def _dxf(path, root):
         if areas:
             match = re.search(r"([\d.,]+)\s*m[²2]", areas[0]["text"], re.I)
             props["net_area_m2"] = float(match.group(1).replace(",", "."))
+            props["printed_area_m2"] = props["net_area_m2"]
             props["area_source"] = "native room area annotation"
         elif drawing.units == 6:
             props["net_area_m2"] = polygon.area
             props["area_source"] = "closed native room polygon in metre drawing units"
+        if drawing.units == 6:
+            props["geometry_area_m2"] = polygon.area
+            props["geometry_area_source"] = "closed ROOM_OUTLINE polygon; DXF INSUNITS=metres"
         for uhandle, _, upolygon in unit_outlines:
             if upolygon.covers(polygon.representative_point()):
                 props["unit_id"] = f"{prefix}:{uhandle}"
@@ -435,6 +443,14 @@ def _dxf(path, root):
     semantic_layers = {"ROOM_OUTLINE", "UNIT_OUTLINE", "ROOM_TEXT"}.issubset(layers)
     if semantic_layers:
         result["metadata"]["semantic_inventory"] = {"door":len(arcs), "window":len(windows)}
+    # These symbol rules describe the supplied layered Swiss export style only.
+    # They are not a general CAD object detector. Restrict them to its semantic
+    # layers and retain the geometric basis for every classified fixture.
+    if semantic_layers and "FIXTURE" in layers:
+        result["objects"].extend(_swiss_fixtures(fixtures, prefix, norm, path, root))
+        for category in ("toilet", "washbasin", "bathtub", "shower"):
+            result["metadata"]["semantic_inventory"][category] = sum(
+                o["type"] == category for o in result["objects"])
     for arc in arcs:
         center, radius = arc.dxf.center, arc.dxf.radius
         points = [norm(center.x-radius, center.y-radius), norm(center.x+radius, center.y+radius)]
@@ -452,6 +468,66 @@ def _dxf(path, root):
                                   "properties":{"cad_handle":window.dxf.handle,
                                                 "count_basis":"closed WINDOW layer outline"}})
     return result
+
+
+def _swiss_fixtures(entities, prefix, norm, path, root):
+    """Recognize documented symbol topology, without reading question labels.
+
+    The exporter emits dense bowl curves, an enclosing rectangle and either a
+    cistern stroke or tap circle; tub outlines are denser rounded curves. Unknown
+    fixture shapes remain unclassified instead of becoming guessed instances.
+    """
+    from shapely.geometry import Point, Polygon
+    polylines, frames, strokes, taps = [], [], [], []
+    for entity in entities:
+        if entity.dxftype() == "CIRCLE":
+            taps.append((entity.dxf.center.x, entity.dxf.center.y))
+        elif entity.dxftype() == "LWPOLYLINE":
+            points = [(float(v[0]), float(v[1])) for v in entity.get_points()]
+            if any(abs(v[4]) > 1e-12 for v in entity.get_points()):
+                continue
+            if entity.closed and len(points) >= 3:
+                shape = Polygon(points)
+                if shape.is_valid and shape.area:
+                    frames.append((shape, points, entity.dxf.handle))
+            elif len(points) == 2:
+                strokes.append(Point((points[0][0]+points[1][0])/2, (points[0][1]+points[1][1])/2))
+            else:
+                polylines.append((entity.dxf.handle, points))
+    results, used = [], set()
+    for handle, points in polylines:
+        count = len(points)
+        if count not in (5, 48, 69):
+            continue
+        if len(points) < 3:
+            continue
+        center = Point(sum(p[0] for p in points)/count, sum(p[1] for p in points)/count)
+        containing = sorted((f for f in frames if f[0].covers(center)), key=lambda f: f[0].area)
+        frame = containing[0] if containing else None
+        category, basis = None, None
+        if count == 69:
+            category, basis = "bathtub", "dense rounded tub outline in the Swiss FIXTURE symbol set"
+        elif count == 5:
+            if math.dist(points[0], points[-1]) <= 1e-7:
+                category, basis = "shower", "closed tray outline in the Swiss FIXTURE symbol set"
+        elif frame:
+            if any(frame[0].covers(stroke) for stroke in strokes):
+                category, basis = "toilet", "bowl curve, enclosing frame and cistern stroke"
+            elif any(frame[0].covers(Point(tap)) for tap in taps):
+                category, basis = "washbasin", "bowl curve, enclosing frame and tap circle"
+        if category is None:
+            continue
+        identity = frame[2] if frame and category in {"toilet", "washbasin"} else handle
+        if identity in used:
+            continue
+        used.add(identity)
+        polygon = [norm(x, y) for x, y in (frame[1] if frame and category in {"toilet", "washbasin"} else points)]
+        results.append({"id": f"{prefix}:fixture-{identity}", "type": category,
+                        "label": category.capitalize(), "page": 1, "bbox": _bbox(polygon),
+                        "source_path": relative_path(path, root),
+                        "properties": {"layer": "FIXTURE", "cad_handle": handle,
+                                       "count_basis": basis, "classifier": "swiss_semantic_fixture_v1"}})
+    return results
 
 
 def _project_dxf_to_pdf(cad, pdf):
@@ -503,6 +579,78 @@ def _project_dxf_to_pdf(cad, pdf):
     return objects
 
 
+_IFC_QUANTITY_PROPERTIES = {
+    "netfloorarea": ("net_area_m2", "area", "m²"),
+    "netarea": ("net_area_m2", "area", "m²"),
+    "nettoflache": ("net_area_m2", "area", "m²"),
+    "nettogeschossflache": ("net_area_m2", "area", "m²"),
+    "grossfloorarea": ("gross_area_m2", "area", "m²"),
+    "grossarea": ("gross_area_m2", "area", "m²"),
+    "netsidearea": ("net_side_area_m2", "area", "m²"),
+    "grosssidearea": ("gross_side_area_m2", "area", "m²"),
+    "netvolume": ("net_volume_m3", "volume", "m³"),
+    "grossvolume": ("gross_volume_m3", "volume", "m³"),
+    "length": ("length_m", "length", "m"),
+    "netlength": ("net_length_m", "length", "m"),
+    "grosslength": ("gross_length_m", "length", "m"),
+}
+
+
+def _ifc_explicit_quantities(entity, metadata):
+    """Retain exact quantity roles, property paths and dimensional units.
+
+    No tessellated bounding-box approximation is substituted for a quantity.
+    Unknown units/roles stay unavailable so aggregation can refuse partial sums.
+    """
+    import ifcopenshell.util.unit as unit_util
+    result = {}
+    for relation in getattr(entity, "IsDefinedBy", ()):
+        definition = getattr(relation, "RelatingPropertyDefinition", None)
+        if not definition or not definition.is_a("IfcElementQuantity"):
+            continue
+        for quantity in definition.Quantities:
+            normalized = re.sub(r"[^a-z]", "", (quantity.Name or "").casefold())
+            role = _IFC_QUANTITY_PROPERTIES.get(normalized)
+            if role is None:
+                continue
+            key, dimension, unit_name = role
+            expected_type = {"area": "IfcQuantityArea", "length": "IfcQuantityLength", "volume": "IfcQuantityVolume"}[dimension]
+            if not quantity.is_a(expected_type):
+                continue
+            explicit_unit = getattr(quantity, "Unit", None)
+            if explicit_unit is not None:
+                if getattr(explicit_unit, "UnitType", None) != dimension.upper()+"UNIT":
+                    continue
+                try:
+                    factor = unit_util.get_unit_scale(explicit_unit)
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                unit_basis = "explicit quantity unit"
+            else:
+                factor = metadata[dimension+"_unit_scale"]
+                unit_basis = "project "+dimension.upper()+"UNIT"
+            raw = getattr(quantity, {"area": "AreaValue", "length": "LengthValue", "volume": "VolumeValue"}[dimension], None)
+            if type(raw) not in (int, float) or not math.isfinite(raw) or raw < 0 or not math.isfinite(factor) or factor <= 0:
+                continue
+            value = float(raw)*factor
+            path = f"{definition.Name}.{quantity.Name}"
+            if key in result and not math.isclose(result[key], value, rel_tol=1e-9, abs_tol=1e-9):
+                # Conflicting same-role source values are not arbitrarily chosen.
+                result.pop(key, None)
+                result.setdefault("ambiguous_quantities", []).append(key)
+                continue
+            if key in result.get("ambiguous_quantities", []):
+                continue
+            result[key] = value
+            result.setdefault("quantity_sources", {})[key] = {
+                "property_path": path, "value": value, "unit": unit_name,
+                "raw_value": raw, "unit_scale": factor, "unit_basis": unit_basis}
+            if key == "net_area_m2":
+                result["area_source"] = path
+                result["area_unit_basis"] = unit_basis
+    return result
+
+
 def _ifc(path, root):
     import ifcopenshell
     import ifcopenshell.util.element as element_util
@@ -514,7 +662,8 @@ def _ifc(path, root):
     result["metadata"].update({"schema": model.schema, "storeys": [
         {"guid": s.GlobalId, "name": s.Name, "elevation": s.Elevation} for s in storeys],
         "linked_views": [], "length_unit_scale": unit_util.calculate_unit_scale(model),
-        "area_unit_scale": unit_util.calculate_unit_scale(model, "AREAUNIT")})
+        "area_unit_scale": unit_util.calculate_unit_scale(model, "AREAUNIT"),
+        "volume_unit_scale": unit_util.calculate_unit_scale(model, "VOLUMEUNIT")})
     projections = {}
     from .rendering import visual_sources
     views = visual_sources(path)
@@ -543,7 +692,8 @@ def _ifc(path, root):
         except Exception:
             result["warnings"].append(f"Unable to parse linked view {view.name}.")
     result["page_count"]=len(result["pages"])
-    entities = list(model.by_type("IfcElement")) + list(model.by_type("IfcSpace")) + list(storeys)
+    entities = (list(model.by_type("IfcElement")) + list(model.by_type("IfcSpace")) + list(storeys)
+                + list(model.by_type("IfcProject")) + list(model.by_type("IfcSite")) + list(model.by_type("IfcBuilding")))
     for entity in entities:
         guid = entity.GlobalId
         props = {"name": getattr(entity, "Name", None), "long_name": getattr(entity, "LongName", None),
@@ -583,27 +733,27 @@ def _ifc(path, root):
                     props["net_area_m2"] = value * result["metadata"]["area_unit_scale"]
                     props["area_source"] = property_path
                     props["area_unit_basis"] = "project AREAUNIT"
-            for relation in getattr(entity, "IsDefinedBy", ()) if entity.is_a("IfcSpace") else ():
-                definition = getattr(relation, "RelatingPropertyDefinition", None)
-                if not definition or not definition.is_a("IfcElementQuantity"):
-                    continue
-                for quantity in definition.Quantities:
-                    if quantity.is_a("IfcQuantityArea"):
-                        name = re.sub(r"[^a-z]", "", quantity.Name.casefold())
-                        scale = result["metadata"]["area_unit_scale"]
-                        unit = getattr(quantity, "Unit", None)
-                        if unit is not None:
-                            prefix_name = getattr(unit, "Prefix", None)
-                            if getattr(unit, "Name", "") == "SQUARE_METRE":
-                                scale = {None: 1, "MILLI": 1e-6, "CENTI": 1e-4}.get(prefix_name, scale)
-                        if name in ("netfloorarea", "netarea", "nettoflache", "nettogeschossflache"):
-                            props["net_area_m2"] = quantity.AreaValue * scale
-                            props["area_source"] = f"{definition.Name}.{quantity.Name}"
-                        if name in ("grossfloorarea", "grossarea"):
-                            props["gross_area_m2"] = quantity.AreaValue * scale
+            props.update(_ifc_explicit_quantities(entity, result["metadata"]))
+            for ambiguous in props.get("ambiguous_quantities", []):
+                props.pop(ambiguous, None)
+            if entity.is_a("IfcSite"):
+                for attr in ("RefLatitude", "RefLongitude", "RefElevation", "LandTitleNumber"):
+                    if getattr(entity, attr, None) is not None:
+                        props[attr] = _safe(getattr(entity, attr))
+            if entity.is_a("IfcProject"):
+                for attr in ("Phase", "ObjectType"):
+                    if getattr(entity, attr, None) is not None:
+                        props[attr] = _safe(getattr(entity, attr))
+            if entity.is_a("IfcBuilding"):
+                for attr in ("ElevationOfRefHeight", "ElevationOfTerrain"):
+                    if getattr(entity, attr, None) is not None:
+                        props[attr] = _safe(getattr(entity, attr))
             typ = element_util.get_type(entity)
             if typ:
                 props["element_type"] = typ.Name
+            predefined = getattr(entity, "PredefinedType", None) or getattr(typ, "PredefinedType", None)
+            if predefined:
+                props["predefined_type"] = str(predefined)
         except Exception:
             pass
         # Dimensions are model length units, separate from area quantities.
