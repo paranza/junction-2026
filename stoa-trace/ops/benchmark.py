@@ -70,7 +70,7 @@ def load_manifest(path, dataset_root=None):
         for field in ("id", "path", "question", "expected", "unit", "type", "source", "group", "source_line", "suites"):
             if field not in case:
                 raise ValueError(f"Manifest case is missing {field}")
-        if not ENGLISH_PREFIX.match(case["question"]):
+        if manifest.get("selection", {}).get("english_only", True) and not ENGLISH_PREFIX.match(case["question"]):
             raise ValueError(f"Question does not pass frozen English selection rule: {case['id']}")
         key = (case["path"], case["question"])
         if case["id"] in ids or key in keys:
@@ -257,6 +257,8 @@ def aggregate(results):
     correct = sum(r["score"]["correct"] is True for r in numeric)
     latency = sorted(r["client_duration_ms"] for r in results if r.get("request_attempted"))
     geometry = [r["evidence_validation"] for r in results]
+    usage_rows = [r.get('response', {}).get('usage', {}) for r in results]
+    costs = [u.get('cost_estimate_usd') for u in usage_rows]
     return {
         "cases": len(results), "answered": len(answered),
         "coverage": len(answered) / len(results) if results else None,
@@ -270,6 +272,12 @@ def aggregate(results):
         "errors": sum(bool(r.get("error")) for r in results),
         "methods": dict(Counter(str(r.get("response", {}).get("method", "none")) for r in results)),
         "statuses": dict(Counter(str(r.get("response", {}).get("status", "no_response")) for r in results)),
+        "usage": {"model_calls": sum(u.get('model_calls', 0) for u in usage_rows),
+                  "input_tokens": sum(u.get('input_tokens', 0) for u in usage_rows),
+                  "output_tokens": sum(u.get('output_tokens', 0) for u in usage_rows),
+                  "cache_hits": sum(bool(u.get('cache_hit')) for u in usage_rows),
+                  "cost_estimate_usd": sum(costs) if costs and all(type(c) in (int, float) for c in costs) else None,
+                  "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."},
         "latency_ms": {"requests": len(latency), "total": round(sum(latency), 2),
                        "p50": round(statistics.median(latency), 2) if latency else None,
                        "p95": round(latency[max(0, math.ceil(.95 * len(latency)) - 1)], 2) if latency else None},
@@ -303,6 +311,9 @@ def markdown_report(report):
     lines += [f"Answered {summary['answered']}/{summary['cases']} ({pct(summary['coverage'])}). Numeric accuracy: {pct(summary['accuracy_all'])} across all numeric cases; {pct(summary['accuracy_answered'])} across answered numeric cases.",
               f"Text cases: {summary['text_cases']}, answered for manual review: {summary['text_answered_for_manual_review']}. Request latency p50/p95: {summary['latency_ms']['p50']} / {summary['latency_ms']['p95']} ms.", "",
               "| Source | Cases | Coverage | Numeric correct/all | Numeric accuracy answered |", "|---|---:|---:|---:|---:|"]
+    usage = summary.get('usage', {})
+    if usage:
+        lines[6:6] = [f"Model calls: {usage.get('model_calls', 0)}. Application cache hits: {usage.get('cache_hits', 0)}. Input/output tokens: {usage.get('input_tokens', 0)} / {usage.get('output_tokens', 0)}. Estimated request cost: {usage.get('cost_estimate_usd') if usage.get('cost_estimate_usd') is not None else 'unknown' } USD.", ""]
     for name, stats in report["by_source"].items():
         lines.append(f"| {name} | {stats['cases']} | {pct(stats['coverage'])} | {stats['numeric_correct']}/{stats['numeric_cases']} | {pct(stats['accuracy_answered'])} |")
     lines += ["", "| Type | Cases | Coverage | Correct/all numeric |", "|---|---:|---:|---:|"]
@@ -384,6 +395,11 @@ def main(argv=None):
                 print(f"[{index}/{len(cases)}] {case['id']}: {item['score']['outcome']}", file=sys.stderr, flush=True)
             report.update(results=results, summary=aggregate(results), by_source=grouped(results, "source"),
                           by_type=grouped(results, "type"), by_group=grouped(results, "group"))
+            if any('language_hint' in case for case in cases):
+                hints = {case['id']: case.get('language_hint', 'unknown') for case in cases}
+                for result in results:
+                    result['language_hint'] = hints[result['id']]
+                report['by_language_hint'] = grouped(results, 'language_hint')
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output = args.output or HERE / "reports" / f"benchmark-{args.mode}-{args.suite}-{timestamp}.json"
     output.parent.mkdir(parents=True, exist_ok=True)
