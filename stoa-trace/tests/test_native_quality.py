@@ -131,4 +131,51 @@ class SwissExporterCompatibility(unittest.TestCase):
                 else:
                     self.assertFalse(any(o['type']=='toilet' for o in doc['objects']))
 
+
+class CadPreviewRegistration(unittest.TestCase):
+    def drawing(self, root, degenerate=False, pdf=True):
+        import ezdxf
+        import pymupdf
+        drawing=ezdxf.new(); drawing.units=6; model=drawing.modelspace()
+        positions=[(0,0),(0,6),(0,12)] if degenerate else [(0,0),(6,0),(0,6),(6,6)]
+        model.add_lwpolyline([(-1,-1),(12,-1),(12,18),(-1,18)],close=True,dxfattribs={'layer':'UNIT_OUTLINE'})
+        sheet=pymupdf.open(); page=sheet.new_page(width=500,height=600)
+        for i,(x,y) in enumerate(positions,1):
+            model.add_lwpolyline([(x,y),(x+4,y),(x+4,y+4),(x,y+4)],close=True,dxfattribs={'layer':'ROOM_OUTLINE'})
+            for text,point in [('Office',(x+2,y+2.5)),(f'1.0{i}',(x+2,y+2)),('16 m²',(x+2,y+1.5))]:
+                model.add_text(text,dxfattribs={'layer':'ROOM_TEXT','insert':point})
+            # The PDF has substantial margins, unlike CAD extents.
+            page.insert_text((100+(x+2)*15,500-(y+2)*15),f'1.0{i}',fontsize=8)
+        path=root/'plan.dxf'; drawing.saveas(path)
+        if pdf: sheet.save(root/'plan.pdf')
+        sheet.close()
+        return path
+
+    def test_paired_dxf_uses_the_same_registered_evidence_as_pdf(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder); path=self.drawing(root)
+            direct=extract_document(path,root); paired=extract_document(path.with_suffix('.pdf'),root)
+            rooms=[o for o in direct['objects'] if o['type']=='room']
+            self.assertEqual(len(rooms),4)
+            self.assertTrue(direct['metadata']['cad_projection_registered'])
+            self.assertEqual(direct['metadata']['original_source_path'],'plan.dxf')
+            self.assertEqual(direct['pages'][0]['width'],500)
+            self.assertEqual([o['bbox']for o in rooms],[o['bbox']for o in paired['objects']if o['type']=='room'])
+            self.assertTrue(all(o['source_path']=='plan.pdf' for o in rooms))
+            self.assertTrue(all(o['properties']['native_source_path']=='plan.dxf' for o in rooms))
+            self.assertGreater(rooms[0]['bbox'][0],.19)
+            self.assertLess(rooms[0]['bbox'][0],.25)
+
+    def test_standalone_and_degenerate_fits_retain_unlocated_records(self):
+        for standalone,degenerate in ((True,False),(False,True)):
+            with self.subTest(standalone=standalone),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder); path=self.drawing(root,degenerate,pdf=not standalone)
+                doc=extract_document(path,root)
+                rooms=[o for o in doc['objects']if o['type']=='room']
+                self.assertEqual(len(rooms),3 if degenerate else 4)
+                self.assertTrue(all(not o.get('bbox')and not o.get('polygon')for o in rooms))
+                self.assertTrue(all(o['properties']['net_area_m2']==16 for o in rooms))
+                self.assertFalse(doc['metadata']['cad_projection_registered'])
+                self.assertTrue(doc['warnings'])
+
 if __name__=='__main__': unittest.main()

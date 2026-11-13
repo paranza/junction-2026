@@ -140,6 +140,9 @@ def _pdf(path, root):
             result["objects"].extend(projected)
             result["metadata"]["semantic_dxf"] = relative_path(sibling, root)
             result["metadata"]["dxf_layers"] = cad["metadata"].get("layers", {})
+            result["metadata"]["cad_extents"] = cad["metadata"].get("cad_extents")
+            result["metadata"]["cad_projection_registered"] = bool(projected) and all(o.get("bbox") for o in projected)
+            result["metadata"]["cad_projection_method"] = "matching native room-number anchors"
             result["metadata"]["semantic_inventory"] = cad["metadata"].get("semantic_inventory", {})
             result["warnings"].extend(cad["warnings"])
         except Exception as exc:
@@ -387,6 +390,8 @@ def _dxf(path, root):
         elif layer == "FIXTURE":
             fixtures.append(entity)
     result["metadata"].update({"layers": layers, "cad_extents": [minx, miny, maxx, maxy],
+                                "coordinate_system": "normalized_cad_extents",
+                                "preview_registration": False,
                                 "insunits": drawing.units,
                                 "cad_text": [{**t, "point": list(t["point"])} for t in text_items]})
     words = []
@@ -543,7 +548,7 @@ def _project_dxf_to_pdf(cad, pdf):
             pairs.append((room["properties"]["cad_anchor"], [(box[0]+box[2])/2, (box[1]+box[3])/2]))
     if len(pairs) < 3:
         pdf["warnings"].append("Linked CAD quantities available; insufficient matching anchors for a precise PDF overlay.")
-        return [{**o, "bbox": None, "polygon": None} for o in cad["objects"] if o["type"] != "door_swing"]
+        return _unregistered_cad_objects(cad, pdf["metadata"]["source_path"])
     def fit(axis):
         xs, ys = [p[0][axis] for p in pairs], [p[1][axis] for p in pairs]
         mx, my = sum(xs)/len(xs), sum(ys)/len(ys)
@@ -551,14 +556,17 @@ def _project_dxf_to_pdf(cad, pdf):
         if denominator < 1e-12:
             return None
         slope = sum((x-mx)*(y-my) for x,y in zip(xs,ys))/denominator
+        if not math.isfinite(slope) or abs(slope) < 1e-10:
+            return None
         return slope, my-slope*mx
     fx, fy = fit(0), fit(1)
     if not fx or not fy:
-        return []
+        pdf["warnings"].append("Linked CAD alignment is degenerate; source records are retained without drawing locations.")
+        return _unregistered_cad_objects(cad, pdf["metadata"]["source_path"])
     residual = sum(math.hypot(fx[0]*c[0]+fx[1]-p[0], fy[0]*c[1]+fy[1]-p[1]) for c,p in pairs)/len(pairs)
     if residual > .015:
         pdf["warnings"].append("Linked CAD alignment was ambiguous; polygons were not projected onto the PDF.")
-        return [{**o, "bbox": None, "polygon": None} for o in cad["objects"] if o["type"] != "door_swing"]
+        return _unregistered_cad_objects(cad, pdf["metadata"]["source_path"])
     minx, miny, maxx, maxy = cad["metadata"]["cad_extents"]
     def transform(point):
         x, y = minx+point[0]*(maxx-minx), maxy-point[1]*(maxy-miny)
@@ -568,6 +576,7 @@ def _project_dxf_to_pdf(cad, pdf):
         obj = {**original, "properties": dict(original["properties"])}
         obj["properties"]["native_source_path"] = original["source_path"]
         obj["properties"]["projection_mean_error"] = round(residual, 6)
+        obj["properties"]["preview_registration"] = True
         obj["source_path"] = pdf["metadata"]["source_path"]
         if obj.get("polygon"):
             obj["polygon"] = [transform(p) for p in obj["polygon"]]
@@ -575,6 +584,26 @@ def _project_dxf_to_pdf(cad, pdf):
         elif obj.get("bbox"):
             b = obj["bbox"]
             obj["bbox"] = _bbox([transform(b[:2]),transform(b[2:])])
+        objects.append(obj)
+    return objects
+
+
+def _unregistered_cad_objects(cad, displayed_source=None):
+    """Retain native quantities while withholding unregistered visual geometry."""
+    objects = []
+    for original in cad.get("objects", []):
+        if original.get("type") == "door_swing":
+            continue
+        obj = {**original, "properties": dict(original.get("properties", {}))}
+        props = obj["properties"]
+        props["native_source_path"] = original.get("source_path")
+        props["preview_registration"] = False
+        props["native_geometry"] = {"coordinate_system": "normalized_cad_extents",
+                                    "bbox": original.get("bbox"), "polygon": original.get("polygon")}
+        obj.pop("bbox", None)
+        obj.pop("polygon", None)
+        if displayed_source:
+            obj["source_path"] = displayed_source
         objects.append(obj)
     return objects
 
@@ -808,7 +837,17 @@ def extract_document(path: Path, data_root: Path) -> dict:
         result = _empty(path, data_root)
         result["warnings"].append("This format requires conversion before native extraction.")
         return result
-    return extractor(path, data_root)
+    result = extractor(path, data_root)
+    if path.suffix.lower() == ".dxf":
+        # The standalone renderer chooses its own page margins and layout.
+        # CAD-extent coordinates have no established image-to-page transform.
+        result["objects"] = _unregistered_cad_objects(result)
+        for page in result.get("pages", []):
+            page["words"] = [{"text": word.get("text", "")} for word in page.get("words", [])]
+        result["metadata"]["coordinate_system"] = "unregistered_native_cad"
+        result["metadata"]["cad_projection_registered"] = False
+        result["warnings"].append("Native CAD quantities are available, but their coordinates are not registered to this preview. Drawing highlights are withheld.")
+    return result
 
 
 @lru_cache(maxsize=8)
