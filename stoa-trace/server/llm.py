@@ -219,6 +219,19 @@ def _scoped_context(document, path, page, scope, region, selected_pages):
     return {**context, 'pages': pages, 'objects': objects, 'metadata': metadata}
 
 
+def requested_quantity(question):
+    """High-confidence task intent is independent of the model's answer type."""
+    q = question.casefold()
+    for kind, pattern in (
+        ('count', r'\b(how many|number of|count|montako|kuinka monta|mitu|quanti|quante|combien|wie viele)\b'),
+        ('volume', r'\b(volume|volumen|tilavuus|maht)\b|m[³3]'),
+        ('area', r'\b(area|superficie|fläche|flache|pinta-ala|pindala)\b|m[²2]|ft[²2]'),
+        ('length', r'\b(length|width|height|perimeter|distance|länge|lange|breite|höhe|pituus|leveys|korkeus)\b')):
+        if re.search(pattern, q):
+            return kind
+    return None
+
+
 def answer_with_model(question, document, path, page=1, scope='document', region=None):
     pages = document.get('pages', [])
     count = max(1, document.get('page_count', len(pages)))
@@ -249,6 +262,16 @@ def answer_with_model(question, document, path, page=1, scope='document', region
         content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {image["page"]}, {image["kind"]}, page region {image["region"]}. Report boxes in this image’s local normalized coordinates.'},
                     {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(png_bytes(image['image'])).decode(), 'detail': 'high'}]
     result = _request(content)
+    expected_operation = requested_quantity(question)
+    reported_operation = result['operation']
+    intent_warnings = []
+    if expected_operation and reported_operation != expected_operation:
+        result = {**result, 'operation': expected_operation}
+        intent_warnings.append('The returned answer type did not match the requested quantity; the requested quantity checks were applied.')
+    elif reported_operation in {'text', 'unknown'} and result.get('value') is not None:
+        # A numeric field is never accepted through a free-text/unknown route.
+        result = {**result, 'value': None, 'unit': None, 'needs_review': True}
+        intent_warnings.append('An untyped numeric assertion was discarded. Free-text claims require source review.')
     native = {str(o['id']): o for o in scoped.get('objects', []) if o.get('id') is not None}
     evidence = []
     grounding_warnings = []
@@ -276,7 +299,7 @@ def answer_with_model(question, document, path, page=1, scope='document', region
             if any(e.get('page') == candidate['page'] and e.get('bbox') and evidence_category(e.get('category') or e.get('label')) == candidate['category'] and _overlap(e['bbox'], box) > .65 for e in evidence):
                 continue
             evidence.append(candidate)
-    warnings = list(result.get('warnings', [])) + grounding_warnings
+    warnings = list(result.get('warnings', [])) + grounding_warnings + intent_warnings
     if render_warning:
         warnings.append(render_warning)
     operation = result['operation']
