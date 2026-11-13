@@ -33,3 +33,6 @@ Thumbs.db
 
 # Team-local notes, contacts and credentials
 .local/
+
+# Partner dataset (Stoa), not redistributable via Git
+preview_dataset/
