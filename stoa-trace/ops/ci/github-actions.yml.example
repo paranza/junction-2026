@@ -39,3 +39,5 @@ jobs:
         working-directory: stoa-trace/frontend
       - run: npm run build
         working-directory: stoa-trace/frontend
+      - run: npm test
+        working-directory: stoa-trace/frontend
