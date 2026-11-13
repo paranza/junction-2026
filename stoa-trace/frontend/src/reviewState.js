@@ -48,3 +48,13 @@ export function costText(usage) {
   if (usage.cost_basis === 'native' && Number(usage.model_calls || 0) === 0) return '$0 model inference';
   return 'Cost unavailable';
 }
+
+export function aggregateUsage(value) {
+  if (!Array.isArray(value)) return value || null;
+  if (!value.length) return null;
+  const fields = ['model_calls', 'input_tokens', 'output_tokens', 'cached_input_tokens'];
+  const total = Object.fromEntries(fields.map(field => [field, value.reduce((sum, item) => sum + Number(item[field] || 0), 0)]));
+  total.cost_estimate_usd = value.every(item => Number.isFinite(item.cost_estimate_usd)) ? value.reduce((sum, item) => sum + item.cost_estimate_usd, 0) : null;
+  total.cost_basis = value.every(item => item.cost_basis === 'native') ? 'native' : total.cost_estimate_usd == null ? 'unconfigured' : 'configured_rates';
+  return total;
+}

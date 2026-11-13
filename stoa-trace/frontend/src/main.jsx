@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText } from './reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage } from './reviewState.js';
 
 const request = async (url, options = {}) => {
   const response = await fetch(url, options);
@@ -210,7 +210,7 @@ function EvidenceProperties({ properties }) {
 
 function UsageDetails({ answer }) {
   const usage = answer?.usage;
-  const initial = answer?.ingestion_usage || usage?.ingestion_usage;
+  const initial = aggregateUsage(answer?.ingestion_usage || usage?.ingestion_usage);
   const callsKnown = Number.isFinite(usage?.model_calls);
   if (!usage) return null;
   return <details className="usage-details"><summary>{usage.cache_hit ? 'Saved answer reused' : usage.inventory_cache_hit ? 'Prepared visual inventory reused' : callsKnown && usage.model_calls === 0 ? 'Native source tools' : 'Model analysis'} · {callsKnown ? `${usage.model_calls} model ${usage.model_calls === 1 ? 'call' : 'calls'}` : 'Call count unavailable'}</summary>

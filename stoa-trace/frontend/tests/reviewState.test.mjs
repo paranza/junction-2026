@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -45,4 +45,14 @@ test('review changes are order insensitive for exclusions but track note and add
   assert.equal(reviewFingerprint(['b', 'a'], [], 'checked'), reviewFingerprint(['a', 'b'], [], 'checked'));
   assert.notEqual(reviewFingerprint([], [], ''), reviewFingerprint([], [], 'verified door identity visually'));
   assert.notEqual(reviewFingerprint([], [], ''), reviewFingerprint([], [{ id: 'manual' }], ''));
+});
+
+
+test('per-page initial usage is aggregated without treating unknown costs as free', () => {
+  const combined = aggregateUsage([{ model_calls: 1, input_tokens: 100, output_tokens: 20, cost_estimate_usd: .02 }, { model_calls: 1, input_tokens: 200, output_tokens: 40, cost_estimate_usd: null }]);
+  assert.equal(combined.model_calls, 2);
+  assert.equal(combined.input_tokens, 300);
+  assert.equal(combined.output_tokens, 60);
+  assert.equal(combined.cost_estimate_usd, null);
+  assert.equal(aggregateUsage([]), null);
 });
