@@ -133,3 +133,5 @@ td.num, th.num { text-align: right; }
   .viewer { min-height: 55vh; }
   .panel { width: 100%; max-width: none; border-left: none; border-top: 1px solid var(--line); }
 }
+.toolbar { justify-content: flex-start; }
+.toolbar > .zoom { position: absolute; right: 0; bottom: calc(100% + 8px); flex-wrap: nowrap; }
