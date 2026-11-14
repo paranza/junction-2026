@@ -1,21 +1,23 @@
-# Trace interface
+# Metria interface
 
 ## Product context
 
-Chat-first construction drawing workspace, confirmed by the user. Engineers work on detailed plans in ordinary indoor or venue light; a white conversation surface and neutral preview surround keep source marks legible.
+Construction drawing workspace based on Antonio’s committed Metria design. Engineers inspect detailed plans in ordinary indoor or venue light; neutral white surfaces and restrained source-category colors keep source marks legible.
 
 ## Layout
 
-One compact app header. The document library opens as a drawer. Desktop uses two panes: conversation on the left and a larger source preview on the right. A bottom-pinned composer follows the transcript. Mobile switches between conversation and drawing rather than squeezing both into columns.
+Compact Metria header, collapsible drawing library, large central plan preview and bottom question composer. The contextual answer panel contains the actual persisted conversation and source review. Mobile uses explicit drawing/conversation controls and drawers rather than compressing all panes.
 
 ## Color and typography
 
-Restrained ink, neutral surfaces and the existing teal action family. One system sans-serif family, fixed readable sizes, and monospace only for quantities or token costs. Body text 14–16px; controls at least 13px on desktop, with mobile inputs 16px. State colors accompany text labels.
+Preserve Antonio’s neutral ink and surface tokens, Geist typography with system fallbacks, and semantic evidence colors. Body and control text remain readable with visible keyboard focus. Use monospace for source quantities and token costs.
 
 ## Components and hierarchy
 
-Retain the licensed BoardUI button primitives with consistent sizing. Conversation turns use actual saved answers, distinct user prompts and compact answer summaries. Evidence and review controls remain available in contextual disclosures. Inference totals occupy a compact header summary with an expandable breakdown. The drawing canvas has a simple toolbar and explicit fit/focus controls; a new answer shows the whole plan and its marks.
+Use Antonio’s interactive polygons, hover synchronization, category filtering and spotlight controls. Keep server-backed session cost in the header, real per-message usage, Cloudinary evidence close-ups, calibration, inspector tools, manual corrections and export. Advanced controls use contextual disclosures.
 
 ## Interaction
 
-No decorative entrance choreography. Short state transitions, clear loading and error states, keyboard focus, and reduced-motion handling. Overlay and disclosure controls escape scroll clipping. Original sources, coordinate mapping and backend analysis are outside the redesign scope.
+New answers retain a whole-page plan; zoom to an object only when the user requests focus. Unknown usage is displayed as unknown, never a fabricated charge. Session identity and conversation survive reloads. Metric/imperial conversion changes display only. API/configuration identifiers retain compatibility with existing runtimes.
+
+Transitions communicate state, respect reduced motion, and keep overlays usable outside scroll containers.

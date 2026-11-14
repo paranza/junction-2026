@@ -10,11 +10,11 @@ Construction engineers inspecting drawings and BIM models on a laptop, with hack
 
 ## Product Purpose
 
-Trace answers supported drawing questions with source evidence and calculations. Success is a clear question-and-answer conversation beside a large, usable plan preview. Counts, measurements, uncertainty, reviews and inference spending must remain inspectable.
+Metria answers supported drawing questions with source evidence and calculations. Success is a clear question-and-answer conversation with a large, usable plan preview. Counts, measurements, uncertainty, reviews and inference spending must remain inspectable.
 
 ## Brand Personality
 
-Direct, precise, readable. The user requested a professional interface, referenced BoardUI, rejected the previous cluttered design, and explicitly selected a chat-first workspace with a large plan preview.
+Direct, precise, readable. The user selected Antonio’s Metria branding and interface for integration: a neutral workspace, large plan preview, docked question composer and contextual conversation. Existing source inspection and persistent answers remain available.
 
 ## Anti-references
 

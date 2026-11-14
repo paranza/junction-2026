@@ -4,6 +4,12 @@ Formerly Trace. The folder name `stoa-trace/`, the `trace-drawing-workspace` pac
 
 Construction drawing questions with inspectable source evidence. The workspace combines native PDF, DXF, IFC and semantic SVG extraction with a hosted vision fallback. It computes quantities from checked source values, displays their locations, and lets an engineer add missed objects, exclude candidates and save an auditable review.
 
+## Integrated Metria workspace
+
+Antonio’s Metria branding and interactive drawing workspace are integrated with the current native parsers and question handling. Saved conversations, per-message and session inference accounting, Cloudinary close-ups, source-bound calibration, inspector tools and review history use the existing backend. Display filters and metric/imperial conversion do not alter source quantities.
+
+The `stoa-trace/` folder, `STOA_` settings, existing private configuration paths and storage identifiers remain compatible. Keep your private `.env` and runtime when updating, then run `ops/refresh_local.py` and restart the server.
+
 ## Run locally
 
 Requires Python 3.11+, Node 22+, and the extracted Stoa preview dataset.
@@ -118,7 +124,7 @@ details](ops/GEMINI.md#per-message-and-session-inference-cost).
 
 ## Models and methods
 
-Trace answers from the source file first and uses machine learning only where the source cannot answer. No model is trained or fine-tuned on the challenge data, and no answer, file name or question from the dataset is stored in the code. Every rule below reads the structure of a drawing format, so it applies unchanged to new files in that format.
+Metria answers from the source file first and uses machine learning only where the source cannot answer. No model is trained or fine-tuned on the challenge data, and expected answers stay out of inference code and prompts. The translation template table contains question wording only. Every rule below reads the structure of a drawing format, so it applies unchanged to new files in that format.
 
 | Layer | What it is | Used for |
 |---|---|---|

@@ -39,3 +39,7 @@ The token-rate facts in `server/costs.py` are derived from [Google's published A
 The optional Cloudinary Python SDK is pinned to 1.47.0 and retains its MIT licence. Cloudinary's hosted upload, transformation, storage and delivery services have separate provider terms and quotas. Authenticated media and the protected Trace proxy do not relicense source drawings. Only an explicit evidence close-up request uploads a canonical rendered page; arbitrary library uploads and generative alterations are not part of this feature.
 
 Implementation used the official [Cloudinary Skills Pack](https://github.com/cloudinary-devs/skills), commit `c41e79f4b5e350fb994c541f6190538e838660b8`, including the documentation, upload, transformation and React guidance. The skills are development tooling and are not bundled application code. No Cloudinary API key, secret or workspace claim capability is included in this repository.
+
+## Metria interface styling
+
+The integrated interface preserves Antonio’s team-authored Metria implementation and its visual reference to [Vercel UI](https://github.com/vercel-labs/ui). No `vercel-labs/ui` component source or separate UI library is bundled or required by this application. Existing adapted BoardUI primitives and their MIT notice remain above.
