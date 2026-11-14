@@ -131,7 +131,7 @@ def _simple_count_language(question, extra=()):
     # replacing label words could erase a qualifier in e.g. "Office doors".
     known={_normal(phrase) for phrase in extra}
     q=re.sub(_QUOTED_TEXT,lambda match:" " if _normal(match.group(0)[1:-1]) in known else match.group(0),q)
-    safe=set("how many number of count total the a an are is there in on at this that selected entire whole all model building drawn shown floor plan for storey storeys stories levels floors door doors window windows room rooms space spaces wall walls column columns beam beams stair stairs sanitary fixture fixtures toilet toilets wc washbasin washbasins sink sinks bathtub bathtubs shower showers residential units apartments labelled labeled interior entrance together and does contain have visible objects units mitu ust akent ruumi seina posti tala treppi korrust on mudelis korruse plaanil naidatud montako kuinka monta ikkunaa pohjapiirustuksessa kuvan piirustuksessa quante quanti sono rappresentati rappresentate disegnati disegnate questa pianta piano appartamenti unita abitative locali con la denominazione wie viele wohnungen raume sind auf diesem grundriss dargestellt geschoss der die das im gebaude fenster turen".split())
+    safe=set("how many number of count total the a an are is there in on at this that selected entire whole all model building drawn shown floor plan for storey storeys stories levels floors door doors window windows room rooms space spaces wall walls column columns beam beams stair stairs sanitary fixture fixtures light lights lighting luminaire luminaires fitting fittings toilet toilets wc washbasin washbasins sink sinks bathtub bathtubs shower showers residential units apartments labelled labeled interior entrance together and does contain have visible objects units mitu ust akent ruumi seina posti tala treppi korrust on mudelis korruse plaanil naidatud montako kuinka monta ikkunaa pohjapiirustuksessa kuvan piirustuksessa quante quanti sono rappresentati rappresentate disegnati disegnate questa pianta piano appartamenti unita abitative locali con la denominazione wie viele wohnungen raume sind auf diesem grundriss dargestellt geschoss der die das im gebaude fenster turen".split())
     return all(token in safe for token in re.findall(r"[a-z]+",q))
 
 
@@ -143,6 +143,7 @@ def _target_class(question):
         (r"\b(bathtubs?|baths?|baignoires?)\b", ("IfcSanitaryTerminal", "bathtub")),
         (r"\b(showers?|douches?)\b", ("IfcSanitaryTerminal", "shower")),
         (r"sanitary fixtures?|sanita[a-z]*\s+fixture", ("IfcSanitaryTerminal", "sanitary_fixture")),
+        (r"\b(light(?:ing)? fixtures?|luminaires?|light fittings?)\b", ("IfcLightFixture", "light_fixture")),
         (r"\b(doors?|porte|portas|turen|ture|ovet|ovia|ust|uksed)\b", ("IfcDoor", "door")),
         (r"\b(windows?|finestre|fenster|ikkunat|ikkunaa|akent|aknad)\b", ("IfcWindow", "window")),
         (r"\b(rooms?|spaces?|raume|locali|ruumi|ruumid)\b", ("IfcSpace", "room")),
@@ -456,9 +457,15 @@ def _native_ifc(question, document, source_path, root):
                 if re.search(synonyms[types[1]], text):
                     classified.append(obj)
             selected = classified
+        if "light_fixture" in types:
+            selected += [o for o in scoped if o.get("type") == "IfcFlowTerminal"
+                         and o.get("properties", {}).get("element_type_class") == "IfcLightFixtureType"]
         if "sanitary_fixture" in types:
             sanitary = r"lavatory|sink|water closet|toilet|urinal|shower|bathtub|drinking fountain|mop basin"
-            selected += [o for o in scoped if o.get("type") == "IfcFlowTerminal" and re.search(sanitary, _normal(o.get("label")))]
+            # IFC2X3 has no IfcSanitaryTerminal: fixtures are flow terminals typed by IfcSanitaryTerminalType.
+            selected += [o for o in scoped if o.get("type") == "IfcFlowTerminal" and (
+                o.get("properties", {}).get("element_type_class") == "IfcSanitaryTerminalType"
+                or re.search(sanitary, _normal(o.get("label"))))]
         unique = {o.get("guid") or o["id"]: o for o in selected}
         noun = {"IfcDoor":"doors", "IfcWindow":"windows", "IfcSpace":"rooms/spaces",
                 "IfcWall":"walls", "IfcColumn":"columns", "IfcBeam":"beams",
@@ -495,7 +502,7 @@ def _native_ifc(question, document, source_path, root):
                            calculation={"operation": "sum", "property": key, "terms": terms,
                                         "unit": unit, "basis": "explicit native quantities; no missing terms"})
         rooms = [o for o in scoped if o.get("type") == "IfcSpace"]
-        quoted = re.findall(r"['\"«“„]([^'\"»”“]+)['\"»”“]", question)
+        quoted = [m[1:-1] for m in re.findall(_QUOTED_TEXT, question)]
         selected = []
         for room in rooms:
             p = room.get("properties", {})

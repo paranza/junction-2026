@@ -883,7 +883,11 @@ def _ifc(path, root):
             # A part aggregated into another product (a stair inside a stair, a panel inside a
             # curtain wall) is not a separate instance of its class.
             whole = element_util.get_aggregate(entity)
-            if whole is not None and whole.is_a("IfcProduct") and not whole.is_a("IfcSpatialStructureElement"):
+            # Only a part of the same class (a stair inside a stair) is not a separate instance;
+            # a door hosted in a curtain wall is still a door.
+            base = lambda name: name.replace("StandardCase", "").replace("ElementedCase", "")
+            if (whole is not None and whole.is_a("IfcProduct") and not whole.is_a("IfcSpatialStructureElement")
+                    and base(whole.is_a()) == base(entity.is_a())):
                 props.update(nested_in=whole.is_a(), nested_in_guid=getattr(whole, "GlobalId", None))
             # Large walls/MEP models can contain tens of thousands of products.
             # Read full property sets only where this native QA route uses them.
@@ -931,6 +935,7 @@ def _ifc(path, root):
             typ = element_util.get_type(entity)
             if typ:
                 props["element_type"] = typ.Name
+                props["element_type_class"] = typ.is_a()
             predefined = getattr(entity, "PredefinedType", None) or getattr(typ, "PredefinedType", None)
             if predefined:
                 props["predefined_type"] = str(predefined)

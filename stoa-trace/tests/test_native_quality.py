@@ -279,6 +279,26 @@ class IfcScopeAndNesting(unittest.TestCase):
         # a quoted room name containing "WC" is a room, not a request about toilets
         self.assertAlmostEqual(ask("What is the net floor area of the room 'INVA-WC (103)' on '1.korrus', in m²?")['value'], 6.0)
 
+    def test_ifc2x3_typed_terminals_count_as_fixtures(self):
+        doc = self.doc()
+        doc['objects'] += [
+            {'id': 'f1', 'guid': 'f1', 'type': 'IfcFlowTerminal', 'label': 'Basin-01', 'properties': {'storey_guid': 'S1', 'element_type_class': 'IfcSanitaryTerminalType'}},
+            {'id': 'f2', 'guid': 'f2', 'type': 'IfcFlowTerminal', 'label': 'WC Pan', 'properties': {'storey_guid': 'S1', 'element_type_class': 'IfcSanitaryTerminalType'}},
+            {'id': 'f3', 'guid': 'f3', 'type': 'IfcFlowTerminal', 'label': 'Downlight', 'properties': {'storey_guid': 'S1', 'element_type_class': 'IfcLightFixtureType'}},
+            {'id': 'f4', 'guid': 'f4', 'type': 'IfcFlowTerminal', 'label': 'Socket', 'properties': {'storey_guid': 'S1', 'element_type_class': 'IfcOutletType'}}]
+        root = Path(tempfile.gettempdir())
+        ask = lambda q: answer_native(q, doc, root/'scope.ifc', root)['value']
+        # names like "Basin-01" carry no fixture word; the type class does
+        self.assertEqual(ask("How many sanitary fixtures are there in the model 'Demo'?"), 2)
+        self.assertEqual(ask("How many light fixtures are there in the model 'Demo'?"), 1)
+
+    def test_a_door_hosted_in_a_curtain_wall_is_still_a_door(self):
+        doc = self.doc()
+        doc['objects'].append({'id': 'd3', 'guid': 'd3', 'type': 'IfcDoor', 'label': 'Door', 'properties': {'storey_guid': 'S1'}})
+        root = Path(tempfile.gettempdir())
+        # extraction records nested_in only for same-class parts; a curtain-wall door has none
+        self.assertEqual(answer_native("How many doors are there in the model 'Demo'?", doc, root/'scope.ifc', root)['value'], 3)
+
     def test_parts_nested_in_another_product_are_not_counted(self):
         self.assertEqual(self.answer("How many stairs are there in the model 'Demo'?")['value'], 1)
 
