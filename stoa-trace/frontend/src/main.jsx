@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
 import MeasurementPanel from './MeasurementPanel.jsx';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
   const response = await fetch(url, options);
@@ -323,7 +323,8 @@ function App() {
   const warnings = arrayOf(answer?.warnings);
   const resultStatus = getStatus(answer);
   const reviewedCount = reviewCount(answer, manualAdditions, excluded);
-  const knownManualCategory = countedCategory(answer);
+  const manualCategories = allowedCountCategories(answer);
+  const knownManualCategory = manualCategories.length === 1 ? manualCategories[0] : null;
   const hasReviewChanges = !!answer && reviewFingerprint(excluded, manualAdditions, reviewNote) !== reviewFingerprint(savedExclusions(answer), savedAdditions(answer), answer.review?.note || '');
   const cancelAsk = useCallback((showNotice = false) => {
     const active = activeAskRef.current;
@@ -448,7 +449,7 @@ function App() {
   const restoreOriginal = () => { snapshotReview(); setExcluded([]); setManualAdditions([]); setReviewNote(''); cancelManual(); };
   const startManual = () => {
     if (!answer?.can_review || answer.source_changed) return;
-    const category = countedCategory(answer);
+    const category = manualCategories[0] || countedCategory(answer);
     setManualCategory(category || 'other');
     setManualLabel(category ? `Missing ${readable(category)}` : ''); setManualNote(''); setManualError('');
     setPendingManual({ document_id: selectedId, page, bbox: [0.45, 0.45, 0.55, 0.55] }); setManualMode(true);
@@ -548,7 +549,7 @@ function App() {
             {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
             {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
             <div className="answer-source-context"><strong>{answerQuestion}</strong><span>{answerDocumentName}{answer.provenance?.scope === 'page' ? ` · page ${answer.provenance.page}` : ''}{answer.provenance?.region ? ' · selected region' : ''}</span></div>
-            {answer.value != null && <div className="answer-value">{shortText(answer.value)}{answer.unit && <span>{answer.unit}</span>}</div>}
+            {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{answer.unit}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
             <UsageDetails answer={answer} />
@@ -560,7 +561,7 @@ function App() {
               <div className="evidence-legend"><span><i className="native-key" /> Native source</span><span><i className="visual-key" /> Visual candidate</span><span><i className="manual-key" /> Added in review</span></div>
               {evidence.length > 0 && evidence.some(item => !evidenceBBox(item)) && <p className="evidence-coverage">{evidence.every(item => !evidenceBBox(item)) ? 'These records have no linked drawing location. Inspect their element IDs and properties.' : 'Some records have no linked drawing location. Inspect their element IDs and properties.'}</p>}
               {evidence.length ? <div className="evidence-list" aria-label="Answer source items">{evidence.map(item => <div key={item._key} className={`evidence-item evidence-kind-${evidenceKind(item)} ${item._key === selectedEvidence ? 'is-selected' : ''} ${excluded.includes(item._key) ? 'is-excluded' : ''}`}>
-                <button type="button" className="evidence-select" disabled={answer.source_changed} onClick={() => selectEvidence(item)} aria-pressed={item._key === selectedEvidence}><span className="evidence-number">{item._number}</span><span><strong>{item.label || item.name || `Source ${item._number}`}</strong><small>{evidenceBBox(item) && item.page ? `Page ${item.page}` : item.guid ? 'Model element' : 'Source record'}{item.guid ? ` · ${item.guid.slice(0, 12)}…` : ''}</small><small className="evidence-origin">{({ native: 'Native source record', visual: 'Visual candidate · check interpretation', manual: 'Manually added during review' })[evidenceKind(item)]}</small></span><ChevronRight size={14} /></button>
+                <button type="button" className="evidence-select" disabled={answer.source_changed} onClick={() => selectEvidence(item)} aria-pressed={item._key === selectedEvidence}><span className="evidence-number">{item._number}</span><span><strong>{item.label || item.name || `Source ${item._number}`}</strong><small>{evidenceBBox(item) && item.page ? `Page ${item.page}` : item.guid ? 'Model element' : 'Source record'}{item.guid ? ` · ${item.guid.slice(0, 12)}…` : ''}</small><small className="evidence-origin">{({ native: 'Native source record', visual: 'Visual candidate · check interpretation', manual: answer.method?.startsWith('calibrated_') ? 'Your calibrated measurement' : 'Manually added during review' })[evidenceKind(item)]}</small></span><ChevronRight size={14} /></button>
                 {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
                 {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}</div>}
               </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
@@ -572,7 +573,7 @@ function App() {
                   <div><strong>Mark a missed object</strong><button type="button" onClick={cancelManual} aria-label="Cancel missing object"><X size={16} /></button></div>
                   <p>Drag a box or click the drawing. You can also enter page coordinates below.</p>
                   <label>Object label<input ref={manualLabelRef} value={manualLabel} maxLength={160} onChange={event => setManualLabel(event.target.value)} placeholder="For example, window beside room 5.11" required /></label>
-                  <label>Count category{knownManualCategory ? <><input value={readable(knownManualCategory)} readOnly aria-label="Count category, fixed by original answer" /><small>Matches the original count. Add an object of this category.</small></> : <select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{[...reviewCategories, 'other'].map(kind => <option key={kind} value={kind}>{readable(kind)[0].toUpperCase() + readable(kind).slice(1)}</option>)}</select>}</label>
+                  <label>Count category{knownManualCategory ? <><input value={readable(knownManualCategory)} readOnly aria-label="Count category, fixed by original answer" /><small>Matches the original count. Add an object of this category.</small></> : <select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{(manualCategories.length ? manualCategories : [...reviewCategories, 'other']).map(kind => <option key={kind} value={kind}>{readable(kind)[0].toUpperCase() + readable(kind).slice(1)}</option>)}</select>}</label>
                   <fieldset><legend>Object bounds · page coordinates from 0 to 1</legend><div>{['Left', 'Top', 'Right', 'Bottom'].map((label, index) => <label key={label}>{label}<input type="number" min="0" max="1" step="0.001" value={pendingManual.bbox[index]} onChange={event => setPendingManual(current => ({ ...current, bbox: current.bbox.map((value, i) => i === index ? Number(event.target.value) : value) }))} required /></label>)}</div></fieldset>
                   <label>Object note (optional)<input value={manualNote} maxLength={500} onChange={event => setManualNote(event.target.value)} /></label>
                   {manualError && <p className="manual-error" role="alert">{manualError}</p>}

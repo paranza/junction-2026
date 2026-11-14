@@ -73,7 +73,7 @@ def health():
     with store.connection() as db:
         count = db.execute('SELECT COUNT(*) FROM documents').fetchone()[0]
         indexed = db.execute('SELECT COUNT(*) FROM documents WHERE indexed=1').fetchone()[0]
-    return {'status': 'ok', 'model_available': llm.model_available(), 'model': llm.MODEL,
+    return {'status': 'ok', 'model_available': llm.model_available(), 'provider': llm.PROVIDER, 'model': llm.MODEL,
             'documents': count, 'indexed_documents': indexed, 'auth_required': bool(ACCESS_TOKEN), 'version': '0.1.0'}
 
 
@@ -303,7 +303,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -525,9 +525,10 @@ def ask(payload: AskRequest):
     doc = store.get_document(payload.document_id)
     source = store.get_path(payload.document_id)
     question = payload.question.strip()
+    from .inventory import config_signature
     key = store.analysis_key('answer', {'document': doc['id'], 'source': data.get('source_fingerprint'),
                             'extractor': data.get('extractor_revision'), 'solver': _solver_revision(),
-                            'model': llm.MODEL, 'prompt': llm.PROMPT_REVISION, 'question': question,
+                            'model': llm.provider_signature(), 'inventory': config_signature(), 'prompt': llm.PROMPT_REVISION, 'question': question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
                             'mode': payload.mode, 'cross_check': payload.cross_check, 'verify_visual': payload.verify_visual})
     with llm.usage_scope():
@@ -554,8 +555,9 @@ def ask(payload: AskRequest):
     quantity_type = {'count': 'count', 'm²': 'area', 'ft²': 'area', 'm³': 'volume', 'm': 'length', 'mm': 'length', 'ft': 'length'}.get(result.get('unit'), 'text')
     result.setdefault('operation', quantity_type)
     if result['operation'] == 'count':
-        from .inventory import answer_category
+        from .inventory import answer_category, categories_for_count
         result.setdefault('category', answer_category(to_english(question), result))
+        result['allowed_count_categories'] = list(categories_for_count(result.get('category')))
     result['usage']['inventory_cache_hit'] = bool(result.get('inventory_cache_hit'))
     result.setdefault('can_review', result['operation'] == 'count' and result.get('value') is not None and result.get('value') == len(result['evidence']))
     result['question'] = payload.question
@@ -686,16 +688,17 @@ def review_answer(answer_id: str, payload: ReviewRequest):
         original_evidence = copy.deepcopy(original.get('evidence', []))
         ids = {e['id'] for e in original_evidence}
         allowed_documents = {original['document_id']} | {e.get('document_id', original['document_id']) for e in original_evidence}
-        from .inventory import answer_category, canonical_category
+        from .inventory import answer_category, canonical_category, categories_for_count
         expected_category = canonical_category(original.get('category') or answer_category(original.get('question', ''), original))
+        allowed_categories = categories_for_count(expected_category) or ((expected_category,) if expected_category else ())
         added = []
         for item in payload.added_evidence:
             box = item.bbox
             if not item.label.strip():
                 raise HTTPException(422, 'A manually added object needs a meaningful label.')
-            category = canonical_category(item.category) if item.category else expected_category or 'manual_object'
-            if expected_category and category != expected_category:
-                raise HTTPException(422, f'This answer counts {expected_category} objects. A manual addition must use the same category.')
+            category = canonical_category(item.category) if item.category else (allowed_categories[0] if len(allowed_categories) == 1 else 'manual_object')
+            if allowed_categories and category not in allowed_categories:
+                raise HTTPException(422, 'A manual addition must use one of the counted categories: ' + ', '.join(allowed_categories) + '.')
             if not all(math.isfinite(v) and 0 <= v <= 1 for v in box) or box[0] >= box[2] or box[1] >= box[3]:
                 raise HTTPException(422, 'A manually added object has invalid page coordinates.')
             doc_id = item.document_id or original['document_id']

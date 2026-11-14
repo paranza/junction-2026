@@ -107,6 +107,21 @@ class BackendUpgrade(unittest.TestCase):
         self.assertEqual(revisions[1]['changes']['removed_manual_ids'], ['manual-window'])
         self.assertEqual(revisions[1]['changes']['restored_ids'], ['a'])
 
+    def test_mixed_category_count_accepts_components_and_rejects_other_objects(self):
+        original = {'id': 'mixed-count', 'document_id': self.doc['id'],
+                    'question': 'How many showers and bathtubs are drawn on this floor plan in total?',
+                    'category': 'shower+bathtub', 'can_review': True, 'value': 0, 'unit': 'count',
+                    'evidence': [], 'warnings': []}
+        store.save_answer(original['id'], self.doc['id'], original['question'], original)
+        item = {'id': 'manual-fixture', 'label': 'Missed fixture', 'page': 1, 'bbox': [.1, .1, .2, .2]}
+        for category in ('shower', 'bathtub'):
+            response = self.client.post('/api/answers/mixed-count/review', json={'added_evidence': [{**item, 'category': category}]})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()['value'], 1)
+        for category in ('sink', 'shower+bathtub'):
+            response = self.client.post('/api/answers/mixed-count/review', json={'added_evidence': [{**item, 'category': category}]})
+            self.assertEqual(response.status_code, 422)
+
     def test_zero_count_can_add_and_bad_manual_coordinates_or_sources_are_rejected(self):
         original = {'id': 'zero', 'document_id': self.doc['id'], 'question': 'Windows?', 'can_review': True,
                     'value': 0, 'unit': 'count', 'evidence': [], 'warnings': [], 'request_context': {'document_id': self.doc['id'], 'page': 1, 'scope': 'page', 'region': [0, 0, .5, .5]}}

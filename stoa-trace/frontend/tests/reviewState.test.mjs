@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -108,4 +108,11 @@ test('quantity presentation limits float noise without altering values or exact 
   assert.equal(formatQuantityValue(17, 'count'), '17');
   assert.equal(formatQuantityValue(.0001234567, 'm³'), '0.0001235');
   assert.equal(value, 13.617073235712027);
+});
+
+
+test('mixed counts allow exactly the component categories for review', () => {
+  assert.deepEqual(allowedCountCategories({category:'shower+bathtub'}), ['shower','bathtub']);
+  assert.deepEqual(allowedCountCategories({category:'IfcDoor'}), ['door']);
+  assert.deepEqual(allowedCountCategories({allowed_count_categories:['shower','bathtub','shower']}), ['shower','bathtub']);
 });

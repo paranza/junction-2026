@@ -98,6 +98,13 @@ export function countedCategory(answer) {
   return null;
 }
 
+export function allowedCountCategories(answer) {
+  const explicit = Array.isArray(answer?.allowed_count_categories) ? answer.allowed_count_categories : String(answer?.category || '').split('+');
+  const categories = [...new Set(explicit.map(canonicalCategory).filter(Boolean))];
+  const single = countedCategory(answer);
+  return categories.length ? categories : single ? [single] : [];
+}
+
 export function usageLabel(answer) {
   const usage = answer?.usage;
   if (usage?.cache_hit) return 'Saved answer reused';
