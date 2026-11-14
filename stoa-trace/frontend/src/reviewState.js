@@ -1,4 +1,11 @@
 // Pure review and display helpers. Source values remain immutable in the API.
+export function draftCountSummary(answer, additions, excluded) {
+  const count = reviewCount(answer, additions, excluded);
+  const category = countedCategory(answer);
+  const noun = category ? category.replaceAll('_', ' ') : 'object';
+  return `${count} ${noun}${count === 1 || noun.endsWith('s') ? '' : 's'} after your changes.`;
+}
+
 export function evidenceBox(evidence) {
   const box = evidence?.bbox;
   if (Array.isArray(box) && box.length === 4 && box.every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1)) {

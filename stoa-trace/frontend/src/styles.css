@@ -3055,3 +3055,19 @@ p { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+/* Source tables and review controls live inside the existing conversation. */
+.answer-table-scroll { overflow-x: auto; margin: 12px 0; }
+.answer-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.answer-table th, .answer-table td { padding: 10px 8px; border-bottom: 1px solid var(--ui-border); vertical-align: top; }
+.answer-table thead th { font-weight: 500; color: var(--ui-fg-muted); }
+.answer-table tbody th { font-weight: 500; }
+.answer-table td:nth-child(2) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.answer-table button { border: 0; background: transparent; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: 12px; }
+.artifact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 0 12px; }
+.artifact-actions button { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 5px 9px; border: 1px solid var(--ui-border); background: transparent; border-radius: 7px; color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
+.artifact-actions button:hover:not(:disabled) { background: #f4f4f5; }
+.artifact-actions button:disabled { opacity: .45; cursor: default; }
+.artifact-actions .save-correction { background: #18181b; border-color: #18181b; color: white; }
+.artifact-actions .save-correction:hover:not(:disabled) { background: #303033; }
+.artifact-interpretation, .review-draft-status { margin: 0 0 12px; color: #52525b; font-size: 12px; line-height: 1.5; }
+.artifact-actions button:focus-visible, .answer-table button:focus-visible { outline: 2px solid #18181b; outline-offset: 3px; }

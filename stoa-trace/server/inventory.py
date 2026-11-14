@@ -13,7 +13,7 @@ from pathlib import Path
 from . import llm, rendering, store
 from .rendering import image_inputs, png_bytes
 
-REVISION = 'located-inventory-v4'
+REVISION = 'located-inventory-v5'
 
 
 def _reading_count():
@@ -29,6 +29,36 @@ def _reading_count():
 # right 455 of 504 times, against 6 of 15 where they differed
 # (docs/evaluation/cubicasa-vision-development.md).
 READINGS = _reading_count()
+
+
+def _policy():
+    policy = os.environ.get('STOA_INVENTORY_POLICY','repeat').strip().lower()
+    if policy not in {'repeat','adaptive'}:
+        raise ValueError('STOA_INVENTORY_POLICY must be repeat or adaptive.')
+    return policy
+
+
+def _symbol_reader():
+    mode=os.environ.get('STOA_SYMBOL_READER','standard').strip().lower()
+    if mode not in {'standard','focused'}:
+        raise ValueError('STOA_SYMBOL_READER must be standard or focused.')
+    return mode
+
+
+def _repeat_reason(result, images, specialist=None):
+    if not result.get('complete'):
+        return 'incomplete_scope'
+    located, discarded = _locate(result, images)
+    if discarded or any(row.get('ambiguous') for row in located):
+        return 'uncertain_candidates'
+    if specialist and not specialist.get('unavailable') and not specialist.get('abstained'):
+        # A disagreeing specialist requests review, never changes the answer.
+        for category in ('door','window'):
+            baseline = sum(row['category']==category for row in located)
+            detected = sum(row['category']==category for row in specialist['objects'])
+            if baseline != detected:
+                return 'specialist_disagreement'
+    return None
 CATEGORIES = ('door', 'window', 'toilet', 'sink', 'bathtub', 'shower', 'bedroom', 'kitchen', 'balcony', 'sauna', 'bathroom',
               'wc_room', 'apartment', 'floor')
 ALIASES = {
@@ -282,7 +312,9 @@ def categories_for_count(category):
 
 def config_signature():
     """Runtime inputs that must invalidate both inventory and answer caches."""
+    from . import detector
     return {'revision': REVISION, 'small_image_crops': bool(rendering.SMALL_IMAGE_CROPS),
+            'reading_policy':_policy(),'symbol_reader':_symbol_reader(),'detector':detector.signature(),
             **({'readings': READINGS} if READINGS != 1 else {})}
 
 
@@ -324,8 +356,18 @@ def _locate(result, images):
     return located, discarded
 
 
-def page_inventory(document, path, page):
+def page_inventory(document, path, page, focus_categories=None):
     system = _system(path)
+    schema = SCHEMA
+    if focus_categories:
+        if not set(focus_categories) <= {'door','window'}:
+            raise ValueError('The specialist reads doors and windows only.')
+        schema = copy.deepcopy(SCHEMA)
+        schema['properties']['objects']['items']['properties']['category']['enum'] = list(focus_categories)
+        system += '\nFOCUSED SYMBOL READING: Return only ' + ', '.join(focus_categories) + ''' objects. Inspect the full requested dwelling or page systematically, not just the obvious symbols.
+For windows, trace exterior wall runs in order, inspect every glazed opening and distinguish an assembly from a pane or mullion using the stated conventions. Check corners and cropped boundaries; never invent hidden openings.
+For doors, inspect internal and external openings, locate the leaf or sliding/folding assembly, distinguish furniture fronts from passage doors, and do not count a swing arc separately. Compare detail crops with the overview so each physical assembly appears once.
+Every counted item needs its own box. Do not infer a count from a typical building, room name or apartment code. Flag unresolved boundaries or classifications.'''
     key = _key(document, page, system)
     with store.key_lock('inventory:' + key):
         cached = store.cached_analysis(key)
@@ -333,14 +375,18 @@ def page_inventory(document, path, page):
             cached['cache_hit'] = True
             return cached
         images = image_inputs(path, [page])
+        from . import detector
+        specialist = detector.detect_image(images[0]['image'],document.get('document_id'),page) if detector.signature() else None
         content = [{'type': 'input_text', 'text': 'Inspect this one drawing page and return the located category inventory. No reference answers or native counts are supplied.'}]
         for index, image in enumerate(images):
             content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
                         {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(png_bytes(image['image'])).decode(), 'detail': 'high'}]
         before = llm.usage_snapshot()
         # Gemini's output budget includes its reasoning: 2,300 to 54,000 tokens per plan were measured.
-        request = lambda: llm._request(content, system=system, schema=SCHEMA, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
-        if READINGS > 1:
+        request = lambda: llm._request(content, system=system, schema=schema, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
+        repeat_reason = None
+        attempted = READINGS
+        if READINGS > 1 and _policy() == 'repeat':
             # Every reading is the same request. The first that succeeds gives the count and the
             # others only flag a different count, so a failed repeat never fails the answer.
             def attempt():
@@ -352,6 +398,28 @@ def page_inventory(document, path, page):
             results = [a for a in attempts if not isinstance(a, Exception)]
             if not results:
                 raise attempts[0]
+        elif _policy() == 'adaptive' and READINGS > 1:
+            # Count comes from the first successful response in both policies.
+            # The second reading is a disagreement flag, not an automatic correction.
+            try:
+                first = request()
+                results = [first]
+                attempted = 1
+                repeat_reason = _repeat_reason(first,images,specialist)
+            except llm.ModelError as error:
+                first_error = error
+                results = []
+                repeat_reason = 'first_reading_failed'
+                attempted = 1
+            if repeat_reason:
+                for _ in range(READINGS-1):
+                    attempted += 1
+                    try:
+                        results.append(request())
+                    except llm.ModelError as error:
+                        first_error = error
+                if not results:
+                    raise first_error
         else:
             results = [request()]
         result = results[0]
@@ -393,6 +461,8 @@ def page_inventory(document, path, page):
                      'discarded_candidates': discarded, 'uncertain_envelopes': uncertain, 'warnings': result.get('warnings', []),
                      'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.MODEL,
                      'provider_signature': llm.provider_signature()}
+        inventory['reading_policy'] = {'policy':_policy(),'attempts':attempted,'successful':len(results),'repeat_reason':repeat_reason}
+        inventory['specialist'] = specialist
         if discarded:
             inventory['warnings'] = list(inventory['warnings']) + [f'{discarded} invalid candidate locations were discarded; the inventory needs review.']
         if uncertain:
@@ -411,7 +481,8 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
     pages = [page] if scope == 'page' or region else list(range(1, page_count + 1))
     if len(pages) > 6:
         return None
-    inventories = [page_inventory(document, path, p) for p in pages]
+    focused = _symbol_reader() == 'focused' and set(categories) <= {'door','window'}
+    inventories = [page_inventory(document, path, p, focus_categories=categories) if focused else page_inventory(document,path,p) for p in pages]
     candidates = [copy.deepcopy(obj) for inventory in inventories for obj in inventory['objects'] if obj['category'] in categories]
     boundary_uncertain = False
     if region:
@@ -424,6 +495,15 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
     complete = all(i['complete_scope_claimed'] and not i['discarded_candidates'] and not i.get('uncertain_envelopes') for i in inventories)
     value = (len(candidates) if candidates or complete else None) if not boundary_uncertain else None
     agreement = _agreement(value, inventories, categories, region)
+    specialist_objects = [copy.deepcopy(o) for inv in inventories for o in (inv.get('specialist') or {}).get('objects',[])
+                          if o['category'] in categories and (not region or contains(region,o['bbox']))]
+    specialist_available = all(inv.get('specialist') and not inv['specialist'].get('unavailable') and not inv['specialist'].get('abstained') for inv in inventories)
+    specialist_check = None
+    if specialist_available and set(categories) <= {'door','window'}:
+        specialist_check = {'status':'agreement' if len(specialist_objects)==value else 'disagreement',
+                            'value':len(specialist_objects),'evidence':specialist_objects,
+                            'method':'local_plannet','training_domain':inventories[0]['specialist']['training_domain'],
+                            'note':'A local model trained on Swiss-style drawings. Centers and approximate extents are candidates, not independent verification.'}
     warnings = list(dict.fromkeys(w for i in inventories for w in i['warnings']))
     warnings.append('Visual candidates require review. An inspected scope and valid boxes do not prove detection completeness.')
     if agreement and not agreement['agree']:
@@ -439,14 +519,15 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
     ingestion.update(cost_estimate_usd=sum(costs) if all(c is not None for c in costs) else None,
                      cost_basis='configured_rates' if all(c is not None for c in costs) and ingestion['model_calls'] else ('native' if not ingestion['model_calls'] else 'unconfigured'), cache_hit=False)
     return {'answer': f'{value} located {named} candidates. Review the marked objects and add any misses.' if value is not None else 'The visual inventory could not establish a complete count.',
-            'value': value, 'unit': 'count', 'operation': 'count', 'method': 'visual_inventory', 'status': 'needs_review' if value is not None else 'insufficient_evidence',
+            'value': value, 'unit': 'count', 'operation': 'count', 'method': 'focused_visual_inventory' if focused else 'visual_inventory', 'status': 'needs_review' if value is not None else 'insufficient_evidence',
             'scope': 'Selected region' if region else (f'Page {page}' if scope == 'page' else 'All drawing pages'),
             'evidence': candidates, 'can_review': bool(candidates) or value is not None, 'calculation': f'Count of {len(candidates)} distinct located {named} candidates.',
             'warnings': warnings, 'model': llm.MODEL, 'provider_signature': llm.provider_signature(),
             'inventory_cache_hit': all(i['cache_hit'] for i in inventories),
             'ingestion_usage': ingestion, 'ingestion_by_page': initial_usage,
             'coverage': {'inspected_pages': pages, 'total_pages': page_count, 'complete_scope_claimed': complete},
-            'category': category, 'agreement': agreement}
+            'category': category, 'agreement': agreement, 'specialist_check':specialist_check,
+            'reading_policy':[inv.get('reading_policy') for inv in inventories]}
 
 
 def _agreement(value, inventories, categories, region=None):

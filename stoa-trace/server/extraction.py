@@ -182,6 +182,7 @@ def _ruled_schedules(page, drawings, page_number, width, height, prefix):
             x0 = min(c["bbox"][0] for c in row); y0 = min(c["bbox"][1] for c in row)
             x1 = max(c["bbox"][2] for c in row); y1 = max(c["bbox"][3] for c in row)
             rows.append({"id": f"{prefix}:p{page_number}:s{ti}:r{ri}", "cells": [c["text"] for c in row],
+                         "cell_bboxes": [_box(c["bbox"], width, height) for c in row],
                          "bbox": _box((x0, y0, x1, y1), width, height)})
         out.append({"page": page_number, "title": table["title"], "header": header,
                     "touches_below": table.get("touches_below", False),

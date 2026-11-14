@@ -10,6 +10,7 @@ import re
 import secrets
 import time
 import uuid
+from functools import lru_cache
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -32,6 +33,7 @@ ACCESS_TOKEN = os.environ.get('STOA_ACCESS_TOKEN', '')
 
 @asynccontextmanager
 async def lifespan(app):
+    _solver_revision()
     store.initialize()
     yield
 
@@ -79,7 +81,8 @@ def health():
     return {'status': 'ok', 'model_available': llm.model_available(), 'provider': llm.PROVIDER, 'model': llm.MODEL,
             'documents': count, 'indexed_documents': indexed, 'auth_required': bool(ACCESS_TOKEN), 'version': '0.1.0',
             'provider_signature': llm.provider_signature(), 'inventory_signature': inventory.config_signature(),
-            'audit_signature': visual_audit.config_signature(), 'solver_revision': _solver_revision()}
+            'audit_signature': visual_audit.config_signature(), 'solver_revision': _solver_revision(),
+            'source_revision':_source_revision(),'restart_required':_solver_revision()!=_source_revision()}
 
 
 @app.get('/api/documents')
@@ -245,6 +248,7 @@ class AskRequest(BaseModel):
     cross_check: bool = False
     verify_visual: bool = False
     session_id: uuid.UUID | None = None
+    previous_answer_id: str | None = Field(default=None, max_length=100)
 
 
 class MeasurementRequest(BaseModel):
@@ -365,13 +369,19 @@ def _evidence(result, doc_id):
     return result
 
 
-def _solver_revision():
+def _source_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'native_query.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
     return digest.hexdigest()[:20]
+
+
+@lru_cache(maxsize=1)
+def _solver_revision():
+    # A running process must never claim newly edited files are already loaded.
+    return _source_revision()
 
 
 def _cross_check(payload, question, native_result, data, source):
@@ -570,7 +580,7 @@ def _guard_visual_measurements(result, question=''):
     return result
 
 
-def _compute_analysis(payload, question, data, source):
+def _compute_analysis(payload, question, data, source, previous=None):
     from .native_qa import answer_native
     from . import inventory
     english = to_english(question)
@@ -584,9 +594,11 @@ def _compute_analysis(payload, question, data, source):
         native_data = {**data, 'metadata': {**data.get('metadata', {}), 'requested_scope': 'page'},
                        'pages': [p for p in data.get('pages', []) if p.get('page') == payload.page],
                        'objects': [o for o in data.get('objects', []) if o.get('page') == payload.page]}
+        native_data['metadata']['schedule_tables'] = [t for t in data.get('metadata',{}).get('schedule_tables',[]) if t.get('page') == payload.page]
     if region_data is not None:
         native_data = region_data
-    if payload.mode != 'vision':
+    contextual = bool(previous and re.search(r'\b(those|these|their|them|that room|that space|same rooms?|previous|instead)\b', question, re.I))
+    if payload.mode != 'vision' and not contextual:
         if payload.region:
             result = _native_region_answer(question, data, source, payload.page, payload.region)
         elif not (payload.scope == 'page' and source.suffix.lower() == '.ifc'):
@@ -604,14 +616,14 @@ def _compute_analysis(payload, question, data, source):
     if result is None and payload.mode != 'native' and (not payload.region or region_data is not None) and llm.model_available():
         # Schedule sheets: a model plans the table query, the program executes it over the cells.
         from . import schedule_planner
-        if not payload.region and schedule_planner.usable_tables(data):
+        if not contextual and not payload.region and schedule_planner.usable_tables(native_data):
             def _plan_cache_get(key):
                 return store.cached_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}))
 
             def _plan_cache_put(key, plan):
                 store.save_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}), 'schedule_plan', plan)
             try:
-                result = schedule_planner.answer(question, data, request=llm._request, cache=(_plan_cache_get, _plan_cache_put))
+                result = schedule_planner.answer(question, native_data, request=llm._request, cache=(_plan_cache_get, _plan_cache_put))
             except llm.ModelError:
                 result = None
         if result is None:
@@ -621,9 +633,13 @@ def _compute_analysis(payload, question, data, source):
             def _native_plan_put(key, plan):
                 store.save_analysis(store.analysis_key('native_query', {'plan':key,'provider':llm.provider_signature()}), 'native_query', plan)
             try:
-                result = native_query.answer(question, native_data, request=llm._request, cache=(_native_plan_get,_native_plan_put))
+                result = native_query.answer(question, native_data, request=llm._request, cache=(_native_plan_get,_native_plan_put), previous=previous)
             except llm.ModelError:
                 result = None
+    if result is None and contextual:
+        result = {'answer':'Do you mean the objects from the previous answer, or every matching object in the current selection?',
+                  'value':None,'unit':None,'method':'context_clarification','status':'needs_clarification',
+                  'evidence':[],'can_review':False,'warnings':[]}
     if result is None and payload.mode != 'native':
         try:
             result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
@@ -674,6 +690,8 @@ def ask(payload: AskRequest):
 
 def _ask_question(payload: AskRequest, answer_id: str):
     started = time.monotonic()
+    if _solver_revision() != _source_revision():
+        raise HTTPException(503, 'The backend is still running the previous code. Restart the local server to finish loading this update.')
     doc = known_document(payload.document_id)
     if payload.mode not in {'auto', 'native', 'vision'} or payload.scope not in {'document', 'page'}:
         raise HTTPException(422, 'Choose a supported analysis mode and scope.')
@@ -687,6 +705,18 @@ def _ask_question(payload: AskRequest, answer_id: str):
     doc = store.get_document(payload.document_id)
     source = store.get_path(payload.document_id)
     question = payload.question.strip()
+    previous = None
+    if payload.previous_answer_id:
+        try:
+            candidate = store.read_answer(payload.previous_answer_id)
+        except KeyError:
+            raise HTTPException(409, 'The previous answer is unavailable. Ask again without referring to it.') from None
+        context = candidate.get('request_context') or {}
+        if candidate.get('document_id') != doc['id'] or candidate.get('provenance',{}).get('source_fingerprint') != data.get('source_fingerprint'):
+            raise HTTPException(409, 'The previous answer belongs to a different or changed drawing.')
+        # A changed region is a fresh selection. Never carry IDs from another scope.
+        if context.get('page',1) == payload.page and context.get('region') == payload.region and context.get('scope','document') == payload.scope:
+            previous = candidate
     canonical_question = to_english(question)
     from .inventory import config_signature
     from .visual_audit import config_signature as audit_signature
@@ -697,13 +727,16 @@ def _ask_question(payload: AskRequest, answer_id: str):
                             'prompt': llm.PROMPT_REVISION, 'question': canonical_question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
                             'mode': payload.mode, 'cross_check': payload.cross_check, 'verify_visual': payload.verify_visual})
+    if previous:
+        key = store.analysis_key('contextual_answer', {'base':key,'previous':previous['id'],
+                                 'review_revision':(previous.get('review') or {}).get('revision',0)})
     with store.key_lock('answer:' + key):
         result = store.cached_analysis(key)
         hit = result is not None
         if hit:
             result['cached_analysis_usage'] = result.get('usage', {})
         else:
-            result = _compute_analysis(payload, question, data, source)
+            result = _compute_analysis(payload, question, data, source, previous=previous)
             result['usage'] = llm.usage_snapshot()
             store.save_analysis(key, 'answer', result)
     result['usage'] = llm.usage_snapshot(cache_hit=hit)
@@ -841,6 +874,7 @@ class ReviewRequest(BaseModel):
     excluded_evidence_ids: list[str] = Field(default_factory=list, max_length=10000)
     added_evidence: list[ManualEvidence] = Field(default_factory=list, max_length=1000)
     note: str = Field(default='', max_length=4000)
+    base_revision: int | None = Field(default=None, ge=0)
 
 
 @app.post('/api/answers/{answer_id}/review')
@@ -855,6 +889,8 @@ def review_answer(answer_id: str, payload: ReviewRequest):
             raise HTTPException(409, 'The source changed. Run a new analysis before correcting its count.')
         if not original.get('can_review'):
             raise HTTPException(422, 'This answer does not support count corrections.')
+        if payload.base_revision is not None and payload.base_revision != int((current.get('review') or {}).get('revision',0)):
+            raise HTTPException(409, 'This review changed in another tab. Reopen the answer before saving your correction.')
         original_evidence = copy.deepcopy(original.get('evidence', []))
         ids = {e['id'] for e in original_evidence}
         allowed_documents = {original['document_id']} | {e.get('document_id', original['document_id']) for e in original_evidence}
@@ -925,7 +961,10 @@ def review_answer(answer_id: str, payload: ReviewRequest):
         elif current.get('resolution_superseded'):
             result['working_quantity'] = None
             result['resolution_superseded'] = copy.deepcopy(current['resolution_superseded'])
-        result['answer'] = f'{reviewed_value} included objects after your review.'
+        noun = expected_category.replace('_',' ') if expected_category and '+' not in expected_category else 'object'
+        if reviewed_value != 1 and not noun.endswith('s'):
+            noun += 's'
+        result['answer'] = f'{reviewed_value} {noun} after your review.'
         result['calculation'] = f'{len(ids)} original objects + {len(added)} added − {len(excluded)} excluded = {reviewed_value}'
         result['warnings'] = list(dict.fromkeys(original.get('warnings', []) + ['Your corrections change the included set; they do not independently establish detection completeness.']))
         if added and not expected_category:
@@ -954,6 +993,19 @@ def answer_detail(answer_id: str, original: bool = False):
         return _answer_view(store.read_answer(answer_id, original=original))
     except KeyError:
         raise HTTPException(404, 'Answer not found') from None
+
+
+@app.get('/api/answers/{answer_id}/export')
+def export_answer(answer_id: str, format: Literal['json','csv'] = 'json'):
+    from .receipts import receipt, csv_receipt
+    try:
+        result = _answer_view(store.read_answer(answer_id))
+    except KeyError:
+        raise HTTPException(404, 'Answer not found') from None
+    exported = receipt(result)
+    content = csv_receipt(exported) if format == 'csv' else json.dumps(exported,ensure_ascii=False,indent=2)
+    return Response(content,media_type='text/csv' if format=='csv' else 'application/json',
+                    headers={'Content-Disposition':f'attachment; filename="metria-{result["id"]}-r{exported["export_revision"]}.{format}"'})
 
 
 @app.get('/api/answers')

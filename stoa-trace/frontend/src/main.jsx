@@ -47,6 +47,7 @@ import {
 import './styles.css';
 import ChatWorkspace, { ThreadActions } from './ChatWorkspace.jsx';
 import DrawingArtifact from './DrawingArtifact.jsx';
+import AnswerTable from './AnswerTable.jsx';
 import AgentThinking from './boardui/AgentThinking.jsx';
 import { latestRestorableRecord } from './conversationState.js';
 import { focusDrawingBox } from './canvasFocus.js';
@@ -57,7 +58,7 @@ import { MessageInferenceCost } from './InferenceCost.jsx';
 import useSessionUsage from './useSessionUsage.js';
 import { messageCost, requestFailure } from './inferenceUsage.js';
 import { Button as BoardButton } from './boardui/primitives.jsx';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, displayQuantity, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, displayQuantity, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue, draftCountSummary } from './reviewState.js';
 
 const request = async (url, options = {}) => {
   const response = await fetch(url, options);
@@ -101,6 +102,14 @@ const normalizeDetails = payload => payload?.document ? { ...payload.document, p
 const calculationText = (calculation, answer) => {
   if (typeof calculation !== 'object') return shortText(calculation);
   if (calculation.formula || calculation.expression) return calculation.formula || calculation.expression;
+  if (calculation.comparison) {
+    const { left, right, operand_unit } = calculation.comparison;
+    const operator = calculation.operation === 'difference' ? '−' : '÷';
+    return `${formatQuantityValue(left, operand_unit)} ${operand_unit} ${operator} ${formatQuantityValue(right, operand_unit)} ${operand_unit}${calculation.operation === 'percentage' ? ' × 100' : ''} = ${formatQuantityValue(calculation.result, answer.unit)} ${answer.unit || ''}`;
+  }
+  if (calculation.terms?.length && calculation.result != null && ['sum', 'sum_column', 'sum_column_times_leading_number'].includes(calculation.operation)) {
+    return calculation.terms.length <= 8 ? `${calculation.terms.map(value => formatQuantityValue(value, answer.unit)).join(' + ')} = ${formatQuantityValue(calculation.result, answer.unit)} ${answer.unit || ''}` : `Sum of ${calculation.terms.length} source quantities = ${formatQuantityValue(calculation.result, answer.unit)} ${answer.unit || ''}`;
+  }
   if (calculation.plan?.explanation) return calculation.plan.explanation;
   if (['sum','min','max','mean','value'].includes(calculation.operation) && calculation.result != null) {
     const label={sum:'Sum',min:'Minimum',max:'Maximum',mean:'Average',value:'Source value'}[calculation.operation];
@@ -834,6 +843,7 @@ function App({thread, chatWorkspace}) {
   const askSequenceRef = useRef(0);
   const contextRef = useRef(null);
   const manualLabelRef = useRef(null);
+  const reviewPanelRef = useRef(null);
   const sidebarOpen = libraryOpen;
   const setSidebarOpen = setLibraryOpen;
   const searchInputRef = useRef(null);
@@ -947,7 +957,8 @@ function App({thread, chatWorkspace}) {
     const context = contextRef.current, sequence = ++askSequenceRef.current, controller = new AbortController();
     activeAskRef.current = { sequence, controller, context };
     try {
-      const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
+      const previousAnswer = answerRef.current;
+      const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), ...(previousAnswer?.document_id === documentId && !previousAnswer.source_changed ? {previous_answer_id: previousAnswer.id} : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
       if (controller.signal.aborted || activeAskRef.current?.sequence !== sequence || contextRef.current !== context) return;
       activeAskRef.current = null; setAsking(false);
       setFocusToken(0); setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
@@ -1006,6 +1017,7 @@ function App({thread, chatWorkspace}) {
     setManualCategory(category || 'other');
     setManualLabel(category ? `Missing ${readable(category)}` : ''); setManualNote(''); setManualError('');
     setPendingManual({ document_id: selectedId, page, bbox: [0.45, 0.45, 0.55, 0.55] }); setManualMode(true);
+    if (reviewPanelRef.current) reviewPanelRef.current.open = true;
     requestAnimationFrame(() => manualLabelRef.current?.focus());
   };
   const markManual = bbox => { setPendingManual({ document_id: selectedId, page, bbox }); setManualMode(false); setAnswerOpen(true); requestAnimationFrame(() => manualLabelRef.current?.focus()); };
@@ -1025,16 +1037,23 @@ function App({thread, chatWorkspace}) {
     const answerId = answer.id;
     setReviewing(true); setAskError(''); setAskErrorUsage(undefined);
     try {
-      const result = await jsonRequest(`/api/answers/${encodeURIComponent(answerId)}/review`, { excluded_evidence_ids: excluded, added_evidence: manualAdditions, note: reviewNote });
+      const result = await jsonRequest(`/api/answers/${encodeURIComponent(answerId)}/review`, { excluded_evidence_ids: excluded, added_evidence: manualAdditions, note: reviewNote, base_revision: answer.review?.revision || 0 });
       if (answerRef.current?.id === answerId) { setAnswer(result); loadReviewDraft(result); }
       setHistory(items => mergeHistory(items, [historyItem(result, { question: answerQuestion, documentId: answerDocumentId, documentName: answerDocumentName, timestamp: items.find(item => item.id === answerId)?.timestamp || Date.now() })]));
+      return result;
     }
     catch (error) { setAskError(error.message); } finally { setReviewing(false); }
   };
-  const downloadAnswer = () => {
-    if (!answer) return;
-    const blob = new Blob([JSON.stringify({ question: answerQuestion, document: { id: answerDocumentId, name: answerDocumentName }, ...answer, ...(hasReviewChanges ? { unsaved_review: { excluded_evidence_ids: excluded, added_evidence: manualAdditions, note: reviewNote, value: reviewedCount } } : {}) }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob); const link = window.document.createElement('a'); link.href = url; link.download = `metria-answer-${answer.id || Date.now()}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const downloadAnswer = async (format = 'json') => {
+    if (!answer || reviewing || pendingManual) return;
+    const identity = answer.id;
+    try {
+      if (hasReviewChanges && !await review()) return;
+      const content = await request(`/api/answers/${encodeURIComponent(identity)}/export?format=${format}`);
+      const blob = new Blob([format === 'json' ? JSON.stringify(content, null, 2) : content], { type: format === 'json' ? 'application/json' : 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = window.document.createElement('a'); link.href = url; link.download = `metria-answer-${identity}.${format}`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) { setAskError(error.message); }
   };
   const resolveComparison = async payload => {
     if (!answer?.id || !canResolveComparison(answer) || resolving || reviewing || hasReviewChanges || pendingManual) return;
@@ -1341,13 +1360,21 @@ function App({thread, chatWorkspace}) {
           {!answer && !asking && !conversation.records.length && <section className="chat-empty"><span className="chat-assistant-label">Metria</span><h2>What do you need from this drawing?</h2><p>Ask about quantities, dimensions or rooms. Open the evidence to inspect the source.</p>{!selectedDocument && <BoardButton onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload a drawing</BoardButton>}<div className="question-suggestions">{(suggestions.length ? suggestions : ['How many doors are shown?', 'What is the area of the largest labelled room?', 'Highlight the windows.']).slice(0, 3).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={15} /></button>)}</div></section>}
           <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={async item => { await restoreHistory(item); setFocusToken(value => value + 1); }} quantityUnit={quantityUnit} formatQuantity={formatAnswerQuantity}>
           {answer && !asking && <section className="answer-result chat-assistant-message" aria-live="polite">
-            <div className="result-topline"><span className="chat-assistant-label">Metria</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
+            <div className="result-topline"><span className="chat-assistant-label">Metria</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label={hasReviewChanges ? "Save changes and download answer" : "Download answer with evidence"} disabled={reviewing || resolving || !!pendingManual} onClick={() => downloadAnswer()}><ArrowDownToLine size={15} /></IconButton></div>
             {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
             {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
 
             {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
-            <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
-            <DrawingArtifact key={answer.id} count={evidence.length} focusRequest={focusToken}>
+            <p className="answer-text">{answer.can_review && hasReviewChanges ? draftCountSummary(answer, manualAdditions, excluded) : shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
+            {hasReviewChanges && answer.can_review && <p className="review-draft-status" role="status">Changes not saved yet.</p>}
+            <AnswerTable rows={answer.rows} evidence={evidence} onSelect={selectEvidence} />
+            {(evidence.length > 0 || answer.can_review || answer.calculation) && <DrawingArtifact key={answer.id} count={answer.can_review ? reviewedCount : evidence.length} focusRequest={focusToken}>
+
+            {answer.interpretation && answer.interpretation.replace(/\.$/,'') !== answer.answer?.replace(/\.$/,'') && <p className="artifact-interpretation">{answer.interpretation}</p>}
+            <div className="artifact-actions">
+              {answer.can_review && !answer.source_changed && <><button type="button" onClick={startManual} disabled={reviewing || resolving}><Plus size={14}/>Add object</button><button type="button" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}>Undo</button>{hasReviewChanges && <button type="button" className="save-correction" onClick={review} disabled={reviewing || resolving}>{reviewing ? 'Saving…' : 'Save changes'}</button>}</>}
+              <button type="button" onClick={() => downloadAnswer('csv')} disabled={reviewing || resolving || !!pendingManual}>{hasReviewChanges ? 'Save and export CSV' : 'Export CSV'}</button>
+            </div>
 
             {answer.calculation && <div className="artifact-calculation"><span>Calculation</span><p>{calculationText(answer.calculation, answer)}</p></div>}
             {warnings.length > 0 && <details className="answer-warnings"><summary><CircleHelp size={15} />{warnings.length} {warnings.length === 1 ? 'source note' : 'source notes'} to check</summary>{warnings.map((warning, i) => <p key={i}><span>{shortText(warning.message || warning)}</span></p>)}</details>}
@@ -1358,10 +1385,7 @@ function App({thread, chatWorkspace}) {
                 {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
                 {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}<EvidenceCloseup answer={answer} evidence={item} request={request} /></div>}
               </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
-              {answer.can_review && !answer.source_changed && <details className="review-workspace" ><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
-                <div className="review-counts"><span>Original count<strong>{answer.original_value ?? answer.value}</strong></span><span>{hasReviewChanges ? 'Draft count' : answer.human_reviewed ? 'Reviewed count' : 'Included count'}<strong>{reviewedCount}</strong></span></div>
-                <p className="review-help">Review changes the included set. Detection completeness remains unverified.</p>
-                <div className="review-actions"><button type="button" className="button" onClick={startManual} disabled={reviewing || resolving || !selectedId}><Plus size={15} /> Add missed object</button><IconButton label="Undo last object change" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}><ArrowLeft size={16} /></IconButton><button type="button" className="text-button" onClick={restoreOriginal} disabled={reviewing || resolving || (!excluded.length && !manualAdditions.length && !reviewNote)}>Restore original</button></div>
+              {answer.can_review && !answer.source_changed && <details ref={reviewPanelRef} className="review-workspace" ><summary>Review details</summary>
                 {pendingManual && <form className="manual-object-form" onSubmit={addManual} aria-label="Add a missed object">
                   <div><strong>Mark a missed object</strong><button type="button" onClick={cancelManual} aria-label="Cancel missing object"><X size={16} /></button></div>
                   <p>Drag a box or click the drawing. You can also enter page coordinates below.</p>
@@ -1373,12 +1397,11 @@ function App({thread, chatWorkspace}) {
                   <div className="manual-form-actions"><button type="button" className="button" onClick={() => { setManualMode(true); setAnswerOpen(false); }}><SquareDashedMousePointer size={15} /> Mark on drawing</button><button type="submit" className="button primary"><Plus size={15} /> Add to count</button></div>
                 </form>}
                 <label className="review-note">Review note (optional)<textarea rows={2} value={reviewNote} maxLength={2000} disabled={reviewing || resolving} onChange={event => setReviewNote(event.target.value)} placeholder="Explain what you changed and why." /></label>
-                <button type="button" className="button primary review-button" onClick={review} disabled={reviewing || resolving || (!hasReviewChanges && answer.human_reviewed)}>{reviewing ? <LoaderCircle size={15} className="spin" /> : <ShieldCheck size={15} />}{reviewing ? 'Saving review…' : 'Save reviewed count'}</button>
                 <div className="review-save-state" role="status">{hasReviewChanges ? 'Unsaved review changes' : answer.review?.reviewed_at ? `Saved ${dateText(answer.review.reviewed_at)}` : 'Original answer is preserved when you save a review.'}</div>
                 {answer.review && <details className="review-summary"><summary>Saved review changes</summary><p>{answer.review.original_value ?? answer.original_value} original → {answer.review.reviewed_value ?? answer.value} reviewed</p><p>{answer.review.added_count || 0} added · {answer.review.excluded_count || 0} excluded</p>{answer.review.note && <p>{answer.review.note}</p>}</details>}
               </details>}
             </div>
-          </DrawingArtifact>
+          </DrawingArtifact>}
           </section>}
           </ChatThread>
           {askError && <div className="inline-error query-error" role="alert"><strong>{askError.startsWith('Stopped waiting') ? 'Stopped waiting' : 'Couldn’t complete the question'}</strong><span>{askError}</span><button type="button" onClick={event => { setQuestion(pendingQuestion?.question || answerQuestion); questionRef.current?.focus(); }} disabled={asking}>Edit and retry</button></div>}
