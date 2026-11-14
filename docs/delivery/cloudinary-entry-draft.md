@@ -1,6 +1,6 @@
 # Trace: Cloudinary entry draft
 
-**Status checked 14 November 2026, approximately 12:25 Europe/Helsinki:** prepared text only. No Cloudinary award form or Junction challenge selection has been submitted by this work. The close-up interface is implemented at `6405c97`; backend integration and live end-to-end verification are pending at this draft's cutoff. Use the submission copy below only after the acceptance checks pass and its revision and demo links are filled in accurately.
+**Status checked 14 November 2026:** the feature is implemented and live-verified at integrated code `70c1af2`, with 280 backend tests and 27 frontend tests passing. The submission text is a draft; no Cloudinary award form or Junction challenge selection has been submitted by this work. Confirm organizer access and final entry fields before using it.
 
 ## Checked challenge requirements
 
@@ -45,15 +45,15 @@ Do not use an invented missed object as a real recognition success. This feature
 | Item | Current evidence or remaining action |
 | --- | --- |
 | Tool used | Official Cloudinary Skills Pack, upstream commit above. No framework migration. |
-| Frontend | Implemented at `6405c97`; a completed frontend build is separate from a successful Cloudinary request. |
-| Backend and upload preset | Integration in progress. Record final code revision and successful authenticated preset check. |
-| Live transformation | Pending. Record a real selected-evidence crop, returned dimensions and source alignment. A mock test is insufficient. |
-| Protected delivery | Pending live check that the browser receives the workspace route, and unauthenticated users cannot retrieve the image. Keep signed URLs and credentials out of screenshots and reports. |
-| Source and quantity preservation | Pending end-to-end check that opening a close-up changes no source, evidence coordinates, count or saved review. |
-| Cache and failure behavior | Pending live cache check; record missing-configuration, invalid-evidence and provider-failure tests separately. |
-| Demo | Existing protected workspace: `https://stoa-86-38-182-146.sslip.io`. Deployment of this feature and organizer access are unverified at this cutoff. |
+| Frontend | Integrated at `70c1af2`; 27 frontend tests and production build passed. Desktop and mobile browser flow passed. |
+| Backend and upload preset | Live restrictive signed preset `trace-evidence-pages` verified. Authenticated page uploads and eager derivatives work. |
+| Live transformation | Real production crop from a saved Gemini door answer: 320 × 336 PNG, 5,880 bytes. The separate local browser flow also displayed an actual crop. |
+| Protected delivery | Browser receives only `/api/media/<opaque token>.png`. Production unauthenticated image GET returned 401; authenticated PNG delivery passed. Signed URLs and credentials stay private. |
+| Source and quantity preservation | Before/after saved-answer comparison passed. Count remained four; source, evidence and review were unchanged. |
+| Cache and failure behavior | Repeated production POST reused the crop. Zero extra model calls; eight backend tests cover source changes, malformed evidence, missing configuration and sanitized provider failures. |
+| Demo | Live at `https://stoa-86-38-182-146.sslip.io`, protected workspace. Organizer access must still be arranged securely. |
 | Source | `https://github.com/paranza/junction-2026`. Confirm the final integrated revision and organizer access before submitting. |
-| Video or screenshot evidence | Pending final live proof. Use source images whose terms permit the demonstration. |
+| Video or screenshot evidence | [Actual Cloudinary browser close-up](../assets/trace-cloudinary-closeup.jpg), using a procedural development drawing. No encoded video is claimed. |
 | Separate survey and challenge selection | Not submitted by this work. Save actual confirmation privately after an authorized submission. |
 
 ## Workspace handoff
@@ -61,3 +61,5 @@ Do not use an invented missed object as a real recognition success. This feature
 A new free claimable Cloudinary workspace was provisioned with the user's authorization. Its claim deadline is **15 November 2026, 10:20:57 UTC (12:20:57 Europe/Helsinki)**. The user must complete the private browser claim flow, including email and acceptance of terms, to retain the workspace. The claim URL is a private capability and is intentionally absent from this repository. Obtain it through the owner's existing private handoff, not a public issue or submission description.
 
 Keep API credentials in private server configuration. The free workspace's quotas and future terms remain separate from Gemini credits and from the application's LLM inference-cost estimate. Creating the workspace is not an award entry, a paid-plan authorization or proof that the feature has been deployed.
+
+[Sanitized production verification](../../stoa-trace/ops/reports/gemini-release/cloudinary-production.json). Its selected source region derives from an actual Gemini answer; it is not a Cloudinary recognition benchmark.

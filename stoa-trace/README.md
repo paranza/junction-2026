@@ -77,6 +77,18 @@ Agreement does not independently establish completeness or engineering correctne
 Saved answers whose sources have changed are marked outdated; their overlays and
 corrections are disabled until the question is recomputed.
 
+## Cloudinary evidence close-ups
+
+Cloudinary provides an optional source-inspection step. Select a saved, located evidence item and choose **Open evidence close-up**. The application uploads its canonical rendered page as authenticated media, asks Cloudinary for an explicit crop and enlargement, and serves the derived PNG through the protected workspace. It preserves the original source, quantity, evidence coordinates and review. No generative enhancement is used, and the close-up never becomes an inference input.
+
+Install the pinned Python requirements, put a single `CLOUDINARY_URL=cloudinary://...` assignment in a private `.env` or `~/.config/stoa-junction-2026/cloudinary.env`, then create the restrictive signed upload preset once:
+
+```sh
+python ops/setup_cloudinary.py
+```
+
+Restart the backend after configuration changes. The optional button is hidden when the integration is unavailable. The API secret and signed delivery URLs stay on the server; repeated page uploads and close-ups use immutable caches. This consumes Cloudinary media quotas separately from the displayed LLM inference cost. Hosted media operations do not establish better recognition accuracy. See [Cloudinary entry and live verification](../docs/delivery/cloudinary-entry-draft.md).
+
 ## Caches and usage
 
 Repeated identical questions, and recognized equivalent translations, reuse immutable analysis and receive fresh answer

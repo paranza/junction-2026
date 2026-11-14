@@ -1,0 +1,26 @@
+{
+  "status": "ok",
+  "source_commit": "70c1af2",
+  "provider": "cloudinary",
+  "width": 320,
+  "height": 336,
+  "bytes": 5880,
+  "png_sha256": "e01526200d46db1e2198716bd25749fcb1dbd0c585a4bc4e269db7ce686f824c",
+  "authenticated_workspace_delivery": true,
+  "unauthenticated_status": 401,
+  "repeat_cache_hit": true,
+  "original_answer_unchanged": true,
+  "source_count": 4,
+  "extra_model_calls": 0,
+  "source_kind": "Actual Gemini answer on procedural development PNG",
+  "source_region": [
+    0.3933333333333333,
+    0.183,
+    0.46,
+    0.267
+  ],
+  "backend_tests": 280,
+  "frontend_tests": 27,
+  "browser_flow": "passed_desktop_and_mobile",
+  "private_workspace_claim_required": true
+}

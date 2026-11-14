@@ -33,3 +33,9 @@ React, React DOM, Vite and their frontend dependencies retain their package lice
 OpenAI, Gemini and optional Gemma requests use hosted APIs under their provider terms. Selecting a hosted open model does not turn this implementation into offline inference. No Gemini or Gemma weights are redistributed or trained by these adapters. `store: false` is an API setting, not a replacement for provider data-use or retention terms. See [Google's hosted Gemma documentation](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api).
 
 The token-rate facts in `server/costs.py` are derived from [Google's published API pricing](https://aistudio.google.com/docs/pricing), checked 14 November 2026 and date-bounded in code. They support estimated provider token costs before credits, not invoices, account balances, or a promise of future pricing or access. Unknown or expired prices remain unknown unless an operator supplies an explicit exact-model override.
+
+## Cloudinary evidence close-ups
+
+The optional Cloudinary Python SDK is pinned to 1.47.0 and retains its MIT licence. Cloudinary's hosted upload, transformation, storage and delivery services have separate provider terms and quotas. Authenticated media and the protected Trace proxy do not relicense source drawings. Only an explicit evidence close-up request uploads a canonical rendered page; arbitrary library uploads and generative alterations are not part of this feature.
+
+Implementation used the official [Cloudinary Skills Pack](https://github.com/cloudinary-devs/skills), commit `c41e79f4b5e350fb994c541f6190538e838660b8`, including the documentation, upload, transformation and React guidance. The skills are development tooling and are not bundled application code. No Cloudinary API key, secret or workspace claim capability is included in this repository.
