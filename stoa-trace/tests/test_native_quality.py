@@ -377,6 +377,26 @@ class SwissExporterCompatibility(unittest.TestCase):
             self.assertEqual(answer_native('How many apartments (residential units) are shown on this floor plan?',doc,path,root)['value'],1)
             self.assertEqual(answer_native('How many doors (interior doors and entrance doors together) are drawn on this floor plan?',doc,path,root)['value'],2)
 
+    def test_stray_residential_tag_and_floor_without_fixture_layer(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            root=Path(folder); path=root/'fixture.dxf'
+            drawing=ezdxf.new(); drawing.units=6; model=drawing.modelspace()
+            for x0 in (0,5,10):
+                model.add_lwpolyline([(x0,0),(x0+4,0),(x0+4,4),(x0,4),(x0,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            model.add_lwpolyline([(0,0),(3,0),(3,3),(0,3),(0,0)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            model.add_lwpolyline([(0,0),(1,0),(1,.05),(0,.05),(0,0)],dxfattribs={'layer':'DOOR'})
+            # 'Whg. A' sits inside its outline; 'Whg. B' on the wall 0.5 m left of the free
+            # outline at x=10 (nearest free outline); 'Whg. C' is 3 m away from any outline.
+            for text,point in [('Whg. A',(2,3.5)),('Whg. B',(9.5,2)),('Whg. C',(7,7)),('Bad',(1,2)),('2.01',(1,1.7))]:
+                model.add_text(text,dxfattribs={'layer':'ROOM_TEXT','insert':point})
+            drawing.saveas(path)
+            doc=extract_document(path,root)
+            self.assertEqual(sorted(o['label'] for o in doc['objects'] if o['type']=='apartment'),['Whg. A','Whg. B'])
+            self.assertEqual(answer_native('How many apartments (residential units) are shown on this floor plan?',doc,path,root)['value'],2)
+            # A layered export that draws doors but has no FIXTURE layer draws no toilets.
+            self.assertEqual(answer_native('How many toilets (WC) are drawn on this floor plan?',doc,path,root)['value'],0)
+
     def test_nested_outlines_do_not_duplicate_labels_and_quotes_are_exact(self):
         import ezdxf
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:

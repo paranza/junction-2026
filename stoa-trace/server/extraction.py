@@ -500,10 +500,27 @@ def _dxf(path, root):
         words.append({"text": t["text"], "bbox": [max(0,x-.002), max(0,y-.012), min(1,x+.04), min(1,y+.003)]})
     result.update(page_count=1, pages=[{"page": 1, "width": width, "height": height,
                                       "text": "\n".join(t["text"] for t in text_items), "words": words}])
+    residential_re = r"(?:app\.?|apt\.?|wohnung|whg\.?|appartement|appart\.?|unita)\s+[A-Z]"
+    unit_tags = {}
     for handle, points, polygon in unit_outlines:
         inside_tags = [t for t in text_items if polygon.covers(Point(t["point"]))]
-        assigned = [t for t in inside_tags if re.fullmatch(r"(?:app\.?|apt\.?|wohnung|whg\.?|appartement|appart\.?|unita)\s+[A-Z]", t["text"], re.I)]
-        commercial = [t for t in inside_tags if re.fullmatch(r"(?:gewerbe|commerce|commercio|commercial|unit[aàé])\s+\S{1,3}", t["text"], re.I)]
+        unit_tags[handle] = ([t for t in inside_tags if re.fullmatch(residential_re, t["text"], re.I)],
+                             [t for t in inside_tags if re.fullmatch(r"(?:gewerbe|commerce|commercio|commercial|unit[aàé])\s+\S{1,3}", t["text"], re.I)])
+    # A residential tag drawn just outside every outline (on a dividing wall) labels the
+    # nearest outline that carries no tag of its own, if that outline is within one metre.
+    try:
+        from ezdxf.units import conversion_factor
+        metre = conversion_factor(drawing.units, 6) if drawing.units else 1.0
+    except Exception:
+        metre = 1.0
+    for t in text_items:
+        if re.fullmatch(residential_re, t["text"], re.I) and not any(polygon.covers(Point(t["point"])) for _, _, polygon in unit_outlines):
+            free = [(polygon.exterior.distance(Point(t["point"])) * metre, handle) for handle, _, polygon in unit_outlines
+                    if not unit_tags[handle][0] and not unit_tags[handle][1]]
+            if free and min(free)[0] <= 1.0:
+                unit_tags[min(free)[1]][0].append(t)
+    for handle, points, polygon in unit_outlines:
+        assigned, commercial = unit_tags[handle]
         # Only outlines carrying a residential tag are apartments. Untagged outlines and
         # commercial units stay inspectable but are not counted as residential units.
         kind = "apartment" if assigned else "commercial_unit" if commercial else "unit_outline_untagged"
@@ -592,6 +609,12 @@ def _dxf(path, root):
         for category in ("toilet", "washbasin", "bathtub", "shower"):
             result["metadata"]["semantic_inventory"][category] = sum(
                 o["type"] == category for o in result["objects"])
+    elif semantic_layers and ({"DOOR", "WINDOW"} & set(layers)):
+        # A layered export that draws its symbols (doors, windows) but has no FIXTURE layer
+        # draws no sanitary fixtures on this floor: the drawn count is zero.
+        for category in ("toilet", "washbasin", "bathtub", "shower"):
+            result["metadata"]["semantic_inventory"][category] = 0
+        result["metadata"]["fixture_layer"] = "absent"
     # One door frame (5-point leaf outline) per door symbol, duplicates kept as in the
     # export. Arcs miss leaf-only doors and double-count double doors; they remain the
     # basis only for exports without frames.
@@ -669,7 +692,9 @@ def _swiss_fixtures(entities, prefix, norm, path, root):
                 category, basis = "washbasin", "bowl curve, enclosing frame and tap circle"
         if category is None:
             continue
-        identity = frame[2] if frame and category in {"toilet", "washbasin"} else handle
+        # One instance per drawn bowl or tub curve; a duplicated symbol inside one frame is
+        # kept as drawn, like duplicated door frames.
+        identity = handle
         if identity in used:
             continue
         used.add(identity)

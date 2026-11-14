@@ -114,6 +114,37 @@ storage are separate. Stop waiting discards stale UI responses; it cannot cancel
 a model request already running on the server. See [accounting and policy
 details](ops/GEMINI.md#per-message-and-session-inference-cost).
 
+## Models and methods
+
+Trace answers from the source file first and uses machine learning only where the source cannot answer. No model is trained or fine-tuned on the challenge data, and no answer, file name or question from the dataset is stored in the code. Every rule below reads the structure of a drawing format, so it applies unchanged to new files in that format.
+
+| Layer | What it is | Used for |
+|---|---|---|
+| Native parsers (deterministic) | IfcOpenShell, ezdxf, PyMuPDF, shapely | IFC entities, storeys, quantities and spatial containment; Swiss DXF rooms, units, doors, windows and fixture symbols; PDF words, ruled schedule tables and room fill colours; polygon areas, egress paths and turning circles |
+| Gemini (`STOA_MODEL`, default `gemini-4-argon`) | Hosted multimodal LLM, structured JSON output | Visual inventory of raster images and plans without native data; schedule query plans that are then executed deterministically on the extracted table; translation of question wording the template table does not cover |
+| Gemma (`STOA_VISUAL_AUDIT_MODEL=gemma-4-31b-it`, optional) | Hosted open-weights model on the same key | A second review of visual counts. It is not independent verification |
+
+How the layers combine:
+
+1. Native first. A question the source structure answers (an IFC quantity, a CAD room area, a counted symbol) is computed without a model call, with the source IDs and calculation shown.
+2. Model plans, code computes. For schedules, Gemini only chooses the table, columns and codes. The count is executed in Python on the extracted rows, so a model cannot invent a number. A plan that does not match the table is refused.
+3. Vision for everything else. A drawing with no native data, such as a scan or a photo of a plan never seen before, goes to the Gemini visual inventory: located candidates per category, cached once per page, optionally audited by Gemma. These answers are labelled provisional and the reviewer can add or exclude candidates.
+4. Translation is checked. A Gemini translation is used only if labels, numbers and room identifiers survive unchanged (`translation_preserves_constraints`); otherwise the original wording is used.
+5. Refuse instead of guess. Missing quantities, unknown filters or ambiguous scope return no answer rather than an unfiltered total.
+
+Format conventions the native parsers rely on, all read from file structure and never from answers:
+
+- Swiss DXF: rooms are `ROOM_OUTLINE` polygons; a room number belongs to the smallest outline containing it, with its name and printed area taken from the text stack on that number. Apartments are `UNIT_OUTLINE` polygons with a residential tag (App., Whg., Appart.); a tag drawn on a dividing wall labels the nearest untagged outline within one metre. Doors are door-leaf frames. Fixtures are classified from symbol topology (bowl curve plus cistern stroke or tap circle, tub outline, closed tray); an export that draws doors and windows but has no `FIXTURE` layer draws no fixtures.
+- IFC: storey scope is spatial containment, so an element inside an `IfcSpace` belongs to that space's storey. Parts nested in an element of the same class are not counted twice. Typed fixtures in IFC2X3 are identified through their type object. Rendered plan views supply drawing positions, never the count.
+- PDF schedules: ruled tables are found from stroked line segments, header rows from heading vocabulary, then counted by code (OR within a column, AND across columns).
+
+Measured results (development data only; the reserved holdout in `docs/evaluation/preview-reservation.json` is not used for tuning):
+
+- Preview development split, official benchmark: Swiss 2,170 / 2,170 correct; IFC 1,029 / 1,049 correct, 0 wrong (the other 20 need an IFC file that is not in the preview); opening_design schedules 48 / 48 numeric answers correct in auto mode (35 native, 11 planner, 2 vision), plus 16 text answers for manual review.
+- Full dataset, non-reserved groups, native mode with the current code: Swiss 37,386 / 37,396 correct (99.97%), 0 refused; IFC 2,971 / 3,062 correct, 0 wrong, 91 refused (Romanian and Polish wording that auto mode translates, and models without the needed quantities).
+- Known disagreements kept as they are: on three Swiss floors the answer key has one bathtub more than the drawing contains, and on two floors one room of an apartment is drawn in a separate untagged outline. Changing the rules to match these cases broke correct answers elsewhere, so we did not.
+- Vision answers on unseen raster drawings are not part of these numbers. They depend on the hosted model and are reported per answer as provisional, not as a measured accuracy.
+
 ## Accuracy and limits
 
 Run the evaluator before making accuracy claims:
