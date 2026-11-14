@@ -47,6 +47,8 @@ async def project_access(request: Request, call_next):
         if not secrets.compare_digest(provided, ACCESS_TOKEN):
             return JSONResponse({'detail': 'This workspace needs an authorized project connection.'}, status_code=401)
     response = await call_next(request)
+    if request.url.path.startswith('/api/') or request.url.path == '/':
+        response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'same-origin'
     return response

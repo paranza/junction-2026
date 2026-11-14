@@ -1,18 +1,82 @@
-import React,{useEffect,useState} from 'react';
-const api=async(path,method='GET',body)=>{const r=await fetch(path,{method,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});if(!r.ok)throw new Error('Could not update chats. Please try again.');return r.json()};
-export default function ChatWorkspace({App}) {
- const [data,setData]=useState({projects:[],threads:[]}),[active,setActive]=useState(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[retry,setRetry]=useState(0);
- const refresh=async()=>{const next=await api('/api/chats');setData(next);return next};
- useEffect(()=>{let live=true;setError('');(async()=>{try{const next=await api('/api/chats');if(!live)return;setData(next);let id;try{id=localStorage.getItem('metria.active-thread.v1')}catch{};if(!next.threads.some(t=>t.id===id)){id=next.threads[0]?.id;if(!id){let legacy;try{legacy=sessionStorage.getItem('trace.inference-session.v1')}catch{};const created=await api('/api/chats','POST',{name:legacy?'Previous chat':'New chat',...(legacy?{session_id:legacy}:{})});id=created.id;const updated=await api('/api/chats');if(live)setData(updated)}}if(live){setActive(id);setReady(true)}}catch(e){if(live)setError(e.message)}})();return()=>{live=false}},[retry]);
- const choose=id=>{setActive(id);try{localStorage.setItem('metria.active-thread.v1',id)}catch{};location.hash='chats'};
- const create=async(projectId=null)=>{try{const r=await api('/api/chats','POST',{name:'New chat',project_id:projectId});await refresh();choose(r.id)}catch(e){setError(e.message)}};
- const document=async(id)=>{try{const current=data.threads.find(t=>t.id===active);if(current?.document_id&&current.document_id!==id){const existing=data.threads.find(t=>t.document_id===id&&t.project_id===current.project_id);if(existing){choose(existing.id);return true}const r=await api('/api/chats','POST',{name:'Floor plan',document_id:id,project_id:current.project_id});await refresh();choose(r.id);return true}await api(`/api/chats/${active}`,'PATCH',{document_id:id});await refresh();return false}catch(e){setError(e.message);return true}};
- const rename=async(title,projectId)=>{try{await api(`/api/chats/${active}`,'PATCH',{...(title?{title}:{}),...(projectId!==undefined?{project_id:projectId}:{})});await refresh()}catch(e){setError(e.message)}};
- const project=async(name)=>{try{const r=await api('/api/chat-projects','POST',{name});await refresh();await create(r.id)}catch(e){setError(e.message)}};
- if(!ready)return <div className="chat-loading" role="status"><strong>Metria</strong><p>{error?'Chats could not load. Your saved data is unchanged.':'Opening your chats…'}</p>{error&&<button onClick={()=>setRetry(v=>v+1)}>Try again</button>}</div>;
- return <><div className="workspace-global-error" role="alert">{error}</div><App key={active} thread={data.threads.find(t=>t.id===active)} chatWorkspace={{...data,active,choose,create,document,rename,project}} /></>;
+import React, { useEffect, useState, useRef } from 'react';
+import { loadChatWorkspace } from './chatLoading.js';
+
+const validId = value => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value || '');
+const api = async (path, method = 'GET', body) => {
+  const response = await fetch(path, { method, cache: 'no-store', ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) });
+  if (!response.ok) throw new Error(`Chat service returned ${response.status}`);
+  return response.json();
+};
+const initialId = () => {
+  try { const id = localStorage.getItem('metria.active-thread.v1'); if (validId(id)) return id; } catch {}
+  return crypto.randomUUID();
+};
+export default function ChatWorkspace({ App }) {
+  const [data, setData] = useState({ projects: [], threads: [] });
+  const [active, setActive] = useState(initialId);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const selectionVersion = useRef(0);
+  const remember = id => { try { localStorage.setItem('metria.active-thread.v1', id); } catch {} };
+  const refresh = async () => {
+    const next = await api('/api/chats');
+    if (!Array.isArray(next.threads) || !Array.isArray(next.projects)) throw new Error('Invalid chat service response');
+    setData(next); setError(''); return next;
+  };
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      const version = selectionVersion.current;
+      const next = await loadChatWorkspace(api, { active: () => live });
+      if (!live || version !== selectionVersion.current) return;
+      if (!next) { setError('Chat history is temporarily unavailable.'); return; }
+      setData(next); setError('');
+      setActive(current => {
+        const id = next.threads.some(t => t.id === current) ? current : next.threads[0]?.id || current;
+        remember(id); return id;
+      });
+    };
+    load();
+    window.addEventListener('focus', load);
+    return () => { live = false; window.removeEventListener('focus', load); };
+  }, [retry]);
+  const choose = id => { selectionVersion.current++; setActive(id); remember(id); location.hash = 'chats'; };
+  const create = async (projectId = null) => {
+    selectionVersion.current++;
+    try { const r = await api('/api/chats', 'POST', { name: 'New chat', project_id: projectId }); await refresh(); choose(r.id); }
+    catch { setError('The chat could not be created. Please retry.'); }
+  };
+  const document = async id => {
+    selectionVersion.current++;
+    try {
+      const current = data.threads.find(t => t.id === active);
+      if (current?.document_id && current.document_id !== id) {
+        const existing = data.threads.find(t => t.document_id === id && t.project_id === current.project_id);
+        if (existing) { choose(existing.id); return true; }
+        const r = await api('/api/chats', 'POST', { name: 'Floor plan', document_id: id, project_id: current.project_id });
+        await refresh(); choose(r.id); return true;
+      }
+      if (!current) await api('/api/chats', 'POST', { name: 'Floor plan', document_id: id, session_id: active });
+      else await api(`/api/chats/${active}`, 'PATCH', { document_id: id });
+      await refresh(); return false;
+    } catch { setError('The drawing could not be attached to this chat. Please retry.'); return true; }
+  };
+  const rename = async (title, projectId) => {
+    selectionVersion.current++;
+    try {
+      await api(`/api/chats/${active}`, 'PATCH', { ...(title ? { title } : {}), ...(projectId !== undefined ? { project_id: projectId } : {}) });
+      await refresh();
+    } catch { setError('The chat changes could not be saved.'); }
+  };
+  const project = async name => {
+    selectionVersion.current++;
+    try { const r = await api('/api/chat-projects', 'POST', { name }); await refresh(); await create(r.id); }
+    catch { setError('The project could not be created.'); }
+  };
+  const thread = data.threads.find(t => t.id === active) || { id: active, title: 'New chat', document_id: null, project_id: null };
+  return <>{error && <div className="workspace-global-error" role="status">{error} <button onClick={() => setRetry(v => v + 1)}>Retry</button></div>}<App key={active} thread={thread} chatWorkspace={{ ...data, active, choose, create, document, rename, project }} /></>;
 }
-export function ThreadActions({thread,workspace}) {
- const [open,setOpen]=useState(false),[name,setName]=useState('');
- return <div className="thread-actions"><button className="thread-options-button" aria-label="Chat options" aria-expanded={open} onClick={()=>{setName(thread.title);setOpen(v=>!v)}}>•••</button>{open&&<div className="thread-options"><form onSubmit={e=>{e.preventDefault();if(name.trim()){workspace.rename(name.trim());setOpen(false)}}}><label>Chat name<input value={name} onChange={e=>setName(e.target.value)} maxLength={160}/></label><button type="submit">Save name</button></form><label>Project<select value={thread.project_id||''} onChange={e=>workspace.rename(undefined,e.target.value)}><option value="">No project</option>{workspace.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button onClick={()=>setOpen(false)}>Done</button></div>}</div>
+export function ThreadActions({ thread, workspace }) {
+  const [open, setOpen] = useState(false), [name, setName] = useState('');
+  return <div className="thread-actions"><button className="thread-options-button" aria-label="Chat options" aria-expanded={open} onClick={() => { setName(thread.title); setOpen(v => !v); }}>•••</button>{open && <div className="thread-options"><form onSubmit={e => { e.preventDefault(); if (name.trim()) { workspace.rename(name.trim()); setOpen(false); } }}><label>Chat name<input value={name} onChange={e => setName(e.target.value)} maxLength={160} /></label><button type="submit">Save name</button></form><label>Project<select value={thread.project_id || ''} onChange={e => workspace.rename(undefined, e.target.value)}><option value="">No project</option>{workspace.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button onClick={() => setOpen(false)}>Done</button></div>}</div>;
 }
