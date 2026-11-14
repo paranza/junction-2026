@@ -135,12 +135,19 @@ async def upload(files: list[UploadFile] = File(...)):
     if len(files) > 12:
         raise HTTPException(413, 'Upload at most 12 drawings at a time.')
     result = []
+    names = []
     for file in files:
         name = Path(file.filename or 'drawing').name
         if Path(name).suffix.lower() not in store.FORMATS:
             raise HTTPException(415, 'Use PDF, PNG, JPEG, SVG, DXF, DWG or IFC files.')
-        safe_name = re.sub(r'[^\w.() -]', '_', name)[:180]
-        target = store.RUNTIME / 'uploads' / (uuid.uuid4().hex[:10] + '-' + safe_name)
+        names.append(re.sub(r'[^\w.() -]', '_', name)[:180])
+    if len({name.casefold() for name in names}) != len(names):
+        raise HTTPException(422, 'Upload each filename once per batch so paired drawing files remain unambiguous.')
+    # A shared prefix preserves plan.pdf / plan.dxf sibling discovery while
+    # keeping independent upload batches isolated from each other.
+    batch_prefix = uuid.uuid4().hex[:12] + '-'
+    for file, safe_name in zip(files, names):
+        target = store.RUNTIME / 'uploads' / (batch_prefix + safe_name)
         total = 0
         try:
             with target.open('wb') as stream:
@@ -316,6 +323,38 @@ def _native_region_answer(question, data, source, page, region):
     return inventory.native_region_count(question, data, page, region)
 
 
+def _guard_visual_measurements(result):
+    """Do not turn an unscaled image estimate into a measured quantity.
+
+    Native verified operands remain usable. Unverified image readings require
+    an explicit quoted quantity with compatible units; a guessed door width,
+    image DPI or a scale inferred by the model cannot establish an area.
+    Quoted image text still needs human review because OCR is not verification.
+    """
+    operation = result.get('operation')
+    if operation not in {'area', 'length', 'volume'} or result.get('value') is None:
+        return result
+    evidence = result.get('evidence') or []
+    from .verification import ground_native_evidence
+    for item in evidence:
+        if item.get('source_verified'):
+            continue
+        quote = str(item.get('quoted_text') or '').strip()
+        checked, _ = ground_native_evidence({'id': 'visual-quote', 'text': quote}, item, operation)
+        if not quote or checked.get('value') is None:
+            result = copy.deepcopy(result)
+            result.update(value=None, status='insufficient_evidence', needs_review=True,
+                          answer='A measured quantity could not be established. Supply a readable printed quantity or dimensioned native source; image size and assumed door widths do not establish drawing scale.',
+                          calculation=None, measurement_basis='unverified_scale_or_quantity')
+            result.setdefault('warnings', []).append('The visual measurement lacked an explicit quoted source quantity with compatible units. No numeric measurement was accepted.')
+            return result
+    if not evidence:
+        result = copy.deepcopy(result)
+        result.update(value=None, status='insufficient_evidence', needs_review=True,
+                      answer='No source quantity or calibrated measurement supports this result.', calculation=None)
+    return result
+
+
 def _compute_analysis(payload, question, data, source):
     from .native_qa import answer_native
     from . import inventory
@@ -345,6 +384,7 @@ def _compute_analysis(payload, question, data, source):
             result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
             if result is None:
                 result = llm.answer_with_model(question, data, source, payload.page, payload.scope, payload.region)
+            result = _guard_visual_measurements(result)
         except llm.ModelError as exc:
             raise HTTPException(503, str(exc)) from None
         except (ValueError, OSError):

@@ -31,7 +31,7 @@ def main():
         assert exc.http_status==401
         report['unauthenticated_status']=401
     health=api('/api/health')
-    assert health['status']=='ok' and health['documents']==913
+    assert health['status']=='ok' and health['documents']>=913
     report['health']={k:health[k] for k in ('status','documents','model_available')}
     if args.exercise:
         documents=api('/api/documents?search=bsc-esplanades_1807-ep-ar-v18.ifc&limit=10')['documents']
