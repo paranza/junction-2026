@@ -1,0 +1,781 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-14T10:44:24.825503+00:00",
+  "scope": "Frozen development evaluation of Trace native extraction, Gemini visual inventory, and opt-in Gemma count review. Aggregate-only; not an untouched final test or a competition accuracy estimate.",
+  "scoring": {
+    "count_rule": "Exact integral equality; no rounding or tolerance.",
+    "measurement_relative_tolerance": 0.02,
+    "units": "Compatible units required for measurements; counts may omit their unit.",
+    "unanswered_and_failed": "Count as incorrect in all-selected numeric accuracy.",
+    "needs_review": "Numeric provisional answers remain in both coverage and accuracy denominators.",
+    "text": "Excluded from automatic numeric accuracy; requires manual review.",
+    "raw_and_unique": "Raw raster questions include English/Finnish pairs. Unique uses (drawing, normalized English question), preferring English by fixed rule rather than choosing the better answer.",
+    "independence_unit": "Drawing; translated questions and questions within a drawing are correlated."
+  },
+  "native_development": {
+    "declared_backend_commit": "b01af99",
+    "code_identity_source": "Operator declaration, corroborated by recorded solver revision; code commit is not embedded in raw report.",
+    "recorded_solver_revisions": [
+      "50c74a4792640241dd3d"
+    ],
+    "raw_report_sha256": "dbbecd748cd47620b045d0d692c8cf72c3e5ae2924b5a26bef9d083d16f8df58",
+    "manifest_cases_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+    "mode": "native",
+    "summary": {
+      "cases": 7066,
+      "numeric_cases": 6801,
+      "numeric_answered": 3023,
+      "numeric_correct": 2929,
+      "coverage": 0.42824794791961507,
+      "accuracy_all": 0.4306719600058815,
+      "accuracy_answered": 0.968905061197486,
+      "errors": 0,
+      "numeric_coverage": 0.4444934568445817
+    },
+    "by_source": {
+      "cubicasa5k": {
+        "cases": 3534,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "coverage": 0.0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "errors": 0,
+        "numeric_coverage": 0.0
+      },
+      "ifc_bench": {
+        "cases": 249,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "coverage": 0.004016064257028112,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "errors": 0,
+        "numeric_coverage": null
+      },
+      "ifc_models": {
+        "cases": 1049,
+        "numeric_cases": 1049,
+        "numeric_answered": 963,
+        "numeric_correct": 957,
+        "coverage": 0.9180171591992373,
+        "accuracy_all": 0.9122974261201144,
+        "accuracy_answered": 0.9937694704049844,
+        "errors": 0,
+        "numeric_coverage": 0.9180171591992373
+      },
+      "opening_design": {
+        "cases": 64,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "coverage": 0.1875,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "errors": 0,
+        "numeric_coverage": 0.20833333333333334
+      },
+      "swiss_dwellings": {
+        "cases": 2170,
+        "numeric_cases": 2170,
+        "numeric_answered": 2050,
+        "numeric_correct": 1962,
+        "coverage": 0.9447004608294931,
+        "accuracy_all": 0.904147465437788,
+        "accuracy_answered": 0.9570731707317073,
+        "errors": 0,
+        "numeric_coverage": 0.9447004608294931
+      }
+    },
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 3376,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "unrun_questions": 0,
+    "operator_verified_paired_regression_check": {
+      "case_ids_retained": 7066,
+      "previously_correct_numeric_answers_retained": 2929,
+      "provenance": "Operator verification; source raw report SHA recorded above."
+    }
+  },
+  "raster_inventory_development": {
+    "identity": {
+      "revision": "bulk-evaluation-v2",
+      "manifest_cases_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+      "selected_cases_sha256": "e2a882e795c9ffb415df3feb8246010cc125095c0368fa6ce7a53eb61f283f36",
+      "source": "cubicasa5k",
+      "declared_application_commit": "de9e4bc",
+      "provider": "gemini",
+      "model": "gemini-4-carbon",
+      "server_provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+      "server_inventory_signature": {
+        "revision": "located-inventory-v4",
+        "small_image_crops": false
+      },
+      "server_solver_revision": "4730063ee850a4fc3014",
+      "mode": "auto",
+      "verify_visual": false,
+      "normalizer_sha256": "e46aabf6b2d047b75cbe40aa9cd3c27c100d2f8be7463a226e4f147d2fb5438b",
+      "question_templates_sha256": "b3063f8d075c7f073fa0b2306ebe80a3ae1d1e903f6d90f54c1e655aae9834c4"
+    },
+    "source": "cubicasa5k",
+    "completion_status": "complete",
+    "selected_questions": 3534,
+    "completed_questions": 3534,
+    "unrun_questions": 0,
+    "drawing_groups": 198,
+    "raw": {
+      "cases": 3534,
+      "numeric_cases": 3534,
+      "numeric_answered": 3534,
+      "numeric_correct": 2760,
+      "coverage": 1.0,
+      "accuracy_all": 0.7809847198641766,
+      "accuracy_answered": 0.7809847198641766,
+      "errors": 0,
+      "numeric_coverage": 1.0
+    },
+    "unique_normalized": {
+      "cases": 1767,
+      "numeric_cases": 1767,
+      "numeric_answered": 1767,
+      "numeric_correct": 1380,
+      "coverage": 1.0,
+      "accuracy_all": 0.7809847198641766,
+      "accuracy_answered": 0.7809847198641766,
+      "errors": 0,
+      "numeric_coverage": 1.0
+    },
+    "unique_normalized_requests": 1767,
+    "duplicate_groups_with_response_disagreement": 0,
+    "completed_drawings": {
+      "count": 198,
+      "all_available_questions_correct": 47,
+      "macro_mean_question_accuracy": 0.7696151631757691
+    },
+    "by_category_raw": {
+      "balcony": {
+        "cases": 114,
+        "numeric_cases": 114,
+        "numeric_answered": 114,
+        "numeric_correct": 96,
+        "coverage": 1.0,
+        "accuracy_all": 0.8421052631578947,
+        "accuracy_answered": 0.8421052631578947,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "bathroom": {
+        "cases": 188,
+        "numeric_cases": 188,
+        "numeric_answered": 188,
+        "numeric_correct": 154,
+        "coverage": 1.0,
+        "accuracy_all": 0.8191489361702128,
+        "accuracy_answered": 0.8191489361702128,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "bedroom": {
+        "cases": 260,
+        "numeric_cases": 260,
+        "numeric_answered": 260,
+        "numeric_correct": 228,
+        "coverage": 1.0,
+        "accuracy_all": 0.8769230769230769,
+        "accuracy_answered": 0.8769230769230769,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "door": {
+        "cases": 288,
+        "numeric_cases": 288,
+        "numeric_answered": 288,
+        "numeric_correct": 162,
+        "coverage": 1.0,
+        "accuracy_all": 0.5625,
+        "accuracy_answered": 0.5625,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "floor": {
+        "cases": 396,
+        "numeric_cases": 396,
+        "numeric_answered": 396,
+        "numeric_correct": 386,
+        "coverage": 1.0,
+        "accuracy_all": 0.9747474747474747,
+        "accuracy_answered": 0.9747474747474747,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "kitchen": {
+        "cases": 270,
+        "numeric_cases": 270,
+        "numeric_answered": 270,
+        "numeric_correct": 234,
+        "coverage": 1.0,
+        "accuracy_all": 0.8666666666666667,
+        "accuracy_answered": 0.8666666666666667,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "sauna": {
+        "cases": 276,
+        "numeric_cases": 276,
+        "numeric_answered": 276,
+        "numeric_correct": 254,
+        "coverage": 1.0,
+        "accuracy_all": 0.9202898550724637,
+        "accuracy_answered": 0.9202898550724637,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "shower+bathtub": {
+        "cases": 370,
+        "numeric_cases": 370,
+        "numeric_answered": 370,
+        "numeric_correct": 278,
+        "coverage": 1.0,
+        "accuracy_all": 0.7513513513513513,
+        "accuracy_answered": 0.7513513513513513,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "sink": {
+        "cases": 392,
+        "numeric_cases": 392,
+        "numeric_answered": 392,
+        "numeric_correct": 292,
+        "coverage": 1.0,
+        "accuracy_all": 0.7448979591836735,
+        "accuracy_answered": 0.7448979591836735,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "toilet": {
+        "cases": 394,
+        "numeric_cases": 394,
+        "numeric_answered": 394,
+        "numeric_correct": 332,
+        "coverage": 1.0,
+        "accuracy_all": 0.8426395939086294,
+        "accuracy_answered": 0.8426395939086294,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "wc_room": {
+        "cases": 190,
+        "numeric_cases": 190,
+        "numeric_answered": 190,
+        "numeric_correct": 182,
+        "coverage": 1.0,
+        "accuracy_all": 0.9578947368421052,
+        "accuracy_answered": 0.9578947368421052,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "window": {
+        "cases": 396,
+        "numeric_cases": 396,
+        "numeric_answered": 396,
+        "numeric_correct": 162,
+        "coverage": 1.0,
+        "accuracy_all": 0.4090909090909091,
+        "accuracy_answered": 0.4090909090909091,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      }
+    },
+    "by_category_unique": {
+      "balcony": {
+        "cases": 57,
+        "numeric_cases": 57,
+        "numeric_answered": 57,
+        "numeric_correct": 48,
+        "coverage": 1.0,
+        "accuracy_all": 0.8421052631578947,
+        "accuracy_answered": 0.8421052631578947,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "bathroom": {
+        "cases": 94,
+        "numeric_cases": 94,
+        "numeric_answered": 94,
+        "numeric_correct": 77,
+        "coverage": 1.0,
+        "accuracy_all": 0.8191489361702128,
+        "accuracy_answered": 0.8191489361702128,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "bedroom": {
+        "cases": 130,
+        "numeric_cases": 130,
+        "numeric_answered": 130,
+        "numeric_correct": 114,
+        "coverage": 1.0,
+        "accuracy_all": 0.8769230769230769,
+        "accuracy_answered": 0.8769230769230769,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "door": {
+        "cases": 144,
+        "numeric_cases": 144,
+        "numeric_answered": 144,
+        "numeric_correct": 81,
+        "coverage": 1.0,
+        "accuracy_all": 0.5625,
+        "accuracy_answered": 0.5625,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "floor": {
+        "cases": 198,
+        "numeric_cases": 198,
+        "numeric_answered": 198,
+        "numeric_correct": 193,
+        "coverage": 1.0,
+        "accuracy_all": 0.9747474747474747,
+        "accuracy_answered": 0.9747474747474747,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "kitchen": {
+        "cases": 135,
+        "numeric_cases": 135,
+        "numeric_answered": 135,
+        "numeric_correct": 117,
+        "coverage": 1.0,
+        "accuracy_all": 0.8666666666666667,
+        "accuracy_answered": 0.8666666666666667,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "sauna": {
+        "cases": 138,
+        "numeric_cases": 138,
+        "numeric_answered": 138,
+        "numeric_correct": 127,
+        "coverage": 1.0,
+        "accuracy_all": 0.9202898550724637,
+        "accuracy_answered": 0.9202898550724637,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "shower+bathtub": {
+        "cases": 185,
+        "numeric_cases": 185,
+        "numeric_answered": 185,
+        "numeric_correct": 139,
+        "coverage": 1.0,
+        "accuracy_all": 0.7513513513513513,
+        "accuracy_answered": 0.7513513513513513,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "sink": {
+        "cases": 196,
+        "numeric_cases": 196,
+        "numeric_answered": 196,
+        "numeric_correct": 146,
+        "coverage": 1.0,
+        "accuracy_all": 0.7448979591836735,
+        "accuracy_answered": 0.7448979591836735,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "toilet": {
+        "cases": 197,
+        "numeric_cases": 197,
+        "numeric_answered": 197,
+        "numeric_correct": 166,
+        "coverage": 1.0,
+        "accuracy_all": 0.8426395939086294,
+        "accuracy_answered": 0.8426395939086294,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "wc_room": {
+        "cases": 95,
+        "numeric_cases": 95,
+        "numeric_answered": 95,
+        "numeric_correct": 91,
+        "coverage": 1.0,
+        "accuracy_all": 0.9578947368421052,
+        "accuracy_answered": 0.9578947368421052,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "window": {
+        "cases": 198,
+        "numeric_cases": 198,
+        "numeric_answered": 198,
+        "numeric_correct": 81,
+        "coverage": 1.0,
+        "accuracy_all": 0.4090909090909091,
+        "accuracy_answered": 0.4090909090909091,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      }
+    },
+    "by_language": {
+      "en": {
+        "cases": 1767,
+        "numeric_cases": 1767,
+        "numeric_answered": 1767,
+        "numeric_correct": 1380,
+        "coverage": 1.0,
+        "accuracy_all": 0.7809847198641766,
+        "accuracy_answered": 0.7809847198641766,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "fi": {
+        "cases": 1767,
+        "numeric_cases": 1767,
+        "numeric_answered": 1767,
+        "numeric_correct": 1380,
+        "coverage": 1.0,
+        "accuracy_all": 0.7809847198641766,
+        "accuracy_answered": 0.7809847198641766,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      }
+    },
+    "observed_usage": {
+      "model_calls": 198,
+      "input_tokens": 492638,
+      "output_tokens": 1402447,
+      "cache_hits": 1767,
+      "cost_estimate_usd": null,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice.",
+      "cached_input_tokens": 0
+    },
+    "usage_note": "Reported model calls/tokens cover current requests only. Cache-hit inventory generation is not charged again. Provider prices were not configured in this frozen run.",
+    "reconstructed_cost_estimate": {
+      "usd": 15.009746,
+      "rates": {
+        "input": 2.0,
+        "cached_input": 0.1,
+        "output": 10.0,
+        "basis": "published_rates",
+        "source": "https://aistudio.google.com/docs/pricing",
+        "verified_on": "2026-11-14",
+        "valid_until": "2026-12-01T00:00:00Z"
+      },
+      "method": "Reconstructed from frozen bulk reported input/output tokens and later audit response dated rates; cached input tokens, if reported, priced separately. Estimate before credits, not an invoice."
+    },
+    "failed_requests_with_unknown_provider_usage": 0,
+    "request_latency_ms": {
+      "requests": 3534,
+      "total": 15979662.96,
+      "p50": 4.36,
+      "p95": 39559.87
+    },
+    "stopped_reason": null,
+    "raw_checkpoint_sha256": "92eccc38e74caa7d17b4a624e97c3e511170f45afc5e7c55feac661ed7ee1ed8",
+    "unique_unrun_requests": 0,
+    "finalization": {
+      "runner_completed": true,
+      "checkpoint_lock_absent": true,
+      "summary_identity_matches_checkpoint": true,
+      "official_summary_sha256": "6e7203364ed0ad2bb20d496c21179e6537db884788a8b047b6ccb5bd204a04db"
+    },
+    "provider_usage_complete": true
+  },
+  "count_audit_development": {
+    "identity": {
+      "revision": "bulk-evaluation-v2",
+      "manifest_cases_sha256": "382b491970aee3ac4074a2d61f5258dce9dc62f6abd89917c1bafffba7debd9f",
+      "selected_cases_sha256": "382b491970aee3ac4074a2d61f5258dce9dc62f6abd89917c1bafffba7debd9f",
+      "source": "cubicasa5k",
+      "declared_application_commit": "89cd4b8",
+      "provider": "gemini",
+      "model": "gemini-4-carbon",
+      "server_provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+      "server_inventory_signature": {
+        "revision": "located-inventory-v4",
+        "small_image_crops": false
+      },
+      "server_solver_revision": "50c74a4792640241dd3d",
+      "mode": "auto",
+      "verify_visual": true,
+      "normalizer_sha256": "e46aabf6b2d047b75cbe40aa9cd3c27c100d2f8be7463a226e4f147d2fb5438b",
+      "question_templates_sha256": "b3063f8d075c7f073fa0b2306ebe80a3ae1d1e903f6d90f54c1e655aae9834c4"
+    },
+    "source": "cubicasa5k",
+    "selection": "Predeclared English-only door/window development sample across 40 drawing hashes; not a representative all-question distribution.",
+    "completion_status": "complete",
+    "selected_questions": 68,
+    "completed_questions": 68,
+    "unrun_questions": 0,
+    "drawing_groups": 40,
+    "raw": {
+      "cases": 68,
+      "numeric_cases": 68,
+      "numeric_answered": 60,
+      "numeric_correct": 24,
+      "coverage": 0.8823529411764706,
+      "accuracy_all": 0.35294117647058826,
+      "accuracy_answered": 0.4,
+      "errors": 0,
+      "numeric_coverage": 0.8823529411764706
+    },
+    "unique_normalized": {
+      "cases": 68,
+      "numeric_cases": 68,
+      "numeric_answered": 60,
+      "numeric_correct": 24,
+      "coverage": 0.8823529411764706,
+      "accuracy_all": 0.35294117647058826,
+      "accuracy_answered": 0.4,
+      "errors": 0,
+      "numeric_coverage": 0.8823529411764706
+    },
+    "unique_normalized_requests": 68,
+    "paired": {
+      "paired_cases": 68,
+      "completed_without_original_detection": 0,
+      "original": {
+        "cases": 68,
+        "numeric_cases": 68,
+        "numeric_answered": 68,
+        "numeric_correct": 24,
+        "coverage": 1.0,
+        "accuracy_all": 0.35294117647058826,
+        "accuracy_answered": 0.35294117647058826,
+        "errors": 0,
+        "numeric_coverage": 1.0
+      },
+      "audited": {
+        "cases": 68,
+        "numeric_cases": 68,
+        "numeric_answered": 60,
+        "numeric_correct": 24,
+        "coverage": 0.8823529411764706,
+        "accuracy_all": 0.35294117647058826,
+        "accuracy_answered": 0.4,
+        "errors": 0,
+        "numeric_coverage": 0.8823529411764706
+      },
+      "transitions": {
+        "incorrect -> correct": 3,
+        "incorrect -> incorrect": 35,
+        "correct -> correct": 21,
+        "correct -> unanswered": 2,
+        "incorrect -> unanswered": 6,
+        "correct -> incorrect": 1
+      },
+      "audit_statuses": {
+        "completed": 59,
+        "incomplete": 8,
+        "unavailable": 1
+      },
+      "by_category": {
+        "door": {
+          "original": {
+            "cases": 28,
+            "numeric_cases": 28,
+            "numeric_answered": 28,
+            "numeric_correct": 10,
+            "coverage": 1.0,
+            "accuracy_all": 0.35714285714285715,
+            "accuracy_answered": 0.35714285714285715,
+            "errors": 0,
+            "numeric_coverage": 1.0
+          },
+          "audited": {
+            "cases": 28,
+            "numeric_cases": 28,
+            "numeric_answered": 27,
+            "numeric_correct": 12,
+            "coverage": 0.9642857142857143,
+            "accuracy_all": 0.42857142857142855,
+            "accuracy_answered": 0.4444444444444444,
+            "errors": 0,
+            "numeric_coverage": 0.9642857142857143
+          }
+        },
+        "window": {
+          "original": {
+            "cases": 40,
+            "numeric_cases": 40,
+            "numeric_answered": 40,
+            "numeric_correct": 14,
+            "coverage": 1.0,
+            "accuracy_all": 0.35,
+            "accuracy_answered": 0.35,
+            "errors": 0,
+            "numeric_coverage": 1.0
+          },
+          "audited": {
+            "cases": 40,
+            "numeric_cases": 40,
+            "numeric_answered": 33,
+            "numeric_correct": 12,
+            "coverage": 0.825,
+            "accuracy_all": 0.3,
+            "accuracy_answered": 0.36363636363636365,
+            "errors": 0,
+            "numeric_coverage": 0.825
+          }
+        }
+      }
+    },
+    "paired_validity": "The frozen backend deep-copies original_detection from the same initial inventory before replacing the final value/evidence. Comparisons use that retained original, not the separately generated bulk inventory.",
+    "auditor_model": "gemma-4-31b-it",
+    "initial_model": "gemini-4-carbon",
+    "same_model": false,
+    "independent_verification": false,
+    "completed_drawings": {
+      "count": 40,
+      "all_available_questions_correct": 10,
+      "macro_mean_question_accuracy": 0.3375
+    },
+    "observed_usage": {
+      "model_calls": 108,
+      "input_tokens": 296133,
+      "output_tokens": 339350,
+      "cache_hits": 0,
+      "cost_estimate_usd": null,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice.",
+      "cached_input_tokens": 0
+    },
+    "observed_usage_by_model": {
+      "gemini/gemini-4-carbon": {
+        "model_calls": 40,
+        "input_tokens": 98195,
+        "output_tokens": 297649,
+        "cached_input_tokens": 0,
+        "cost_known_usd": 3.1728800000000015,
+        "unknown_usage_calls": 0,
+        "cost_unavailable_calls": 0
+      },
+      "gemini/gemma-4-31b-it": {
+        "model_calls": 68,
+        "input_tokens": 197938,
+        "output_tokens": 41701,
+        "cached_input_tokens": 0,
+        "cost_known_usd": 0.0,
+        "unknown_usage_calls": 1,
+        "cost_unavailable_calls": 1
+      }
+    },
+    "dated_pricing_basis": {
+      "gemini/gemini-4-carbon": {
+        "input": 2.0,
+        "cached_input": 0.1,
+        "output": 10.0,
+        "basis": "published_rates",
+        "source": "https://aistudio.google.com/docs/pricing",
+        "verified_on": "2026-11-14",
+        "valid_until": "2026-12-01T00:00:00Z"
+      },
+      "gemini/gemma-4-31b-it": {
+        "input": 0.0,
+        "cached_input": 0.0,
+        "output": 0.0,
+        "basis": "published_rates",
+        "source": "https://aistudio.google.com/docs/pricing",
+        "verified_on": "2026-11-14",
+        "valid_until": "2026-12-01T00:00:00Z"
+      }
+    },
+    "failed_requests_with_unknown_provider_usage": 0,
+    "request_latency_ms": {
+      "requests": 68,
+      "total": 4894834.13,
+      "p50": 53996.1,
+      "p95": 176301.37
+    },
+    "stopped_reason": null,
+    "raw_checkpoint_sha256": "cdee0586c89ab0039a90b15d9d6213bd420ffa65e5e7372f0637e6dd5055333c",
+    "finalization": {
+      "runner_completed": true,
+      "checkpoint_lock_absent": true,
+      "summary_identity_matches_checkpoint": true,
+      "official_summary_sha256": "ca6c87aea30412a466a08f4a2f49757c53744bd3e3b7174287107785e0c90110"
+    },
+    "known_cost_subtotal_usd": 3.17288,
+    "unknown_usage_calls": 1,
+    "cost_unavailable_calls": 1,
+    "provider_usage_complete": false,
+    "usage_note": "Observed tokens omit one unavailable review call with unknown usage. Known cost subtotal is not the total; overall cost remains unknown. The API returned the retained original count when that review was unavailable."
+  },
+  "offline_native_plus_raster_development_composite": {
+    "summary": {
+      "cases": 7066,
+      "numeric_cases": 6801,
+      "numeric_answered": 6557,
+      "numeric_correct": 5689,
+      "coverage": 0.9283894707047835,
+      "accuracy_all": 0.836494633142185,
+      "accuracy_answered": 0.8676223882873265,
+      "errors": 0,
+      "numeric_coverage": 0.9641229230995442
+    },
+    "note": "Offline composite of two development runs with different frozen code/policies, not one fully tested automatic pipeline. Pending raster cases retain native abstentions. Text cases require manual review."
+  },
+  "initial_high_thinking_transport_failure": {
+    "identity": {
+      "revision": "bulk-evaluation-v1",
+      "manifest_cases_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+      "selected_cases_sha256": "e2a882e795c9ffb415df3feb8246010cc125095c0368fa6ce7a53eb61f283f36",
+      "source": "cubicasa5k",
+      "declared_application_commit": "b8d20767675518ad5280513c12d825f3d215cecc",
+      "provider": "gemini",
+      "model": "gemini-4-carbon",
+      "server_provider_signature": null,
+      "server_inventory_signature": null,
+      "server_solver_revision": null,
+      "mode": "auto",
+      "verify_visual": false,
+      "normalizer_sha256": "e46aabf6b2d047b75cbe40aa9cd3c27c100d2f8be7463a226e4f147d2fb5438b",
+      "question_templates_sha256": "b3063f8d075c7f073fa0b2306ebe80a3ae1d1e903f6d90f54c1e655aae9834c4"
+    },
+    "classification": "Transport/completion failure diagnostic, excluded from model accuracy experiments.",
+    "declared_policy": {
+      "thinking_level": "high",
+      "inventory_max_output_tokens": 14000,
+      "image_resolution": "high"
+    },
+    "policy_provenance": "Source defaults at recorded commit plus operator declaration; runtime signatures were not captured by that run.",
+    "selected_questions": 3534,
+    "failed_requests": 6,
+    "unrun_questions": 3528,
+    "drawing_groups_attempted": 4,
+    "http_error_counts": {
+      "http_503": 6
+    },
+    "stopped_reason": "three_consecutive_failures",
+    "failed_requests_with_unknown_provider_usage": 6,
+    "actual_provider_calls": null,
+    "input_tokens": null,
+    "output_tokens": null,
+    "cost_usd": null,
+    "usage_note": "Failed HTTP requests concealed provider usage. Zero response-reported calls must not be interpreted as zero attempted inference or free usage.",
+    "failure_safety": "Stopped after three consecutive failures with concurrency four; six requests were attempted including already in-flight work. Runner v2 additionally abandons a drawing on its first error."
+  },
+  "limitations": [
+    "These are development results on public preview data already used in development, not an untouched held-out assessment.",
+    "Accuracy compares supplied dataset labels with answers. Dataset ambiguities or labeling errors were not independently adjudicated.",
+    "The raster run covers count questions only. Its floor category means number of storeys/floors, not floor area; it does not validate calibrated raster areas or arbitrary question answering.",
+    "Localization reference boxes are absent from this evaluation, so valid box syntax does not establish IoU, correct highlights, detection precision, recall or completeness.",
+    "A different-model review is not independent ground truth. Both initial and audited visual counts remain provisional.",
+    "LLM inventories can differ between fresh runs despite the same source and policy. Count arithmetic over a frozen cached inventory is deterministic; fresh visual extraction is not established as deterministic.",
+    "Raster inventory baseline disables per-question visual recounts. Audit sample uses a separate review policy; do not mix their results as one frozen pipeline.",
+    "The native-plus-raster composite combines separate frozen development runs and is not an end-to-end production validation.",
+    "No claim of 99.9% accuracy or reliability on arbitrary internet drawings, unsupported formats or every possible question follows from these results.",
+    "Token costs are estimates before credits; hosting/storage are excluded. Reconstructed bulk cost is explicitly not an invoice."
+  ],
+  "dataset_attribution": "CubiCasa5K, (c) 2019 CubiCasa; Kalervo et al., SCIA 2019. Dataset notices apply CC BY-NC-SA 4.0; non-commercial use only."
+}

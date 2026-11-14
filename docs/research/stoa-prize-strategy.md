@@ -137,3 +137,13 @@ Prepared scripts and drafts are not uploaded artifacts or submitted entries. The
 - Public organizer announcement: [Junction's LinkedIn feed](https://uk.linkedin.com/company/hackjunction) confirms the Aiven best-use-platform challenge and Context.dev's open technical challenge. Its changing feed is supporting evidence, not a replacement for the individual briefs.
 - Public technical primary sources: Google's hosted Gemma guide and Interactions API reference linked above. Actual service success still requires testing.
 - Local supplied guide summaries are dated working notes and remain subordinate to current organizer instructions.
+
+## Measured release outcome
+
+The Gemini inventory development experiment completed all 3,534 raster count questions across 198 drawings: **2,760 exact answers (78.10%)**, with 198 model calls and zero request errors. English/Finnish pairs collapse to 1,380/1,767 unique normalized questions; they are correlated observations. Only 47/198 drawings had every available count correct. Doors scored 56.25%, windows 40.91%. This experiment does not measure raster floor area or arbitrary questions.
+
+The predeclared Gemma door/window review ablation produced **24/68 correct both before and after review**. Door exactness rose from 10/28 to 12/28; windows fell from 14/40 to 12/40. The audit withheld eight numeric answers, including two previously correct answers, and introduced one wrong answer from a correct original. One review was unavailable. Rechecks remain opt-in; the measured overall result does not justify presenting Gemma as an accuracy improvement.
+
+The independent upload milestone scored 18/20 answerable numeric questions plus three successful required-abstention controls; three ambiguous references were unscored. It is a small, separately frozen corpus. Cloudinary source-region close-ups are live and do not change model inputs, answers or coordinates. These facts support a concrete demonstration and honest claims; they do not establish a winning score or 99.9% accuracy.
+
+[Full development aggregates](../../stoa-trace/ops/reports/gemini-release/development-aggregate.md), [independent upload aggregate](../../stoa-trace/ops/reports/gemini-release/independent-uploads.json), [Cloudinary entry and live proof](../delivery/cloudinary-entry-draft.md).

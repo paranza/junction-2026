@@ -38,6 +38,14 @@ The Gemini Carbon plus Gemma review pipeline also completed a small six-drawing 
 
 The newly reserved 48 drawing groups contain 924 questions; the development portion contains 269 groups and 7,066 questions. No new reserved-subset score is asserted here. This reserve is a prospective quarantine, not an untouched historical test. Any genuinely unseen external-file test must be reported separately, with its scale assumptions, question count and manually checked evidence. SVG-annotation ceilings and calibrated development scores are not raster prediction accuracy.
 
+## Latest live Gemini and Cloudinary evidence
+
+The existing demo now uses Gemini 4 Carbon for visual recognition, with deterministic native extraction and quantity calculations retained. The polished interface shows per-message and session inference costs. Cloudinary prepares protected close-ups from selected evidence coordinates for human inspection. These media transformations do not produce or validate quantities. The integrated runtime at `70c1af2` passed 280 backend and 27 frontend tests, the full development native regression with all 2,929 earlier correct answers retained, and real protected Cloudinary delivery.
+
+The full Gemini raster count experiment got 2,760/3,534 exact answers (78.10%), or 1,380/1,767 after collapsing translated duplicates, with no request errors. Only 47/198 drawings had all available counts correct. Doors and windows remain the largest recognition gaps. The independent upload milestone got 18/20 answerable numeric questions correct, with three required abstention controls passed and three ambiguous references unscored. A Gemma review experiment retained the same 24/68 correct answers before and after; rechecks remain optional. No 99.9% or universal-file accuracy claim is supported.
+
+Use the [dated aggregate report](../../stoa-trace/ops/reports/gemini-release/development-aggregate.md) and [independent upload result](../../stoa-trace/ops/reports/gemini-release/independent-uploads.json) with their scopes intact. The separate 924-question preview reserve remains unscored. Cloudinary requires a [separate entry](cloudinary-entry-draft.md), which has not been submitted.
+
 ## Challenge
 
 Stoa: Make Blueprints Talk remains the main challenge. The checked briefs support prioritizing **Best Use of Gemini API** alongside it, with **Best Use of Gemma** conditional on a useful measured contribution. The same focused product can compete for the EUR 10,000 overall main prize, subject to all-member peer-review and submission requirements. See the [dated prize strategy](../research/stoa-prize-strategy.md) for official links, reward types and unresolved award-combination rules. These are recommendations, not saved challenge selections or guaranteed eligibility. Codex and Verda awards are credits rather than cash; avoid adding services solely to collect sponsor names.

@@ -64,3 +64,7 @@ ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:no
 ```
 
 Keep a local copy of the final video and the source recording. A fallback recording is useful during the live demo, but call it a recording when used.
+
+## Optional Cloudinary shot, now live-tested
+
+Within the existing two-minute budget, show a selected source item, click **Open evidence close-up**, and display the actual protected Cloudinary crop. Close it and show the count and evidence coordinates are retained. The browser flow and production delivery were verified; this is a visual-inspection feature, not evidence of increased recognition accuracy. Keep the current per-message/session cost visible where useful. Shorten another shot rather than exceed 2:00. This script remains a plan, not a recorded or submitted video.
