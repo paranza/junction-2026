@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "code_revision": "f72dc9d",
+  "split": "development",
+  "provided_answers": 6,
+  "unrun_cases": 12,
+  "numeric_cases": 6,
+  "numeric_correct": 6,
+  "numeric_answered": 6,
+  "numeric_accuracy": 1.0,
+  "required_abstention_cases": 0,
+  "correct_required_abstentions": 0,
+  "unscored_cases": 0,
+  "errors": 0,
+  "localized_reference_cases": 6,
+  "object_precision": 1.0,
+  "object_recall": 1.0,
+  "object_iou_threshold": 0.3,
+  "limitations": "Six generated drawings from one renderer across formats. Counts and localization only; no floor-area or independent external-drawing accuracy estimate.",
+  "name": "Independent six-format procedural development door counts",
+  "provider": "openai",
+  "model": "gpt-6-astra",
+  "tested_application_commit": "f72dc9d",
+  "request_sha256": "80074fb62bab0276270b6945caf2ea91ecb63b2e90ab52fcbc1765f757db6bbc",
+  "reference_scope": "Development split only; reserved references not read or scored",
+  "formats": [
+    ".png",
+    ".jpg",
+    ".pdf",
+    ".svg",
+    ".tiff",
+    ".webp"
+  ],
+  "usage": {
+    "model_calls": 12,
+    "input_tokens": 81072,
+    "output_tokens": 4650,
+    "cached_input_tokens": 0
+  },
+  "cost_estimate_usd": null,
+  "cost_basis": "unconfigured"
+}

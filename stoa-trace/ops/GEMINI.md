@@ -6,6 +6,7 @@ The hosted model is replaceable; native source extraction, calculations, coordin
 GEMINI_API_KEY=your-private-key
 STOA_PROVIDER=gemini
 STOA_MODEL=gemini-4-carbon
+STOA_GEMINI_IMAGE_RESOLUTION=high
 STOA_MAX_MODEL_CALLS=50
 ```
 
@@ -26,3 +27,5 @@ Current Google documentation, checked 14 November 2026:
 - The adapter uses Google's Interactions API with `store: false`. Account access must still be checked with the actual key.
 
 Before comparing providers, freeze the code, prompts, model and analysis settings, run development questions first, and then release the reserved unseen-file evaluation once. Count abstentions on answerable questions as failures; report unsupported controls separately. A model change is not evidence of 99.9% accuracy.
+
+For dense drawings, `STOA_GEMINI_IMAGE_RESOLUTION` supports `low`, `medium`, `high` (default) and `ultra_high`. The setting is applied to every image and included in cache identities. Google documents high as the normal image recommendation; ultra_high approximately doubles image tokens and needs a development comparison before claiming an improvement. See [media resolution](https://aistudio.google.com/docs/media-resolution#token-counts).

@@ -54,11 +54,12 @@ class ProviderConfiguration(unittest.TestCase):
             secrets = root / 'secrets.env'
             secrets.write_text('OPENAI_API_KEY=test-openai\nVERDA_CLIENT_SECRET=test-cloud\n')
             gemini = root / 'gemini.env'
-            gemini.write_text('GEMINI_API_KEY=test-gemini\nSTOA_PROVIDER=gemini\nSTOA_MODEL=gemini-4-carbon\nSTOA_MAX_MODEL_CALLS=57\n')
+            gemini.write_text('GEMINI_API_KEY=test-gemini\nSTOA_PROVIDER=gemini\nSTOA_MODEL=gemini-4-carbon\nSTOA_MAX_MODEL_CALLS=57\nSTOA_GEMINI_IMAGE_RESOLUTION=ultra_high\n')
             config = load_runtime_config(secrets, gemini)
             env = runtime_environment(config).decode()
             self.assertIn('STOA_PROVIDER=gemini\n', env)
             self.assertIn('STOA_MAX_MODEL_CALLS=57\n', env)
+            self.assertIn('STOA_GEMINI_IMAGE_RESOLUTION=ultra_high\n', env)
             self.assertIn('GEMINI_API_KEY=test-gemini\n', env)
             self.assertNotIn('OPENAI_API_KEY', env)
             self.assertNotIn('VERDA_CLIENT_SECRET', env)
