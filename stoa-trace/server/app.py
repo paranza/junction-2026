@@ -633,7 +633,7 @@ def _compute_analysis(payload, question, data, source, previous=None):
             def _native_plan_put(key, plan):
                 store.save_analysis(store.analysis_key('native_query', {'plan':key,'provider':llm.provider_signature()}), 'native_query', plan)
             try:
-                result = native_query.answer(question, native_data, request=llm._request, cache=(_native_plan_get,_native_plan_put), previous=previous)
+                result = native_query.answer(question, native_data, request=llm._request, cache=(_native_plan_get,_native_plan_put), previous=previous if contextual else None)
             except llm.ModelError:
                 result = None
     if result is None and contextual:

@@ -20,6 +20,9 @@ export function quantityRows(records, answers) {
       [typeof answer.scope === 'string' ? answer.scope : answer.scope?.label, context.region ? 'selected area' : context.scope === 'page' ? `page ${context.page}` : ''].filter(Boolean).join(', '),
       basis, answer.source_changed ? 'source changed' : text(answer.status).replaceAll('_', ' '),
       answer.human_reviewed ? `revision ${answer.review?.revision ?? 1}` : '', answer.id]);
+    for (const group of answer.rows || []) {
+      rows.push([`  ${text(group.label)}`, typeof group.value === 'number' ? group.value : '', group.unit, '', name, '', 'Source group', answer.status, '', answer.id]);
+    }
     // A sum of source quantities also lists each measured item, so a total of room areas reads as a room schedule.
     if (terms.length > 1 && terms.length === evidence.length && terms.every(term => typeof term === 'number')) {
       evidence.forEach((item, index) => rows.push([`  ${[item.properties?.room_number, item.label].filter(Boolean).join(' ') || item.id}`, terms[index], calculation.term_unit || answer.unit]));

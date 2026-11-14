@@ -20,6 +20,13 @@ class QueryOperations(unittest.TestCase):
     def plan(self,**extra):
         return {'answerable':True,'object_type':'room','object_ids':None,'filters':[],
                 'aggregate':'sum','property':'properties.net_area_m2','explanation':'Source areas',**extra}
+    def test_source_object_count_is_reviewable_but_aggregates_are_not(self):
+        count=nq.answer('Count rooms',self.doc,lambda *a,**kw:self.plan(aggregate='count',property=None))
+        self.assertTrue(count['can_review'])
+        self.assertEqual(count['value'],len(count['evidence']))
+        measured=nq.answer('Sum area',self.doc,lambda *a,**kw:self.plan())
+        self.assertFalse(measured['can_review'])
+
     def test_grouping_and_exclusion_preserve_operand_ids(self):
         result=nq.execute(self.plan(aggregate='group_sum',group_by='properties.department'),self.doc)
         self.assertEqual([(r['label'],r['value']) for r in result['rows']],[('A',15),('B',25)])

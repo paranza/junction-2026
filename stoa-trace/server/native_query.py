@@ -280,7 +280,7 @@ def answer(question, document, request, cache=None, previous=None):
             'operation':found['operation'],'method':'model_planned_native_query','status':'supported',
             'scope':'Selected native source scope','evidence':evidence,'warnings':[],
             'evidence_complete':True,'spatial_evidence_complete':bool(evidence) and all(obj.get('bbox') for obj in evidence),
-            'can_review':False,'calculation':{'operation':plan['aggregate'],'property':plan.get('property'),
+            'can_review':plan['aggregate']=='count' and value==len(evidence) and len({item['id'] for item in evidence})==len(evidence),'calculation':{'operation':plan['aggregate'],'property':plan.get('property'),
                 'terms':found['terms'],'operand_ids':[str(obj['id']) for obj in found['operands']],
                 'result':value,'plan':plan,**({'comparison':found['comparison']} if found.get('comparison') else {})},
             'interpretation':plan.get('explanation','')}

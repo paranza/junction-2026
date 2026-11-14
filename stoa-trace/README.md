@@ -232,3 +232,11 @@ DWG uploads are accepted for project storage; analysis requires a supported pair
 See `DATA_INVENTORY.md` for the complete preview file inventory. The full 10 GB dataset has not been loaded.
 
 See `ops/connection-status.json` for non-secret service setup status and deployment documentation under `ops/` when available. No API keys belong in Git.
+
+## Source queries, review receipts and optional readers
+
+The Gemini query planner supports groups, medians, explicit exclusions/OR filters, ratios, percentages and differences over typed source quantities. Python executes the plan; it refuses missing units or source IDs. Follow-up questions can retain the previous selection in the same drawing/region. Schedule tools support material groups, dimension filters, quantity multiplied by measured columns and exact-key cross-sheet references.
+
+Counts can be corrected in the evidence artifact. Export CSV or the answer download saves pending changes first, then exports the saved revision. The whole-chat CSV is in Chat options and includes grouped quantities. `GET /api/answers/{id}/export?format=json|csv` returns a saved receipt; JSON includes its revision and SHA256. Stale review saves with `base_revision` receive HTTP 409.
+
+Keep `STOA_INVENTORY_POLICY=repeat` and `STOA_SYMBOL_READER=standard` for reviewed behavior. Experimental `adaptive` and `focused` modes and the optional `STOA_DETECTOR_MANIFEST` adapter are documented in [the verification and limitations](../docs/delivery/quantity-workflow-improvements.md). The recovered PlanNet weights and focused-reader study did not improve measured detection, so neither replaces the release reader. Detector dependencies are separate in `requirements-detector.txt`; ONNX export requires a separate Torch environment and `python ops/export_plannet.py --help`. Weights and private manifests stay out of Git.

@@ -1374,7 +1374,7 @@ function App({thread, chatWorkspace}) {
             <AnswerTable rows={answer.rows} evidence={evidence} onSelect={selectEvidence} />
             {(evidence.length > 0 || answer.can_review || answer.calculation) && <DrawingArtifact key={answer.id} count={answer.can_review ? reviewedCount : evidence.length} focusRequest={focusToken}>
 
-            {answer.interpretation && answer.interpretation.replace(/\.$/,'') !== answer.answer?.replace(/\.$/,'') && <p className="artifact-interpretation">{answer.interpretation}</p>}
+            {answer.interpretation && answer.interpretation.replace(/\.$/,'') !== answer.answer?.replace(/\.$/,'') && answer.interpretation !== answer.calculation?.plan?.explanation && <p className="artifact-interpretation">{answer.interpretation}</p>}
             <div className="artifact-actions">
               {answer.can_review && !answer.source_changed && <><button type="button" onClick={startManual} disabled={reviewing || resolving}><Plus size={14}/>Add object</button><button type="button" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}>Undo</button>{hasReviewChanges && <button type="button" className="save-correction" onClick={review} disabled={reviewing || resolving}>{reviewing ? 'Saving…' : 'Save changes'}</button>}</>}
               <button type="button" onClick={() => downloadAnswer('csv')} disabled={reviewing || resolving || !!pendingManual}>{hasReviewChanges ? 'Save and export CSV' : 'Export CSV'}</button>

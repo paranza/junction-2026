@@ -50,3 +50,13 @@ test('the file opens in a spreadsheet with the reader\'s decimal mark and no for
   assert.ok(quantitiesCsv(rows).includes(',13.62\r\n'));
   assert.ok(quantitiesCsv([['Tiny', 0.00004]]).includes('Tiny,0.00004\r\n'));
 });
+
+
+test('grouped quantities remain separate rows in the whole chat export', () => {
+  const result = { id: 'g', rows: [{ label: 'Oak', value: 9, unit: 'count' }, { label: 'Steel', value: 4, unit: 'count' }], status: 'supported' };
+  const rows = quantityRows([{ answerId: 'g', question: 'Group by material' }], { g: result });
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows[2].slice(0, 3), ['  Oak', 9, 'count']);
+  assert.deepEqual(rows[3].slice(0, 3), ['  Steel', 4, 'count']);
+  assert.equal(rows[3][9], 'g');
+});
