@@ -97,6 +97,18 @@ class SourceInspection(unittest.TestCase):
         self.assertIsNone(result['value'])
         self.assertNotIn('99999', result['answer'])
 
+    def test_actual_abstention_keeps_its_missing_source_explanation(self):
+        raw = self.raw([], operation='unknown', value=None, complete=False,
+                       answer='Vertical pipe runs and the referenced continuation sheets are missing.')
+        result = self.finish(raw, 'What is the total pipe length?')
+        self.assertIsNone(result['value'])
+        self.assertIn('continuation sheets', result['answer'])
+
+    def test_invalid_count_citations_cannot_turn_into_an_exact_zero(self):
+        raw = self.raw([self.evidence('', None, None, image_index=99)], operation='count', unit='count')
+        result = self.finish(raw, 'How many doors?')
+        self.assertIsNone(result['value'])
+
     def test_agent_inspects_original_regions_before_answering(self):
         item = self.evidence('Area 22 m²', 22, 'm²', image_index=1)
         decisions = [{'action': 'inspect', 'regions': [[.1, .1, .5, .5]], 'reason': 'Read the labels', 'result': None},

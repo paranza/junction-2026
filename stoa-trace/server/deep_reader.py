@@ -43,7 +43,7 @@ complete describes inspected scope only. Every visual result still needs review.
 
 
 def config_signature():
-    mode = os.environ.get('STOA_COMPLEX_READER', 'off').strip().lower()
+    mode = os.environ.get('STOA_COMPLEX_READER', 'auto').strip().lower()
     if mode not in {'off', 'auto'}:
         raise ValueError('STOA_COMPLEX_READER must be off or auto.')
     model = os.environ.get('STOA_COMPLEX_MODEL', 'gemini-4-argon').strip()
@@ -61,7 +61,7 @@ def eligible(document, path, page=1):
     if Path(path).suffix.lower() not in rendering.RASTER_SUFFIXES:
         return False
     sheet = next((p for p in document.get('pages', []) if p.get('page') == page), {})
-    return sheet.get('width', 0) * sheet.get('height', 0) >= 12_000_000
+    return sheet.get('width', 0) * sheet.get('height', 0) >= 4_000_000
 
 
 def grid(region, columns=3, rows=2):
@@ -124,9 +124,11 @@ def _unsupported(reason, evidence=None, trace=None):
 def finalize(raw, inputs, document, question, region, trace):
     operation = raw.get('operation')
     intended = llm.requested_quantity(question)
-    if intended and operation != intended:
+    abstention = operation == 'unknown' and raw.get('value') is None and raw.get('complete') is False
+    if intended and operation != intended and not abstention:
         return _unsupported('The inspected evidence did not establish the requested quantity type.', trace=trace)
     evidence, operands = [], {}
+    discarded = False
     native = {str(o['id']): o for o in document.get('objects', []) if o.get('id') is not None}
     assertions = raw.get('evidence') or []
     warnings = list(raw.get('warnings') or [])
@@ -138,11 +140,17 @@ def finalize(raw, inputs, document, question, region, trace):
             candidate, notes = ground_native_evidence(linked, item, dimension, question)
         else:
             image_index = item.get('image_index')
-            if type(image_index) is not int or not 0 <= image_index < len(inputs): continue
+            if type(image_index) is not int or not 0 <= image_index < len(inputs):
+                discarded = True
+                continue
             image = inputs[image_index]; box = llm._mapped_box(item.get('bbox'), image['region'])
-            if not box: continue
+            if not box:
+                discarded = True
+                continue
             cx, cy = (box[0]+box[2])/2, (box[1]+box[3])/2
-            if not (region[0] <= cx <= region[2] and region[1] <= cy <= region[3]): continue
+            if not (region[0] <= cx <= region[2] and region[1] <= cy <= region[3]):
+                discarded = True
+                continue
             candidate = {**item, 'id': f'e{index}', 'page': image['page'], 'bbox': box,
                          'evidence_kind': 'visual', 'source_verified': False}
             candidate, notes = ground_visual_evidence(candidate, document, dimension, question)
@@ -150,7 +158,8 @@ def finalize(raw, inputs, document, question, region, trace):
         candidate.update(id=f'e{index}', category=llm.evidence_category(item.get('label')))
         duplicate = next((e for e in evidence if e.get('page') == candidate.get('page') and e.get('bbox') and candidate.get('bbox')
                           and llm._overlap(e['bbox'], candidate['bbox']) > .65
-                          and ((operation == 'count' and e['category'] == candidate['category']) or normalized(e.get('quoted_text')) == normalized(candidate.get('quoted_text')))), None)
+                          and ((operation == 'count' and e['category'] == candidate['category'])
+                               or (bool(normalized(e.get('quoted_text'))) and normalized(e.get('quoted_text')) == normalized(candidate.get('quoted_text'))))), None)
         if duplicate:
             # References to two observations of the same operand are rejected,
             # rather than silently treating them as two measured quantities.
@@ -178,7 +187,7 @@ def finalize(raw, inputs, document, question, region, trace):
               'scope': raw.get('scope'), 'inspection': trace, 'model': config_signature()['model'],
               'can_review': operation == 'count', 'value': None, 'unit': raw.get('unit')}
     if operation == 'count':
-        if not raw.get('complete'):
+        if not raw.get('complete') or discarded:
             return _unsupported('The full requested scope could not be inspected. The located candidates can be reviewed.', evidence, trace)
         result.update(value=len(evidence), unit='count', answer=f'{len(evidence)} located candidates. Review the marked objects.',
                       calculation='Count of distinct located source objects after overlap removal.')
