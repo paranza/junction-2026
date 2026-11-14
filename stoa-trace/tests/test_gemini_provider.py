@@ -13,13 +13,17 @@ from server import gemini_provider as gemini, llm
 class GeminiProviderTests(unittest.TestCase):
     def setUp(self):
         self.patches = [patch.object(llm, 'PROVIDER', 'gemini'),
-                        patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high'}),
+                        patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high',
+                                                'STOA_GEMINI_THINKING_LEVEL': 'high',
+                                                'STOA_GEMMA_THINKING_LEVEL': 'high',
+                                                'STOA_GEMINI_TIMEOUT_SECONDS': '240'}),
                         patch.object(llm, 'KEY', 'private-test-key'),
                         patch.object(llm, 'MODEL', 'gemini-4-carbon'),
                         patch.object(llm, 'MAX_CALLS', 50),
                         patch.object(llm.store, 'reserve_model_request', return_value=True),
                         patch.object(llm.store, 'record_event')]
         started = [item.start() for item in self.patches]
+        os.environ.pop('STOA_GEMINI_MAX_OUTPUT_TOKENS', None)
         self.reserve, self.event = started[-2:]
         self.addCleanup(lambda: [item.stop() for item in reversed(self.patches)])
 
@@ -224,6 +228,86 @@ class GeminiProviderTests(unittest.TestCase):
             original = llm.provider_signature()
             with patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'ultra_high'}):
                 self.assertEqual(llm.provider_signature(), original)
+
+    def test_visual_thinking_policy_changes_wire_and_cache_but_bounded_text_stays_low(self):
+        signatures = set()
+        for level in ('low', 'medium', 'high'):
+            with self.subTest(level=level), patch.dict(os.environ, {'STOA_GEMINI_THINKING_LEVEL': level}):
+                _, post = self.client()
+                llm._request([], max_tokens=14000)
+                self.assertEqual(post.call_args.kwargs['json']['generation_config']['thinking_level'], level)
+                self.assertIn('thinking_level=' + level, llm.provider_signature())
+                signatures.add(llm.provider_signature())
+                bounded = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 700, llm.MODEL)
+                self.assertEqual(bounded['generation_config']['thinking_level'], 'low')
+        self.assertEqual(len(signatures), 3)
+
+    def test_visual_output_override_is_explicit_bounded_and_does_not_expand_translation(self):
+        default = llm.provider_signature()
+        self.assertIn('max_output_tokens=caller', default)
+        for cap in (1000, 24000, 32768):
+            with self.subTest(cap=cap), patch.dict(os.environ, {'STOA_GEMINI_MAX_OUTPUT_TOKENS': str(cap)}):
+                _, post = self.client()
+                llm._request([], max_tokens=14000)
+                self.assertEqual(post.call_args.kwargs['json']['generation_config']['max_output_tokens'], cap)
+                self.assertIn('max_output_tokens=' + str(cap), llm.provider_signature())
+                self.assertNotEqual(default, llm.provider_signature())
+                bounded = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 700, llm.MODEL)
+                self.assertEqual(bounded['generation_config']['max_output_tokens'], 700)
+
+    def test_transport_timeout_is_configurable_and_part_of_cache_policy(self):
+        baseline = llm.provider_signature()
+        self.assertIn('timeout_seconds=240', baseline)
+        with patch.dict(os.environ, {'STOA_GEMINI_TIMEOUT_SECONDS': '600'}):
+            factory, _ = self.client()
+            llm._request([])
+            timeout = factory.call_args.kwargs['timeout']
+            self.assertEqual(timeout.read, 600)
+            self.assertEqual(timeout.connect, 15)
+            self.assertIn('timeout_seconds=600', llm.provider_signature())
+            self.assertNotEqual(baseline, llm.provider_signature())
+
+    def test_invalid_generation_policy_is_sanitized_before_budget_or_network(self):
+        _, post = self.client()
+        invalid = {'STOA_GEMINI_THINKING_LEVEL': ('', 'minimal', 'xhigh', 'secret\ninjected=1'),
+                   'STOA_GEMINI_MAX_OUTPUT_TOKENS': ('', '999', '32769', '24000.5', 'secret\ninjected=1'),
+                   'STOA_GEMINI_TIMEOUT_SECONDS': ('', '59', '601', 'nan', 'secret\ninjected=1')}
+        for name, values in invalid.items():
+            for value in values:
+                with self.subTest(setting=name, value=value), patch.dict(os.environ, {name: value}):
+                    signature = llm.provider_signature()
+                    self.assertIn('invalid', signature)
+                    self.assertNotIn('secret', signature)
+                    with self.assertRaisesRegex(llm.ModelError, name) as error:
+                        llm._request([], max_tokens=14000)
+                    self.assertNotIn('secret', str(error.exception))
+        self.reserve.assert_not_called()
+        post.assert_not_called()
+
+    def test_gemma_has_separate_supported_thinking_policy_and_shares_explicit_output_timeout(self):
+        model = 'gemma-4-31b-it'
+        baseline = gemini.config_signature(model)
+        with patch.dict(os.environ, {'STOA_GEMINI_THINKING_LEVEL': 'medium'}):
+            self.assertEqual(baseline, gemini.config_signature(model))
+            visual = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 12000, model)
+            self.assertEqual(visual['generation_config']['thinking_level'], 'high')
+        with patch.dict(os.environ, {'STOA_GEMMA_THINKING_LEVEL': 'minimal',
+                                    'STOA_GEMINI_MAX_OUTPUT_TOKENS': '24000',
+                                    'STOA_GEMINI_TIMEOUT_SECONDS': '600'}):
+            visual = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 12000, model)
+            self.assertEqual(visual['generation_config']['thinking_level'], 'minimal')
+            self.assertEqual(visual['generation_config']['max_output_tokens'], 24000)
+            bounded = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 700, model)
+            self.assertEqual(bounded['generation_config']['thinking_level'], 'minimal')
+            self.assertEqual(bounded['generation_config']['max_output_tokens'], 700)
+            signature = gemini.config_signature(model)
+            self.assertIn('thinking_level=minimal', signature)
+            self.assertIn('max_output_tokens=24000', signature)
+            self.assertIn('timeout_seconds=600', signature)
+        with patch.dict(os.environ, {'STOA_GEMMA_THINKING_LEVEL': 'low'}):
+            self.assertIn('thinking_level=invalid', gemini.config_signature(model))
+            with self.assertRaisesRegex(gemini.ProviderError, 'STOA_GEMMA_THINKING_LEVEL'):
+                gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 12000, model)
 
     def test_openai_transport_remains_available_without_gemini_calls(self):
         _, post = self.client({'status': 'completed', 'usage': {'input_tokens': 10, 'output_tokens': 5},
