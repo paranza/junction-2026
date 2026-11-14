@@ -110,14 +110,56 @@ class BulkEvaluation(unittest.TestCase):
         self.assertEqual(run.unknown_failures, 1)
 
     def test_three_consecutive_failures_stop_without_retry(self):
-        cases = [case(str(i), question=f'Count window {i}') for i in range(6)]
+        cases = [case(str(i), path=f'data/cubicasa5k/{i}.png') for i in range(6)]
         check = self.checkpoint(cases)
         asked = []
         def ask(payload):
             asked.append(payload); raise bulk.ApiError('http_429')
-        run = bulk.Evaluation(cases, {cases[0]['path']: {'id': 'doc'}}, check, ask, concurrency=1)
+        run = bulk.Evaluation(cases, {c['path']: {'id': c['id']} for c in cases}, check, ask, concurrency=1)
         self.assertEqual(run.run(), 'three_consecutive_failures')
         self.assertEqual(len(asked), 3)
+
+    def test_failed_shared_inventory_is_not_retried_by_other_questions_or_resume(self):
+        cases = [case('first'), case('second', question='How many doors are shown on this floor plan?')]
+        check = bulk.Checkpoint(self.path, self.identity, cases)
+        requests = []
+        def ask(payload):
+            requests.append(payload)
+            raise bulk.ApiError('http_503')
+        catalog = {cases[0]['path']: {'id': 'doc'}}
+        run = bulk.Evaluation(cases, catalog, check, ask, concurrency=4)
+        self.assertIsNone(run.run())
+        self.assertEqual(len(requests), 1)
+        report = bulk.summarize(cases, check.rows, self.identity)
+        self.assertEqual(report['drawing_groups_with_errors'], 1)
+        self.assertEqual(report['unrun_questions_in_failed_drawings'], 1)
+        self.assertEqual(report['failed_requests_with_unknown_provider_usage'], 1)
+        self.assertFalse(report['provider_usage_complete'])
+        self.assertEqual(report['all_selected']['usage']['model_calls'], 0)
+        check.close()
+        resumed = self.checkpoint(cases, resume=True)
+        bulk.Evaluation(cases, catalog, resumed, ask, concurrency=4).run()
+        self.assertEqual(len(requests), 1)
+
+    def test_concurrent_failures_stop_with_at_most_three_plus_in_flight_requests(self):
+        cases = [case(str(i), path=f'data/cubicasa5k/{i}.png') for i in range(198)]
+        check = self.checkpoint(cases)
+        barrier, lock, requests = threading.Barrier(4), threading.Lock(), []
+        def ask(payload):
+            with lock:
+                requests.append(payload)
+                number = len(requests)
+            if number <= 4:
+                barrier.wait(timeout=5)
+            raise bulk.ApiError('http_503')
+        catalog = {c['path']: {'id': c['id']} for c in cases}
+        run = bulk.Evaluation(cases, catalog, check, ask, concurrency=4)
+        self.assertEqual(run.run(), 'three_consecutive_failures')
+        self.assertGreaterEqual(len(requests), 4)
+        self.assertLessEqual(len(requests), 3 + 4 - 1)
+        self.assertEqual(run.unknown_failures, len(requests))
+        self.assertEqual(len(check.rows), len(requests))
+        self.assertTrue(all(r['error'] == 'http_503' for r in check.rows.values()))
 
     def test_budget_stop_retains_unrun_questions_in_full_denominator(self):
         cases = [case('first'), case('second', path='data/cubicasa5k/b.png')]

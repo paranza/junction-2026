@@ -3,7 +3,9 @@
 
 One worker handles each drawing's questions sequentially, so a cached visual
 inventory can answer translated/category follow-ups without repeated inference.
-No inference request is automatically retried. The server's persisted atomic
+No inference request is automatically retried. A request error abandons that
+drawing, including on resume, to avoid retrying a failed shared inventory.
+The server's persisted atomic
 model-attempt cap remains the hard spending guard, including failed attempts.
 """
 from __future__ import annotations
@@ -30,7 +32,7 @@ from check_connections import create_ssl_context
 from server.normalize import to_english
 from server.inventory import count_categories
 
-REVISION = 'bulk-evaluation-v1'
+REVISION = 'bulk-evaluation-v2'
 
 
 class ApiError(Exception):
@@ -214,12 +216,18 @@ class Evaluation:
         self.stopped_reason = None
         self.calls = sum(r.get('response', {}).get('usage', {}).get('model_calls', 0) for r in checkpoint.rows.values())
         self.unknown_failures = sum(bool(r.get('error') and r.get('request_attempted')) for r in checkpoint.rows.values())
+        # Different questions from one drawing can share the same uncached
+        # model operation. Retrying another question after an API error would
+        # therefore be an implicit paid retry of that failed inventory.
+        self.failed_drawings = {r['path'] for r in checkpoint.rows.values() if r.get('error')}
 
     def run_group(self, cases):
         for case in cases:
             with self.lock:
                 if case['id'] in self.checkpoint.rows:
                     continue
+                if case['path'] in self.failed_drawings:
+                    return
                 if self.stopped_reason:
                     return
                 # This is a conservative scheduling guard, not knowledge of
@@ -255,11 +263,15 @@ class Evaluation:
                 self.calls += row.get('response', {}).get('usage', {}).get('model_calls', 0)
                 self.unknown_failures += bool(row.get('error') and row['request_attempted'])
                 self.failures = self.failures + 1 if row.get('error') else 0
+                if row.get('error'):
+                    self.failed_drawings.add(case['path'])
                 self.checkpoint.append(row)
                 if fatal:
                     self.stopped_reason = 'fatal_api_or_configuration_failure'
                 elif self.failures >= 3:
                     self.stopped_reason = 'three_consecutive_failures'
+                if row.get('error'):
+                    return
 
     def run(self):
         groups = defaultdict(list)
@@ -279,6 +291,7 @@ def grouped(rows, key):
 
 def summarize(cases, rows, identity, stopped_reason=None):
     all_rows = [rows.get(c['id']) or result_row(c, {'status': 'not_run'}, attempted=False) for c in cases]
+    failed_drawings = {r['path'] for r in rows.values() if r.get('error')}
     unique = defaultdict(list)
     for case, row in zip(cases, all_rows):
         unique[unique_key(case)].append((case, row))
@@ -295,18 +308,22 @@ def summarize(cases, rows, identity, stopped_reason=None):
     return {'schema_version': 1, 'generated_at': datetime.now(timezone.utc).isoformat(), 'identity': identity,
             'selected_questions': len(cases), 'completed_questions': len(rows), 'unrun_questions': len(cases)-len(rows),
             'drawing_groups': len({c['path'] for c in cases}), 'unique_normalized_requests': len(unique),
+            'drawing_groups_with_errors': len(failed_drawings),
+            'unrun_questions_in_failed_drawings': sum(c['id'] not in rows and c['path'] in failed_drawings for c in cases),
             'stopped_reason': stopped_reason, 'all_selected': benchmark.aggregate(all_rows),
             'completed_only': benchmark.aggregate(list(rows.values())),
             'unique_normalized': benchmark.aggregate(representatives),
             'duplicate_groups_with_response_disagreement': disagreements,
-            'usage_scope_note': 'Use all_selected.usage for actual run usage. Unique representatives can omit initial inventory calls made for translated copies.',
+            'usage_scope_note': 'Use all_selected.usage for observed response usage. Failed requests can conceal additional calls/tokens. Unique representatives can omit initial inventory calls made for translated copies.',
             'by_category': grouped(all_rows, category), 'by_language': grouped(all_rows, lambda r: r.get('language_hint') or 'unknown'),
             'by_source': grouped(all_rows, lambda r: r['source']), 'by_type': grouped(all_rows, lambda r: r['type']),
             'failed_requests_with_unknown_provider_usage': sum(bool(r.get('error') and r.get('request_attempted')) for r in rows.values()),
+            'provider_usage_complete': not any(r.get('error') and r.get('request_attempted') for r in rows.values()),
             'limitations': ['Unrun selected questions count as failures in all_selected; completed_only is separate.',
                            'Translated copies are not independent drawings; unique_normalized uses a fixed English preference.',
                            'Reference labels never enter inference requests. No reference boxes exist here, so localization accuracy is unmeasured.',
                            'The server atomic persisted model-attempt cap is the hard budget; failed requests can have unknown provider usage.',
+                           'A failed drawing is abandoned without retry, including on resume. In-flight requests finish after the global stop.',
                            'Source/model/code and policies must remain frozen. Declared application commit must match the running server.']}
 
 
