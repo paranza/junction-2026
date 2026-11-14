@@ -11,7 +11,7 @@ const draft = options => measurementDraft({ documentId: 'uploaded-plan', page: 1
 test('coordinate entry accepts line pairs and JSON without accepting out-of-page points', () => {
   assert.deepEqual(parseMeasurementPoints('0.1, 0.2\n0.8, 0.9').points, [[.1, .2], [.8, .9]]);
   assert.deepEqual(parseMeasurementPoints('[[0,0],[1,1]]').points, [[0, 0], [1, 1]]);
-  for (const text of ['1.1, 0.2', 'hello', '0.1,0.2,0.3', '[[true,0],[1,1]]', '[[null,0],[1,1]]']) {
+  for (const text of ['1.1, 0.2', 'hello', '0.1,0.2,0.3', ',0.3', '0.3,', ',', '0x0,1', '[[true,0],[1,1]]', '[[null,0],[1,1]]']) {
     assert.ok(parseMeasurementPoints(text).error, text);
   }
   assert.deepEqual(parseMeasurementPoints('').points, []);

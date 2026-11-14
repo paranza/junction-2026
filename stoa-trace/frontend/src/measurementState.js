@@ -12,8 +12,14 @@ export function parseMeasurementPoints(text) {
   if (typeof text !== 'string' || !text.trim()) return { points: [], error: '' };
   let points;
   try {
-    points = text.trim().startsWith('[') ? JSON.parse(text)
-      : text.trim().split(/\n/).filter(line => line.trim()).map(line => line.trim().split(/[,\s]+/).map(Number));
+    if (text.trim().startsWith('[')) points = JSON.parse(text);
+    else {
+      const pairs = text.trim().split(/\n/).filter(line => line.trim()).map(line => line.trim().split(/[,\s]+/));
+      if (pairs.some(pair => pair.length !== 2 || pair.some(value => !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value)))) {
+        throw new Error('Invalid coordinate pair');
+      }
+      points = pairs.map(pair => pair.map(Number));
+    }
   } catch {
     return { points: [], error: 'Enter one x, y pair per line, with both coordinates between 0 and 1.' };
   }
