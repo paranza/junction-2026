@@ -508,10 +508,11 @@ def _native_ifc(question, document, source_path, root):
                 selected.append(room)
         if not selected:
             selected = [o for o in rooms if len(_compact(o.get("label"))) > 3 and _normal(o.get("label")) in q]
-        identifiers = re.findall(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
+        q_ids = re.sub(_QUOTED_TEXT, lambda m: m.group(0) if re.fullmatch(r"[a-z]?\d+(?:[.\-]\d+)*", _normal(m.group(0)[1:-1]).strip()) else ' name ', q)
+        identifiers = re.findall(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b",q_ids)
         if len(identifiers) > 1:
             return None
-        identifier = re.search(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b", q)
+        identifier = re.search(r"\b(?:rooms?|spaces?)\s+['\"]?([a-z]?\d+(?:[.\-]\d+)*)\b",q_ids)
         if identifier:
             selected = [o for o in rooms if identifier.group(1) in {
                 _normal(o.get("properties", {}).get("name")), _normal(o.get("properties", {}).get("room_number"))}]

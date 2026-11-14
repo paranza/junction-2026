@@ -1,122 +1,147 @@
 {
  "generated_by": "ops/build_question_templates.py",
  "source": "question wording in questions.jsonl; answers are never read",
- "questions_sha256": "03b857a7ff91c63c81288081b526548ff4cfdf116e84f335f298906613168a70",
+ "questions_sha256": "0e6322c74561a63f42bac35f5c1be8a2c6a37516b14a81e66ab88b74950a6d1f",
  "translated": [
   {
    "pattern": "^Quelle\\ est\\ la\\ surface\\ nette\\ totale\\ en\\ m²\\ de\\ toutes\\ les\\ pièces\\ intérieures\\ numérotées\\ de\\ cet\\ étage\\ \\(hors\\ balcons,\\ loggias,\\ terrasses\\ et\\ autres\\ espaces\\ extérieurs,\\ gaines\\ et\\ vides\\)\\ \\?$",
    "english": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
-   "examples": 22
+   "examples": 247
   },
   {
    "pattern": "^Wie\\ gross\\ ist\\ die\\ gesamte\\ Nettogeschossfläche\\ in\\ m²\\ aller\\ nummerierten\\ Innenräume\\ dieses\\ Geschosses\\ \\(ohne\\ Balkone,\\ Loggien,\\ Terrassen\\ und\\ andere\\ Aussenräume,\\ Schächte\\ und\\ Lufträume\\)\\?$",
    "english": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
-   "examples": 22
+   "examples": 698
   },
   {
    "pattern": "^Qual\\ è\\ la\\ superficie\\ netta\\ totale\\ in\\ m²\\ di\\ tutti\\ i\\ locali\\ interni\\ numerati\\ di\\ questo\\ piano\\ \\(esclusi\\ balconi,\\ logge,\\ terrazze\\ e\\ altri\\ spazi\\ esterni,\\ cavedi\\ e\\ vuoti\\)\\?$",
    "english": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
-   "examples": 21
+   "examples": 95
   },
   {
    "pattern": "^Quelle\\ est\\ la\\ surface\\ nette\\ de\\ l'appartement\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ en\\ m²\\ \\(somme\\ de\\ toutes\\ ses\\ pièces,\\ hors\\ balcons,\\ loggias,\\ terrasses\\ et\\ autres\\ espaces\\ extérieurs\\)\\ \\?$",
    "english": "What is the net floor area of apartment {s0} in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
-   "examples": 38
+   "examples": 450
   },
   {
    "pattern": "^Qual\\ è\\ la\\ superficie\\ netta\\ dell'appartamento\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ in\\ m²\\ \\(somma\\ di\\ tutti\\ i\\ locali,\\ esclusi\\ balconi,\\ logge,\\ terrazze\\ e\\ altri\\ spazi\\ esterni\\)\\?$",
    "english": "What is the net floor area of apartment {s0} in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
-   "examples": 35
+   "examples": 166
   },
   {
    "pattern": "^Wie\\ gross\\ ist\\ die\\ Nettowohnfläche\\ von\\ Wohnung\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ in\\ m²\\ \\(Summe\\ aller\\ Räume\\ ohne\\ Balkone,\\ Loggien,\\ Terrassen\\ und\\ andere\\ Aussenräume\\)\\?$",
    "english": "What is the net floor area of apartment {s0} in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
-   "examples": 39
+   "examples": 1259
   },
   {
    "pattern": "^Kuinka\\ monta\\ kylpy\\-\\ tai\\ pesuhuonetta\\ \\(esim\\.\\ KH,\\ KPH,\\ PH,\\ PESUH,\\ SH\\)\\ pohjapiirustuksessa\\ on,\\ erillisiä\\ WC\\-tiloja\\ lukuun\\ ottamatta\\?$",
    "english": "How many bathrooms or washrooms (e.g. KH, KPH, PH, PESUH, SH) are on this floor plan, not counting separate WC rooms?",
-   "examples": 111
+   "examples": 2384
   },
   {
    "pattern": "^Kuinka\\ monta\\ pesu\\-\\ ja\\ tiskiallasta\\ \\(keittiö\\ ja\\ kylpytilat\\ yhteensä;\\ kaksoisallas\\ lasketaan\\ yhdeksi\\)\\ pohjapiirustukseen\\ on\\ piirretty\\?$",
    "english": "How many sinks and wash basins (kitchen and bathroom combined; a double-bowl sink counts as one) are drawn on this floor plan?",
-   "examples": 239
+   "examples": 4725
   },
   {
    "pattern": "^Kuinka\\ monta\\ ovea\\ pohjapiirustuksessa\\ on\\?\\ Laske\\ oviaukot,\\ joissa\\ on\\ ovi;\\ pelkkiä\\ oviaukkoja\\ ilman\\ ovilehteä\\ ei\\ lasketa\\.$",
    "english": "How many doors are shown on this floor plan? Count doorways fitted with a door; open doorways without a door leaf do not count.",
-   "examples": 176
+   "examples": 3519
   },
   {
    "pattern": "^Kuinka\\ monta\\ keittiötä\\ \\(myös\\ keittokomerot,\\ avo\\-\\ ja\\ tupakeittiöt\\ sekä\\ apukeittiöt\\)\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many kitchens (including kitchenettes, open kitchens and utility kitchens) are on this floor plan?",
-   "examples": 161
+   "examples": 3262
   },
   {
    "pattern": "^Wie\\ gross\\ ist\\ die\\ gesamte\\ Nettofläche\\ in\\ m²\\ aller\\ Räume\\ mit\\ der\\ Bezeichnung\\ «(?P<s0>.+?)»\\ in\\ diesem\\ Geschoss\\?$",
    "english": "What is the total net area in m² of all rooms labelled '{s0}' on this floor?",
-   "examples": 22
+   "examples": 683
   },
   {
    "pattern": "^Combien\\ de\\ portes\\ \\(portes\\ intérieures\\ et\\ portes\\ d'entrée\\ confondues\\)\\ sont\\ dessinées\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
-   "examples": 22
+   "examples": 247
   },
   {
    "pattern": "^Quelle\\ est\\ la\\ surface\\ nette\\ totale\\ en\\ m²\\ de\\ toutes\\ les\\ pièces\\ désignées\\ «\\ (?P<s0>.+?)\\ »\\ à\\ cet\\ étage\\ \\?$",
    "english": "What is the total net area in m² of all rooms labelled '{s0}' on this floor?",
-   "examples": 22
+   "examples": 240
   },
   {
    "pattern": "^Wie\\ viele\\ Türen\\ \\(Innentüren\\ und\\ Eingangstüren\\ zusammen\\)\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
-   "examples": 22
+   "examples": 698
+  },
+  {
+   "pattern": "^Jaka\\ jest\\ łączna\\ powierzchnia\\ netto\\ wszystkich\\ pomieszczeń\\ na\\ kondygnacji\\ „(?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])”\\ \\(w\\ m²\\)\\?$",
+   "english": "What is the total net floor area of all rooms (spaces) on '{s0}', in m²?",
+   "examples": 2
   },
   {
    "pattern": "^Wie\\ groß\\ ist\\ das\\ gesamte\\ Netto\\-Volumen\\ aller\\ Decken\\ und\\ Bodenplatten\\ im\\ Geschoss\\ „(?P<s0>.+?)“\\ in\\ m³\\?$",
    "english": "What is the total net volume of all slabs on '{s0}', in m³?",
-   "examples": 1
+   "examples": 19
   },
   {
    "pattern": "^Qual\\ è\\ la\\ superficie\\ netta\\ totale\\ in\\ m²\\ di\\ tutti\\ i\\ locali\\ denominati\\ «(?P<s0>.+?)»\\ in\\ questo\\ piano\\?$",
    "english": "What is the total net area in m² of all rooms labelled '{s0}' on this floor?",
-   "examples": 21
+   "examples": 94
   },
   {
    "pattern": "^Quante\\ porte\\ \\(porte\\ interne\\ e\\ porte\\ d'ingresso\\ insieme\\)\\ sono\\ disegnate\\ in\\ questa\\ pianta\\?$",
    "english": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
-   "examples": 21
+   "examples": 95
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ la\\ superficie\\ útil\\ total\\ de\\ todos\\ los\\ locales\\ de\\ la\\ planta\\ «(?P<s0>.+?)»,\\ en\\ m²\\?$",
+   "english": "What is the total net floor area of all rooms (spaces) on '{s0}', in m²?",
+   "examples": 10
   },
   {
    "pattern": "^Wie\\ groß\\ ist\\ die\\ gesamte\\ Netto\\-Seitenfläche\\ aller\\ Wände\\ im\\ Geschoss\\ „(?P<s0>.+?)“\\ in\\ m²\\?$",
    "english": "What is the total net side area of all walls on '{s0}', in m²?",
-   "examples": 1
+   "examples": 19
+  },
+  {
+   "pattern": "^Wie\\ groß\\ ist\\ die\\ gesamte\\ Netto\\-Grundfläche\\ aller\\ Räume\\ im\\ Geschoss\\ „(?P<s0>.+?)“\\ in\\ m²\\?$",
+   "english": "What is the total net floor area of all rooms (spaces) on '{s0}', in m²?",
+   "examples": 4
   },
   {
    "pattern": "^Kuinka\\ monta\\ suihkua\\ ja\\ kylpyammetta\\ pohjapiirustukseen\\ on\\ piirretty\\ yhteensä\\?$",
    "english": "How many showers and bathtubs are drawn on this floor plan in total?",
-   "examples": 227
+   "examples": 4442
   },
   {
    "pattern": "^Wie\\ groß\\ ist\\ das\\ gesamte\\ Netto\\-Volumen\\ aller\\ Wände\\ im\\ Geschoss\\ „(?P<s0>.+?)“\\ in\\ m³\\?$",
    "english": "What is the total net volume of all walls on '{s0}', in m³?",
-   "examples": 1
+   "examples": 20
   },
   {
    "pattern": "^Combien\\ de\\ pièces\\ portant\\ la\\ désignation\\ «\\ (?P<s0>.+?)\\ »\\ y\\ a\\-t\\-il\\ à\\ cet\\ étage\\ \\?$",
    "english": "How many rooms labelled '{s0}' are there on this floor?",
-   "examples": 135
+   "examples": 1500
   },
   {
    "pattern": "^Kuinka\\ monta\\ parveketta\\ \\(myös\\ lasitetut\\ parvekkeet\\)\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many balconies (parveke, including glazed balconies) are on this floor plan?",
-   "examples": 68
+   "examples": 1462
   },
   {
    "pattern": "^Quanti\\ appartamenti\\ \\(unità\\ abitative\\)\\ sono\\ rappresentati\\ in\\ questa\\ pianta\\?$",
    "english": "How many apartments (residential units) are shown on this floor plan?",
-   "examples": 21
+   "examples": 95
+  },
+  {
+   "pattern": "^Wat\\ is\\ de\\ totale\\ netto\\ vloeroppervlakte\\ van\\ alle\\ ruimtes\\ op\\ '(?P<s0>.+?)',\\ in\\ m²\\?$",
+   "english": "What is the total net floor area of all rooms (spaces) on '{s0}', in m²?",
+   "examples": 5
+  },
+  {
+   "pattern": "^Wie\\ groß\\ ist\\ die\\ Netto\\-Grundfläche\\ des\\ Raums\\ „(?P<s0>.+?)“\\ im\\ Geschoss\\ „(?P<s1>.+?)“\\ in\\ m²\\?$",
+   "english": "What is the net floor area of the room '{s0}' on '{s1}', in m²?",
+   "examples": 110
   },
   {
    "pattern": "^Hvad\\ er\\ det\\ samlede\\ nettovolumen\\ af\\ alle\\ dæk\\ og\\ plader\\ på\\ '(?P<s0>.+?)'\\ i\\ m³\\?$",
@@ -126,12 +151,22 @@
   {
    "pattern": "^Quelle\\ est\\ la\\ surface\\ nette\\ de\\ la\\ pièce\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ \\(«\\ (?P<s1>.+?)\\ »\\)\\ en\\ m²\\ \\?$",
    "english": "What is the net floor area of room {s0} ('{s1}') in m²?",
-   "examples": 44
+   "examples": 493
+  },
+  {
+   "pattern": "^Wat\\ is\\ de\\ totale\\ netto\\ zijoppervlakte\\ van\\ alle\\ wanden\\ op\\ '(?P<s0>.+?)',\\ in\\ m²\\?$",
+   "english": "What is the total net side area of all walls on '{s0}', in m²?",
+   "examples": 6
   },
   {
    "pattern": "^Wie\\ viele\\ Räume\\ mit\\ der\\ Bezeichnung\\ «(?P<s0>.+?)»\\ gibt\\ es\\ in\\ diesem\\ Geschoss\\?$",
    "english": "How many rooms labelled '{s0}' are there on this floor?",
-   "examples": 146
+   "examples": 4292
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ la\\ superficie\\ útil\\ del\\ local\\ «(?P<s0>.+?)»\\ en\\ la\\ planta\\ «(?P<s1>.+?)»,\\ en\\ m²\\?$",
+   "english": "What is the net floor area of the room '{s0}' on '{s1}', in m²?",
+   "examples": 142
   },
   {
    "pattern": "^Kui\\ suur\\ on\\ kõigi\\ ruumide\\ netopõrandapind\\ kokku\\ korrusel\\ „(?P<s0>.+?)“\\ \\(m²\\)\\?$",
@@ -141,12 +176,32 @@
   {
    "pattern": "^Combien\\ d'appartements\\ \\(logements\\)\\ figurent\\ sur\\ ce\\ plan\\ d'étage\\ \\?$",
    "english": "How many apartments (residential units) are shown on this floor plan?",
-   "examples": 22
+   "examples": 247
+  },
+  {
+   "pattern": "^Wat\\ is\\ de\\ netto\\ vloeroppervlakte\\ van\\ de\\ ruimte\\ '(?P<s0>.+?)'\\ op\\ '(?P<s1>.+?)',\\ in\\ m²\\?$",
+   "english": "What is the net floor area of the room '{s0}' on '{s1}', in m²?",
+   "examples": 223
+  },
+  {
+   "pattern": "^Wat\\ is\\ het\\ totale\\ netto\\ volume\\ van\\ alle\\ vloeren\\ op\\ '(?P<s0>.+?)',\\ in\\ m³\\?$",
+   "english": "What is the total net volume of all slabs on '{s0}', in m³?",
+   "examples": 9
   },
   {
    "pattern": "^Quanti\\ locali\\ con\\ la\\ denominazione\\ «(?P<s0>.+?)»\\ ci\\ sono\\ in\\ questo\\ piano\\?$",
    "english": "How many rooms labelled '{s0}' are there on this floor?",
-   "examples": 124
+   "examples": 573
+  },
+  {
+   "pattern": "^Wat\\ is\\ het\\ totale\\ netto\\ volume\\ van\\ alle\\ wanden\\ op\\ '(?P<s0>.+?)',\\ in\\ m³\\?$",
+   "english": "What is the total net volume of all walls on '{s0}', in m³?",
+   "examples": 6
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ escaleras\\ en\\ el\\ plano\\ de\\ la\\ planta\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many stairs are shown on the floor plan of '{s0}'?",
+   "examples": 8
   },
   {
    "pattern": "^Hvad\\ er\\ det\\ samlede\\ nettosideareal\\ af\\ alle\\ vægge\\ på\\ '(?P<s0>.+?)'\\ i\\ m²\\?$",
@@ -156,17 +211,27 @@
   {
    "pattern": "^Wie\\ gross\\ ist\\ die\\ Nettofläche\\ von\\ Raum\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ \\(«(?P<s1>.+?)»\\)\\ in\\ m²\\?$",
    "english": "What is the net floor area of room {s0} ('{s1}') in m²?",
-   "examples": 44
+   "examples": 1393
   },
   {
    "pattern": "^Qual\\ è\\ la\\ superficie\\ netta\\ del\\ locale\\ (?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])\\ \\(«(?P<s1>.+?)»\\)\\ in\\ m²\\?$",
    "english": "What is the net floor area of room {s0} ('{s1}') in m²?",
-   "examples": 42
+   "examples": 190
   },
   {
    "pattern": "^Wie\\ lang\\ sind\\ alle\\ Wände\\ im\\ Geschoss\\ „(?P<s0>.+?)“\\ zusammen,\\ in\\ Metern\\?$",
    "english": "What is the total length of all walls on '{s0}', in metres?",
-   "examples": 1
+   "examples": 19
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ locales\\ en\\ el\\ plano\\ de\\ la\\ planta\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many rooms (spaces) are shown on the floor plan of '{s0}'?",
+   "examples": 12
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ puertas\\ en\\ el\\ plano\\ de\\ la\\ planta\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many doors are shown on the floor plan of '{s0}'?",
+   "examples": 10
   },
   {
    "pattern": "^Hvad\\ er\\ det\\ samlede\\ nettovolumen\\ af\\ alle\\ vægge\\ på\\ '(?P<s0>.+?)'\\ i\\ m³\\?$",
@@ -176,7 +241,12 @@
   {
    "pattern": "^Wie\\ viele\\ Badewannen\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many bathtubs are drawn on this floor plan?",
-   "examples": 19
+   "examples": 590
+  },
+  {
+   "pattern": "^Wat\\ is\\ de\\ totale\\ lengte\\ van\\ alle\\ wanden\\ op\\ '(?P<s0>.+?)',\\ in\\ meter\\?$",
+   "english": "What is the total length of all walls on '{s0}', in metres?",
+   "examples": 6
   },
   {
    "pattern": "^Hvad\\ er\\ den\\ samlede\\ længde\\ af\\ alle\\ vægge\\ på\\ '(?P<s0>.+?)'\\ i\\ meter\\?$",
@@ -191,22 +261,27 @@
   {
    "pattern": "^Wie\\ viele\\ Duschen\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many showers are drawn on this floor plan?",
-   "examples": 8
+   "examples": 215
   },
   {
    "pattern": "^Wie\\ viele\\ Fenster\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many windows are drawn on this floor plan?",
-   "examples": 22
+   "examples": 698
   },
   {
    "pattern": "^Wie\\ viele\\ Lavabos\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many washbasins are drawn on this floor plan?",
-   "examples": 22
+   "examples": 698
   },
   {
    "pattern": "^Wie\\ viele\\ Wohnungen\\ sind\\ auf\\ diesem\\ Grundriss\\ dargestellt\\?$",
    "english": "How many apartments (residential units) are shown on this floor plan?",
-   "examples": 22
+   "examples": 698
+  },
+  {
+   "pattern": "^Ile\\ pomieszczeń\\ pokazano\\ na\\ rzucie\\ kondygnacji\\ „(?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])”\\?$",
+   "english": "How many rooms (spaces) are shown on the floor plan of '{s0}'?",
+   "examples": 1
   },
   {
    "pattern": "^Kui\\ suur\\ on\\ ruumi\\ „(?P<s0>.+?)“\\ netopõrandapind\\ korrusel\\ „(?P<s1>.+?)“\\ \\(m²\\)\\?$",
@@ -216,27 +291,37 @@
   {
    "pattern": "^Kuinka\\ monta\\ WC\\-istuinta\\ pohjapiirustukseen\\ on\\ piirretty\\?$",
    "english": "How many toilet bowls (WC seats) are drawn on this floor plan?",
-   "examples": 240
+   "examples": 4782
   },
   {
    "pattern": "^Quante\\ vasche\\ da\\ bagno\\ sono\\ disegnate\\ in\\ questa\\ pianta\\?$",
    "english": "How many bathtubs are drawn on this floor plan?",
-   "examples": 19
+   "examples": 83
   },
   {
    "pattern": "^Kuinka\\ monta\\ makuuhuonetta\\ \\(MH\\)\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many bedrooms (makuuhuone, usually marked MH) are on this floor plan?",
-   "examples": 154
+   "examples": 2960
   },
   {
    "pattern": "^Kuinka\\ monta\\ erillistä\\ WC\\-tilaa\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many separate WC rooms (toilet rooms marked WC) are on this floor plan?",
-   "examples": 112
+   "examples": 2332
+  },
+  {
+   "pattern": "^Qual\\ è\\ il\\ numero\\ di\\ muri\\ nella\\ pianta\\ del\\ piano\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many walls are shown on the floor plan of '{s0}'?",
+   "examples": 1
   },
   {
    "pattern": "^Wie\\ viele\\ WCs\\ sind\\ auf\\ diesem\\ Grundriss\\ eingezeichnet\\?$",
    "english": "How many toilets (WC) are drawn on this floor plan?",
-   "examples": 22
+   "examples": 698
+  },
+  {
+   "pattern": "^Hoeveel\\ kolommen\\ staan\\ er\\ op\\ de\\ plattegrond\\ van\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many columns are shown on the floor plan of '{s0}'?",
+   "examples": 2
   },
   {
    "pattern": "^Hvor\\ mange\\ trapper\\ er\\ vist\\ på\\ plantegningen\\ for\\ '(?P<s0>.+?)'\\?$",
@@ -251,12 +336,17 @@
   {
    "pattern": "^Kuinka\\ monta\\ kerrosta\\ pohjapiirustuksessa\\ on\\ esitetty\\?$",
    "english": "How many floors (storeys) does this floor plan show?",
-   "examples": 241
+   "examples": 4787
   },
   {
    "pattern": "^Combien\\ de\\ baignoires\\ sont\\ dessinées\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many bathtubs are drawn on this floor plan?",
-   "examples": 18
+   "examples": 224
+  },
+  {
+   "pattern": "^Hoeveel\\ ruimtes\\ staan\\ er\\ op\\ de\\ plattegrond\\ van\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many rooms (spaces) are shown on the floor plan of '{s0}'?",
+   "examples": 5
   },
   {
    "pattern": "^Hvor\\ mange\\ søjler\\ er\\ vist\\ på\\ plantegningen\\ for\\ '(?P<s0>.+?)'\\?$",
@@ -264,9 +354,44 @@
    "examples": 7
   },
   {
-   "pattern": "^Wie\\ viele\\ Fenster\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "pattern": "^Ile\\ drzwi\\ pokazano\\ na\\ rzucie\\ kondygnacji\\ „(?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])”\\?$",
+   "english": "How many doors are shown on the floor plan of '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Ile\\ okien\\ pokazano\\ na\\ rzucie\\ kondygnacji\\ „(?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])”\\?$",
    "english": "How many windows are shown on the floor plan of '{s0}'?",
    "examples": 1
+  },
+  {
+   "pattern": "^Ile\\ ścian\\ pokazano\\ na\\ rzucie\\ kondygnacji\\ „(?P<s0>[A-Z]?\\d+(?:\\.\\d+)*|[A-Z])”\\?$",
+   "english": "How many walls are shown on the floor plan of '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Fenster\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "english": "How many windows are shown on the floor plan of '{s0}'?",
+   "examples": 10
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Stützen\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "english": "How many columns are shown on the floor plan of '{s0}'?",
+   "examples": 8
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Treppen\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "english": "How many stairs are shown on the floor plan of '{s0}'?",
+   "examples": 13
+  },
+  {
+   "pattern": "^Hoeveel\\ deuren\\ staan\\ er\\ op\\ de\\ plattegrond\\ van\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many doors are shown on the floor plan of '{s0}'?",
+   "examples": 1
+  },
+  {
+   "pattern": "^Hoeveel\\ wanden\\ staan\\ er\\ op\\ de\\ plattegrond\\ van\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many walls are shown on the floor plan of '{s0}'?",
+   "examples": 4
   },
   {
    "pattern": "^Hvor\\ mange\\ vægge\\ er\\ vist\\ på\\ plantegningen\\ for\\ '(?P<s0>.+?)'\\?$",
@@ -274,9 +399,19 @@
    "examples": 8
   },
   {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ escaleras\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many stairs are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
    "pattern": "^Combien\\ de\\ fenêtres\\ sont\\ dessinées\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many windows are drawn on this floor plan?",
-   "examples": 22
+   "examples": 247
+  },
+  {
+   "pattern": "^Hoeveel\\ ramen\\ staan\\ er\\ op\\ de\\ plattegrond\\ van\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many windows are shown on the floor plan of '{s0}'?",
+   "examples": 3
   },
   {
    "pattern": "^Hvor\\ mange\\ døre\\ er\\ vist\\ på\\ plantegningen\\ for\\ '(?P<s0>.+?)'\\?$",
@@ -286,12 +421,27 @@
   {
    "pattern": "^Wie\\ viele\\ Räume\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
    "english": "How many rooms (spaces) are shown on the floor plan of '{s0}'?",
-   "examples": 1
+   "examples": 17
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Türen\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "english": "How many doors are shown on the floor plan of '{s0}'?",
+   "examples": 17
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Wände\\ sind\\ im\\ Grundriss\\ „(?P<s0>.+?)“\\ dargestellt\\?$",
+   "english": "How many walls are shown on the floor plan of '{s0}'?",
+   "examples": 12
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ ventanas\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many windows are there in the model '{s0}'?",
+   "examples": 2
   },
   {
    "pattern": "^Combien\\ de\\ douches\\ sont\\ dessinées\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many showers are drawn on this floor plan?",
-   "examples": 6
+   "examples": 72
   },
   {
    "pattern": "^Hvor\\ mange\\ rum\\ er\\ vist\\ på\\ plantegningen\\ for\\ '(?P<s0>.+?)'\\?$",
@@ -299,9 +449,29 @@
    "examples": 7
   },
   {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ locales\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many rooms (spaces) are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ pilares\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many columns are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ puertas\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many doors are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
    "pattern": "^Combien\\ de\\ lavabos\\ sont\\ dessinés\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many washbasins are drawn on this floor plan?",
-   "examples": 22
+   "examples": 247
+  },
+  {
+   "pattern": "^Hoeveel\\ sanitaire\\ toestellen\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many sanitary fixtures are there in the model '{s0}'?",
+   "examples": 1
   },
   {
    "pattern": "^Hvad\\ er\\ nettoarealet\\ af\\ rummet\\ '(?P<s0>.+?)'\\ på\\ '(?P<s1>.+?)'\\ i\\ m²\\?$",
@@ -311,22 +481,42 @@
   {
    "pattern": "^Quante\\ finestre\\ sono\\ disegnate\\ in\\ questa\\ pianta\\?$",
    "english": "How many windows are drawn on this floor plan?",
-   "examples": 21
+   "examples": 95
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Sanitärobjekte\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
+   "english": "How many sanitary fixtures are there in the model '{s0}'?",
+   "examples": 3
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ muros\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many walls are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^¿Cuál\\ es\\ el\\ número\\ de\\ vigas\\ en\\ el\\ modelo\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many beams are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Qual\\ è\\ il\\ numero\\ di\\ finestre\\ nel\\ modello\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many windows are there in the model '{s0}'?",
+   "examples": 1
   },
   {
    "pattern": "^Quanti\\ lavabi\\ sono\\ disegnati\\ in\\ questa\\ pianta\\?$",
    "english": "How many washbasins are drawn on this floor plan?",
-   "examples": 21
+   "examples": 95
   },
   {
    "pattern": "^Quante\\ docce\\ sono\\ disegnate\\ in\\ questa\\ pianta\\?$",
    "english": "How many showers are drawn on this floor plan?",
-   "examples": 7
+   "examples": 35
   },
   {
    "pattern": "^Combien\\ de\\ WC\\ sont\\ dessinés\\ sur\\ ce\\ plan\\ \\?$",
    "english": "How many toilets (WC) are drawn on this floor plan?",
-   "examples": 22
+   "examples": 247
   },
   {
    "pattern": "^Mitu\\ treppi\\ on\\ näidatud\\ korruse\\ „(?P<s0>.+?)“\\ plaanil\\?$",
@@ -334,9 +524,14 @@
    "examples": 4
   },
   {
+   "pattern": "^Qual\\ è\\ il\\ numero\\ di\\ porte\\ nel\\ modello\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many doors are there in the model '{s0}'?",
+   "examples": 1
+  },
+  {
    "pattern": "^Kuinka\\ monta\\ ikkunaa\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many windows are shown on this floor plan?",
-   "examples": 241
+   "examples": 4787
   },
   {
    "pattern": "^Mitu\\ posti\\ on\\ näidatud\\ korruse\\ „(?P<s0>.+?)“\\ plaanil\\?$",
@@ -354,9 +549,14 @@
    "examples": 3
   },
   {
+   "pattern": "^Qual\\ è\\ il\\ numero\\ di\\ muri\\ nel\\ modello\\ «(?P<s0>.+?)»\\?$",
+   "english": "How many walls are there in the model '{s0}'?",
+   "examples": 1
+  },
+  {
    "pattern": "^Quanti\\ WC\\ sono\\ disegnati\\ in\\ questa\\ pianta\\?$",
    "english": "How many toilets (WC) are drawn on this floor plan?",
-   "examples": 21
+   "examples": 95
   },
   {
    "pattern": "^Hvor\\ mange\\ bjælker\\ er\\ der\\ i\\ modellen\\ '(?P<s0>.+?)'\\?$",
@@ -376,7 +576,7 @@
   {
    "pattern": "^Kuinka\\ monta\\ saunaa\\ pohjapiirustuksessa\\ on\\?$",
    "english": "How many saunas are on this floor plan?",
-   "examples": 165
+   "examples": 3315
   },
   {
    "pattern": "^Hvor\\ mange\\ søjler\\ er\\ der\\ i\\ modellen\\ '(?P<s0>.+?)'\\?$",
@@ -391,12 +591,17 @@
   {
    "pattern": "^Wie\\ viele\\ Fenster\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many windows are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 7
+  },
+  {
+   "pattern": "^Wie\\ viele\\ Stützen\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
+   "english": "How many columns are there in the model '{s0}'?",
+   "examples": 6
   },
   {
    "pattern": "^Wie\\ viele\\ Treppen\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many stairs are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 7
   },
   {
    "pattern": "^Hvor\\ mange\\ vægge\\ er\\ der\\ i\\ modellen\\ '(?P<s0>.+?)'\\?$",
@@ -406,7 +611,7 @@
   {
    "pattern": "^Wie\\ viele\\ Träger\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many beams are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 6
   },
   {
    "pattern": "^Hvor\\ mange\\ døre\\ er\\ der\\ i\\ modellen\\ '(?P<s0>.+?)'\\?$",
@@ -416,22 +621,52 @@
   {
    "pattern": "^Wie\\ viele\\ Räume\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many rooms (spaces) are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 7
   },
   {
    "pattern": "^Wie\\ viele\\ Türen\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many doors are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 7
   },
   {
    "pattern": "^Wie\\ viele\\ Wände\\ enthält\\ das\\ Modell\\ „(?P<s0>.+?)“\\?$",
    "english": "How many walls are there in the model '{s0}'?",
-   "examples": 1
+   "examples": 7
   },
   {
    "pattern": "^Hvor\\ mange\\ rum\\ er\\ der\\ i\\ modellen\\ '(?P<s0>.+?)'\\?$",
    "english": "How many rooms (spaces) are there in the model '{s0}'?",
    "examples": 1
+  },
+  {
+   "pattern": "^Hoeveel\\ kolommen\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many columns are there in the model '{s0}'?",
+   "examples": 1
+  },
+  {
+   "pattern": "^Hoeveel\\ ruimtes\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many rooms (spaces) are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Hoeveel\\ balken\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many beams are there in the model '{s0}'?",
+   "examples": 1
+  },
+  {
+   "pattern": "^Hoeveel\\ deuren\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many doors are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Hoeveel\\ wanden\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many walls are there in the model '{s0}'?",
+   "examples": 2
+  },
+  {
+   "pattern": "^Hoeveel\\ ramen\\ bevat\\ het\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many windows are there in the model '{s0}'?",
+   "examples": 2
   },
   {
    "pattern": "^Mitu\\ treppi\\ on\\ mudelis\\ „(?P<s0>.+?)“\\?$",
@@ -537,6 +772,10 @@
   {
    "pattern": "^How\\ many\\ rooms\\ labelled\\ '(?P<s0>.+?)'\\ are\\ there\\ on\\ this\\ floor\\?$",
    "english": "How many rooms labelled '{s0}' are there on this floor?"
+  },
+  {
+   "pattern": "^How\\ many\\ sanitary\\ fixtures\\ are\\ there\\ in\\ the\\ model\\ '(?P<s0>.+?)'\\?$",
+   "english": "How many sanitary fixtures are there in the model '{s0}'?"
   },
   {
    "pattern": "^How\\ many\\ saunas\\ are\\ on\\ this\\ floor\\ plan\\?$",
