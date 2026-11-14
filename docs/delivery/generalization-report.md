@@ -15,6 +15,12 @@ Four hosted requests were run against the existing protected Verda app at code `
 
 These are four spot checks, including one synthetic layout and one external style, not a 99.9% result or blind benchmark. The external source is [Simple house floor plan](https://commons.wikimedia.org/wiki/File:Simple_house_floor_plan.gif), public domain, Shamilton77. Exact file and raster hashes did not match the preview. Foundation-model pretraining overlap is unknown.
 
+## Six-format visual development run
+
+After application commit `f72dc9d`, six independently generated development drawings were uploaded to the real protected app, one each in PNG, JPEG, PDF, SVG, TIFF and WebP. All six door counts were exact. Object precision and recall were both 1.0 under one-to-one reference matching at the frozen 0.3 box-IoU threshold. There were no request errors; 12 actual model calls used 81,072 input and 4,650 output tokens. Dollar cost remains unknown because model prices were not configured. See [aggregate report](../../stoa-trace/ops/reports/riccardo-delivery/visual-development-six-formats.json).
+
+These six cases share a procedural renderer. The other 12 development questions were not run in this test, and the reserved external corpus was not scored. This is evidence of working new-format visual counts, not a broad accuracy estimate. It is the OpenAI baseline for the pending Gemini comparison.
+
 ## Improvements implemented after those checks
 
 - Shared upload-batch names preserve PDF/DXF pairing while keeping separate uploads isolated.
