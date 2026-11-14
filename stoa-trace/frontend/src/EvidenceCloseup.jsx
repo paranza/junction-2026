@@ -16,7 +16,7 @@ function CloseupDialog({ image, label, page, onClose }) {
   return <dialog ref={dialog} className="evidence-closeup-dialog" aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onClose(); }} onClose={onClose}>
     <header><div><h2 id={titleId}>{label}</h2><p>Source close-up{page ? ` · page ${page}` : ''}</p></div><Button variant="ghost" size="small" aria-label="Close evidence close-up" onClick={onClose}><X size={20} /></Button></header>
     <div className="evidence-closeup-image">{imageFailed ? <p role="alert">The close-up image could not load. Close this view and try again.</p> : <img src={image.src} width={image.width} height={image.height} alt={`Close-up of ${label}${page ? ` on source page ${page}` : ''}`} onError={() => setImageFailed(true)} />}</div>
-    <footer>Highlighted source region, prepared with Cloudinary.</footer>
+    <footer>Selected source region, prepared with Cloudinary.</footer>
   </dialog>;
 }
 
