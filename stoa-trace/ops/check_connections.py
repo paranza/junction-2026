@@ -33,10 +33,12 @@ from urllib import error, request
 
 DEFAULT_ENV = Path.home() / ".config/stoa-junction-2026/secrets.env"
 GEMINI_ENV = DEFAULT_ENV.with_name('gemini.env')
+CLOUDINARY_ENV = DEFAULT_ENV.with_name('cloudinary.env')
 DEFAULT_MODEL = "gpt-6-astra"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 RETRYABLE_HTTP = {429, 500, 502, 503, 504}
 ENV_KEYS = {
+    'CLOUDINARY_URL', 'STOA_CLOUDINARY_UPLOAD_PRESET',
     "OPENAI_API_KEY", "OPENAI_PROJECT_ID", "VERDA_CLIENT_ID",
     "VERDA_CLIENT_SECRET", "VERDA_PROJECT_ID",
     "GEMINI_API_KEY", "GOOGLE_API_KEY", "STOA_PROVIDER", "STOA_MODEL",
@@ -93,9 +95,15 @@ def load_config(path: Path, *, include_environment=True) -> dict[str, str]:
     return config
 
 
-def load_runtime_config(path: Path = DEFAULT_ENV, gemini_path: Path | None = GEMINI_ENV):
+def load_runtime_config(path: Path = DEFAULT_ENV, gemini_path: Path | None = GEMINI_ENV,
+                        cloudinary_path: Path | None = CLOUDINARY_ENV):
     """Use the private Gemini sidecar only once it contains a key."""
     config = load_config(path)
+    if cloudinary_path is not None:
+        media = load_config(cloudinary_path, include_environment=False)
+        for key in ('CLOUDINARY_URL', 'STOA_CLOUDINARY_UPLOAD_PRESET'):
+            if media.get(key):
+                config[key] = media[key]
     selected = os.environ.get('STOA_PROVIDER')
     if gemini_path is not None and (selected is None or selected.strip().lower() == 'gemini'):
         values = load_config(gemini_path, include_environment=False)

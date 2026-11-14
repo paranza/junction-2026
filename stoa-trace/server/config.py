@@ -32,7 +32,13 @@ def active_gemini_settings(values, selected_provider=None):
 
 def load_environment(project_root: Path, *, private_env: Path | None = PRIVATE_ROOT / 'secrets.env',
                      gemini_env: Path | None = PRIVATE_ROOT / 'gemini.env',
+                     cloudinary_env: Path | None = PRIVATE_ROOT / 'cloudinary.env',
                      env_file: Path | None = None):
+    if cloudinary_env is not None:
+        values = dotenv_values(cloudinary_env)
+        for name in ('CLOUDINARY_URL', 'STOA_CLOUDINARY_UPLOAD_PRESET'):
+            if values.get(name):
+                os.environ.setdefault(name, str(values[name]))
     if gemini_env is not None:
         settings = active_gemini_settings(dotenv_values(gemini_env), os.environ.get('STOA_PROVIDER'))
         for name, value in settings.items():

@@ -93,6 +93,31 @@ def session_usage(session_id: uuid.UUID):
             'by_message': [{**item, 'request_id': item['message_id']} for item in summary['messages']]}
 
 
+@app.get('/api/media/status')
+def media_status():
+    from . import cloudinary_media
+    return {'available': cloudinary_media.available(), 'provider': 'cloudinary'}
+
+
+@app.post('/api/answers/{answer_id}/evidence/{evidence_id:path}/closeup')
+def evidence_closeup(answer_id: str, evidence_id: str):
+    from . import cloudinary_media
+    try:
+        return cloudinary_media.create_closeup(answer_id, evidence_id)
+    except cloudinary_media.MediaError as exc:
+        raise HTTPException(exc.status, str(exc)) from None
+
+
+@app.get('/api/media/{token}.png')
+def closeup_image(token: str):
+    from . import cloudinary_media
+    try:
+        path = cloudinary_media.media_path(token)
+    except cloudinary_media.MediaError as exc:
+        raise HTTPException(exc.status, str(exc)) from None
+    return FileResponse(path, media_type='image/png', headers={'Cache-Control': 'private, no-cache'})
+
+
 @app.get('/api/documents/{doc_id}')
 def document_detail(doc_id: str):
     doc = known_document(doc_id)
