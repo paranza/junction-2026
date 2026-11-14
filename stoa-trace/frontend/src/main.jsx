@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
 import MeasurementPanel from './MeasurementPanel.jsx';
+import InspectorPanel, { InspectorOverlay } from './InspectorPanel.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
@@ -90,6 +91,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
   const [draftRegion, setDraftRegion] = useState(null);
   const [captureMode, setCaptureMode] = useState(null);
   const [measurementPoints, setMeasurementPoints] = useState([]);
+  const [inspectorOverlay, setInspectorOverlay] = useState(null);
   const clearMeasurementPoints = useCallback(() => setMeasurementPoints([]), []);
   const applyTransform = useCallback(next => { transformRef.current = next; setTransform(next); }, []);
   const imageUrl = document?.id ? `/api/documents/${encodeURIComponent(document.id)}/pages/${page}/image?v=${imageVersion}` : null;
@@ -193,6 +195,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
           const box = evidenceBBox(item); const isSelected = item._key === selectedEvidence;
           return item.polygon?.length ? <polygon key={item._key} points={item.polygon.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : box ? <rect key={item._key} x={box[0] * 1000} y={box[1] * 1000} width={(box[2] - box[0]) * 1000} height={(box[3] - box[1]) * 1000} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : null;
         })}{activeRegion && <rect className="region-shape" x={activeRegion[0] * 1000} y={activeRegion[1] * 1000} width={(activeRegion[2] - activeRegion[0]) * 1000} height={(activeRegion[3] - activeRegion[1]) * 1000} />}</svg>}
+        <InspectorOverlay overlay={inspectorOverlay} />
         {captureMode && measurementPoints.length > 0 && <svg className="evidence-shapes measurement-shapes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><polyline points={measurementPoints.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} fill={captureMode === 'polygon' ? 'rgba(34,125,75,.12)' : 'none'} stroke="#247d4b" strokeWidth="3" vectorEffect="non-scaling-stroke" />{measurementPoints.map(([x, y], index) => <circle key={index} cx={x * 1000} cy={y * 1000} r={4 / transform.scale} fill="#247d4b" />)}</svg>}
         {showEvidence && evidence.map(item => {
           const box = evidenceBBox(item);
@@ -204,6 +207,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
       {imageState === 'error' && <div className="canvas-message canvas-fallback"><Box size={30} /><strong>{formatOf(document) === 'IFC' ? 'Building model' : 'Preview unavailable'}</strong><span>{formatOf(document) === 'IFC' ? 'Ask about the model’s objects, spaces, and quantities.' : 'You can still inspect the source and ask a question.'}</span>{arrayOf(document?.objects).length > 0 && <div className="native-objects"><strong>Model objects</strong>{document.objects.slice(0, 8).map((item, index) => <div key={item.id || item.guid || index}><span>{item.name || item.label || item.type || 'Element'}</span><small>{item.type || item.ifc_type || ''}</small></div>)}</div>}<a className="button secondary" href={`/api/documents/${encodeURIComponent(document.id)}/original`} target="_blank" rel="noreferrer"><ArrowDownToLine size={15} /> Open original</a></div>}
       {captureMode && <div className="manual-notice">Click {captureMode === 'calibration' ? 'two reference endpoints' : captureMode === 'polygon' ? 'each boundary corner' : 'two segment endpoints'}. <button type="button" onClick={() => setCaptureMode(null)}>Stop marking</button></div>}
       {imageState === 'ready' && <MeasurementPanel documentId={document?.id} page={page} captureMode={captureMode} points={measurementPoints} onCaptureModeChange={setCaptureMode} onClearPoints={clearMeasurementPoints} onAnswer={onMeasuredAnswer} disabled={manualMode} />}
+      {imageState === 'ready' && <InspectorPanel key={document?.id} documentId={document?.id} documentName={documentName(document)} onOverlay={setInspectorOverlay} />}
       {manualMode && <div className="manual-notice"><Plus size={14} /> Drag a box or click the missed object.<button type="button" onClick={onCancelManual}>Cancel marking</button></div>}
       {region && <div className="region-notice"><SquareDashedMousePointer size={14} /> Selected area <button type="button" onClick={() => onRegion(null)} aria-label="Clear selected area"><X size={14} /></button></div>}
     </div>
