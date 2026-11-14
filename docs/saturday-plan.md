@@ -32,7 +32,7 @@ If the EDA results carry over, the native layer alone goes from 1,598 to about 3
 
 ## 2. What to build today, in order
 
-**First, Michele's overnight work.** It is a second app, now on main in `Michele-testing/`. Its notes (`Michele-testing/docs/evaluation.md`; not re-run by us) report:
+**First, Michele's overnight work.** It was a second app in `Michele-testing/`, removed from main on 14 November after the team chose Trace; the last commit containing it is `a4bd811`. Its notes (`Michele-testing/docs/evaluation.md`; not re-run by us) report:
 - an exact swiss DXF parser: 1,614 / 1,614 counts and 732 / 744 areas across English, German, French and Italian, tuned on these same questions;
 - question templates in English, German, French, Italian and Finnish;
 - that CubiCasa5K's own annotations reproduce 4,210 of the 4,270 cubicasa answers (98.6%), so the cubicasa answer key almost certainly comes from them;
@@ -50,7 +50,7 @@ Proposal for the team: one product, Trace. Port the DXF parser and the templates
 | 6 | ifc_bench free text, written by a model from IFC query results | New path | 249 | Whoever is free after 18:00, and only once Stoa says how text is graded |
 | 7 | Batch answer runner | `ops/` | | Riccardo, only if Stoa will run a hidden question set |
 
-**Normalizer.** Start deterministic, from Michele's templates (`Michele-testing/backend/stoa/questions.py`); Estonian and Danish still need adding. The non-English questions are generated twins of the English templates and sit next to their twin in `questions.jsonl`, so build a pattern table from the question wording. Never read the answers to build it. For phrasing the table does not know, fall back to Trace's existing `llm.translate_question` (`server/llm.py:124`), cached on disk, and accept the result only if every quoted label in the original appears verbatim in the translation. Today that translation runs only in automatic mode with a model key. Show "Interpreted as: ..." in the answer panel.
+**Normalizer.** Start deterministic, from Michele's templates (removed from main on 14 November; read it with `git show a4bd811:Michele-testing/backend/stoa/questions.py`); Estonian and Danish still need adding. The non-English questions are generated twins of the English templates and sit next to their twin in `questions.jsonl`, so build a pattern table from the question wording. Never read the answers to build it. For phrasing the table does not know, fall back to Trace's existing `llm.translate_question` (`server/llm.py:124`), cached on disk, and accept the result only if every quoted label in the original appears verbatim in the translation. Today that translation runs only in automatic mode with a model key. Show "Interpreted as: ..." in the answer panel.
 
 **cubicasa.**
 - Keep Trace's rule: the count is the number of located boxes, never a number the model states.
@@ -215,5 +215,5 @@ The EDA scripts are in `eda/` (see `eda/README.md`); the reading-list checks are
 | `eda/opening_design/tables_auto.py`, `reproduce.py` | `extraction._word_schedules`; `native_qa._native_schedule` |
 | `eda/ifc_bench/reproduce.py`, `sweep.py` | The new free-text path |
 | `eda/research/vision-check/scripts/gemini_detect.py`, `tile_merge_count.py` | Bake-off arm (c); the smaller-box merge in `inventory.page_inventory` |
-| Michele's `Michele-testing/backend/stoa/vector_dxf.py` and `questions.py` | `native_qa._native_cad` and the normalizer |
+| Michele's `vector_dxf.py` and `questions.py` (archived: `git show a4bd811:Michele-testing/backend/stoa/<file>`) | `native_qa._native_cad` and the normalizer |
 | `eda/cubicasa5k/` sample sheets and window notes | The window rule by drawing style and the test images for the bake-off |
