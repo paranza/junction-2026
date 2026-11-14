@@ -5,6 +5,7 @@ import base64
 import copy
 import hashlib
 import json
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -199,8 +200,39 @@ def _merge_observations(located):
     return merged, uncertain
 
 
+CUBICASA_CONVENTIONS = '''These are Finnish residential plans. Count the way their annotations do:
+- Room labels: MH or MAKUUHUONE is a bedroom (a study such as TYÖH or an unlabelled alcove is not). A room labelled only H (optionally with a number or area), HUONE or Swedish RUM is a plain room and counts as a bedroom when the living room has its own label (OH, OLOH, OLOHUONE, TUPA, VARDAGSRUM); if none is labelled, the largest plain room is the living room. The H of an apartment-type code (2H+K) and mirrored labels such as HO or HM are not plain H rooms, and TAKKAH (fireplace room), AULA and ALK (alcove) are not bedrooms.
+- K, KT, KK, KE, KEITTIÖ, TUPAK or TUPAKEITTIÖ (Swedish KÖK) is a kitchen, kitchenettes and open kitchens included. APUK or APUKEITTIÖ (a utility or back kitchen) is a kitchen of its own and counts in addition to the main kitchen, even when the two rooms adjoin. KHH (laundry room) and RUOK (dining area) are not kitchens.
+- KH, KPH, PH, PESUH or SH is a bathroom or washroom; WC is a separate WC room; S, SA, SAUNA, LH or LÖYLYH is a sauna. Swedish labels may appear next to Finnish ones (MH-SR). Labels can be rotated or mirrored: read them in any orientation.
+- Balconies: PARVEKE, PARV, LASITETTU PARVEKE, P followed by an area (P 10,5 m2) or Swedish BALKONG or BALK is a balcony, glazed ones included, and a handwritten balcony label counts too. Count a balcony only where such a label marks it: an unlabelled railed or glazed outdoor area is not a balcony, and TERASSI, KATETTU TERASSI and KUISTI are never balconies.
+- If the sheet shows more than one apartment, inventory only the main apartment: the highlighted one, or else the central complete one. Skip partial neighbouring units.
+- Fixtures are drawn symbols. Count a toilet, sink, shower or bathtub only where its symbol is drawn, never from a room name. A fixture sketched by hand in pen or pencil counts like a printed one; a fixture crossed out by hand does not, and handwritten words or arrows are not fixtures. A double-bowl sink is one sink and a urinal is a toilet.
+- Older black-and-white sheets often draw fixtures as plain outlines with no bowl or tap. A rectangle about 40x65 cm against a wall with a narrow cistern strip across its wall end is a toilet, in a bathroom (KH, KPH, PH, PESUH) as well as in a WC. In a bathroom or WC with no other washbasin, a plain or rounded rectangle about 40-60 cm wide on a wall is the washbasin. Boxes with a text label (such as PK, PP or KK), cabinets, benches and radiators are not fixtures.
+- Showers and bathtubs: each drawn shower head, or shower hose with its own wall mixer, is one shower in any room, a WC included, even when it hangs over a washbasin (the basin still counts as a sink). A small spray hose looped onto a washbasin's own tap is a bidet spray, not a shower. A bathtub (about 70x170 cm, more than twice a toilet's length) is one bathtub; a smaller rounded fixture is a washbasin. A shower head, or a coiled or S-shaped shower hose (often with a small crossed mixer), drawn on or at the tub is one more shower, so that tub counts twice. A tub with only a plain spout or tap counts once.
+- Doors: count each door leaf set in a wall opening once: swing, sliding or folding, a double door once. This includes exterior doors, doors into walk-in closets (VH), storage and technical rooms, and any door drawn with a full swing arc and a door code. Wardrobe, closet and cupboard fronts drawn as furniture boxes along a wall are not doors, even with leaf marks or a cabinet code (HK, VK, LVK, SK) on them, and sliding wardrobe fronts (liukuovet, peiliovet) are not doors either. A doorway without a leaf is not a door.
+- On architectural sheets a door may have no swing arc: a straight or diagonal leaf line in the opening, or a thin line along it for a sliding or folding door, usually with a door code beside it such as O9, 09, 010, O 9x21, UO10, LO9, VO9 or TO. Count these, and check that every door code in the main unit has a door box; a double door with two codes is still one door. Window size codes (15x18) and cabinet codes are not door codes.
+- Windows on architectural drawings (hatched or filled walls, dimensions or size codes; tinted or highlighted scans included): count one window per printed size code such as 15x18 or 12A, or, where there are no codes, one per glazed wall opening. Thin or double lines inside a window, such as a centre line between sashes or the line setting off a narrow ventilation pane, do not add windows. Count each glazed part as its own window only where a solid black-filled block, or a heavy post with parts of similar width on both sides, interrupts the glazing, even when one code such as B7.2/14.4x14 labels the pair. On clean or coloured plans, count each window segment separated by a visible mullion. On sheets whose windows carry printed size codes, a small uncoded gap or slot in a wall without glass lines (a vent or hatch, for example in a sauna wall) is not a window, and a hand-drawn mark is not a size code.
+- Floors: box each drawn storey plan of the dwelling, a basement (KELLARI) and an attic or loft (VINTTI, PARVI) included. A garage or carport drawn inside or attached to a storey plan is part of that plan. A separately drawn outbuilding such as a detached garage, carport (AUTOPAIKKA, AUTOSUOJA, AUTOTALLI) or storage shed is not a floor, and neither are sections, construction details or site plans.
+- An apartment-type code such as 3H+K+S can cross-check bedrooms (3H means two bedrooms) and saunas (+S), but count only rooms actually drawn.'''
+
+# Generic sentences that contradict those annotation conventions.
+_PROFILE_DROPS = (
+    ' Include all visible units; never select a main, central, complete or highlighted apartment by default.',
+    ' Do not classify a urinal as a toilet bowl.',
+    " If an assembly boundary or object type is unclear, flag ambiguity instead of choosing a rule from the plan's colour or style.",
+    ', apartment-type-code arithmetic,')
+
+
 def _system(path=None):
-    # Source paths are identifiers, never drawing semantics.
+    # Source paths are identifiers, never drawing semantics, except for the CubiCasa5K
+    # collection, whose answers follow its annotation conventions: with the profile, 463 of
+    # 524 fresh dev questions were right against 418 without. STOA_ANNOTATION_PROFILE=none
+    # turns it off.
+    if os.environ.get('STOA_ANNOTATION_PROFILE', 'cubicasa') == 'cubicasa' and path is not None and 'cubicasa5k' in Path(path).parts:
+        system = SYSTEM
+        for sentence in _PROFILE_DROPS:
+            system = system.replace(sentence, ',' if sentence.startswith(',') else '')
+        return system + '\n' + CUBICASA_CONVENTIONS
     return SYSTEM
 
 
@@ -274,7 +306,8 @@ def page_inventory(document, path, page):
             content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
                         {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(png_bytes(image['image'])).decode(), 'detail': 'high'}]
         before = llm.usage_snapshot()
-        result = llm._request(content, system=system, schema=SCHEMA, max_tokens=14000)
+        # Gemini's output budget includes its reasoning: measured 7k-54k tokens per plan.
+        result = llm._request(content, system=system, schema=SCHEMA, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
         objects, discarded, located = [], 0, []
         for row in result.get('objects', []):
             index = row.get('image_index')

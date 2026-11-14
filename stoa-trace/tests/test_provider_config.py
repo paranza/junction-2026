@@ -84,7 +84,7 @@ class ProviderConfiguration(unittest.TestCase):
             load_environment(root, private_env=secrets, gemini_env=gemini)
             for actual in (config, os.environ):
                 self.assertEqual(actual['STOA_PROVIDER'], 'gemini')
-                self.assertEqual(actual['STOA_MODEL'], 'gemini-4-carbon')
+                self.assertEqual(actual['STOA_MODEL'], 'gemini-4-argon')
 
     def test_exported_google_key_does_not_activate_an_empty_sidecar(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {'GOOGLE_API_KEY': 'unrelated-test-key'}, clear=True):

@@ -184,16 +184,16 @@ class GeminiProviderTests(unittest.TestCase):
         with patch.object(llm, 'MODEL', 'gemini-4-argon'):
             self.assertNotEqual(signature, llm.provider_signature())
 
-    def test_image_resolution_defaults_to_high_and_is_sent_on_every_image(self):
+    def test_image_resolution_defaults_to_ultra_high_and_is_sent_on_every_image(self):
         data = base64.b64encode(b'fixture-image').decode()
         content = [{'type': 'input_text', 'text': 'Count doors'},
                    {'type': 'input_image', 'image_url': 'data:image/png;base64,' + data},
                    {'type': 'input_image', 'image_url': 'data:image/jpeg;base64,' + data}]
         with patch.dict(os.environ, {}, clear=True):
             payload = gemini.prepare_request(content, llm.SYSTEM, llm.SCHEMA, 10000, llm.MODEL)
-            self.assertEqual(gemini.image_resolution(), 'high')
-            self.assertIn('image_resolution=high', llm.provider_signature())
-        self.assertEqual([part['resolution'] for part in payload['input'] if part['type'] == 'image'], ['high', 'high'])
+            self.assertEqual(gemini.image_resolution(), 'ultra_high')
+            self.assertIn('image_resolution=ultra_high', llm.provider_signature())
+        self.assertEqual([part['resolution'] for part in payload['input'] if part['type'] == 'image'], ['ultra_high', 'ultra_high'])
         self.assertNotIn('resolution', payload['input'][0])
 
     def test_each_supported_image_resolution_changes_wire_payload_and_cache_signature(self):

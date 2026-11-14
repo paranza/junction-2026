@@ -24,7 +24,7 @@ ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions'
 API_REVISION = '2026-05-20'
 REVISION = 'gemini-interactions-v3'
 GEMMA_REVISION = 'gemma-interactions-v2'
-DEFAULT_MODEL = 'gemini-4-carbon'
+DEFAULT_MODEL = 'gemini-4-argon'
 GEMMA_MODELS = frozenset({'gemma-4-31b-it', 'gemma-4-26b-a4b-it'})
 IMAGE_RESOLUTIONS = frozenset({'low', 'medium', 'high', 'ultra_high'})
 _IMAGE = re.compile(r'data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)\Z')
@@ -35,7 +35,7 @@ class ProviderError(Exception):
 
 
 def image_resolution():
-    resolution = os.environ.get('STOA_GEMINI_IMAGE_RESOLUTION', 'high').strip().lower()
+    resolution = os.environ.get('STOA_GEMINI_IMAGE_RESOLUTION', 'ultra_high').strip().lower()
     if resolution not in IMAGE_RESOLUTIONS:
         raise ProviderError('STOA_GEMINI_IMAGE_RESOLUTION must be low, medium, high or ultra_high.')
     return resolution

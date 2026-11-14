@@ -10,7 +10,7 @@ from PIL import Image, ImageOps
 
 # Optional enlarged overlapping crops for small plans. The active setting belongs
 # in both inventory and answer cache keys so changing it triggers fresh analysis.
-SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '') == '1'
+SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '1') == '1'
 
 
 RASTER_SUFFIXES = frozenset({'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.tif', '.tiff'})

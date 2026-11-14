@@ -159,7 +159,7 @@ def runtime_environment(config):
     if not key or any(c in key for c in '\r\n'):
         raise ValueError('A valid one-line provider runtime key is required.')
     values = {key_name: key, 'STOA_PROVIDER': provider,
-              'STOA_MODEL': config.get('STOA_MODEL') or ('gemini-4-carbon' if provider == 'gemini' else 'gpt-6-astra'),
+              'STOA_MODEL': config.get('STOA_MODEL') or ('gemini-4-argon' if provider == 'gemini' else 'gpt-6-astra'),
               'STOA_MAX_MODEL_CALLS': config.get('STOA_MAX_MODEL_CALLS', '50')}
     if int(values['STOA_MAX_MODEL_CALLS']) < 0:
         raise ValueError('STOA_MAX_MODEL_CALLS must be nonnegative.')
