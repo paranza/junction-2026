@@ -26,7 +26,7 @@ Restart with `python ops/start_local.py`. `/api/health` reports the selected pro
 | `STOA_GEMINI_IMAGE_RESOLUTION` | `low`, `medium`, `high`, `ultra_high` (default); applied to each inline image. On CubiCasa dev plans ultra_high was level with or slightly above high (309 vs 306 of 355; 464 vs 460 of 524). |
 | `STOA_GEMINI_THINKING_LEVEL` | `low`, `medium`, `high`; default `high`. The current Argon example uses the published `high` default. |
 | `STOA_GEMINI_MAX_OUTPUT_TOKENS` | Optional integer 1,000–32,768. When unset, each analysis caller keeps its own cap. Leave it unset to preserve the current inventory caller cap of 65,536; setting an explicit override limits that caller. |
-| `STOA_GEMINI_TIMEOUT_SECONDS` | Integer 60–600; default 240. This is a transport timeout, not a latency promise. |
+| `STOA_GEMINI_TIMEOUT_SECONDS` | Integer 60–600; default 600, because 16 of 482 inventory readings hit the former 240-second limit in the end-to-end run. This is a transport timeout, not a latency promise. |
 | `STOA_SMALL_IMAGE_CROPS` | `1` enables enlarged overlapping crops for small plans. Upscaling does not restore missing detail; compare policies on development inputs. |
 
 Google counts reasoning tokens inside the output-token cap. An analysis can therefore return `incomplete` before producing valid JSON. Increasing the cap alone is not an accuracy fix; reducing reasoning depth can prevent it consuming the whole response budget. Bounded text requests below 1,000 output tokens retain their original cap and use low Gemini reasoning. Invalid settings fail before another model-attempt reservation or network call. Inference is not automatically retried.

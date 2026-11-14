@@ -255,6 +255,12 @@ class GeminiProviderTests(unittest.TestCase):
                 bounded = gemini.prepare_request([], llm.SYSTEM, llm.SCHEMA, 700, llm.MODEL)
                 self.assertEqual(bounded['generation_config']['max_output_tokens'], 700)
 
+    def test_transport_timeout_defaults_to_600_seconds(self):
+        with patch.dict(os.environ):
+            os.environ.pop('STOA_GEMINI_TIMEOUT_SECONDS', None)
+            self.assertEqual(gemini.timeout_seconds(), 600)
+            self.assertIn('timeout_seconds=600', llm.provider_signature())
+
     def test_transport_timeout_is_configurable_and_part_of_cache_policy(self):
         baseline = llm.provider_signature()
         self.assertIn('timeout_seconds=240', baseline)
