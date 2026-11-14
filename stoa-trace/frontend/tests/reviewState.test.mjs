@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -87,4 +87,14 @@ test('evidence origin stays separate from quantity and semantic verification', (
   assert.ok(notes.includes('Source identifier exists.'));
   assert.ok(notes.includes('Quantity is not supported by the cited source.'));
   assert.ok(notes.includes('Object selection and count completeness still require review.'));
+});
+
+
+test('working quantity choices require comparable finite values and an unchanged source', () => {
+  const original = { value: 0, evidence: [], reconciliation: { status: 'disagreement', native_value: 0, visual_value: 1, unit: 'count' } };
+  assert.equal(canResolveComparison(original), true);
+  assert.equal(canResolveComparison({ ...original, source_changed: true }), false);
+  assert.equal(canResolveComparison({ ...original, reconciliation: { ...original.reconciliation, status: 'scope_mismatch' } }), false);
+  assert.equal(canResolveComparison({ ...original, reconciliation: { ...original.reconciliation, visual_value: null } }), false);
+  assert.equal(original.value, 0);
 });

@@ -118,3 +118,10 @@ export function evidenceVerificationText(item) {
   if (checks.semantic_selection_verified === false) messages.push('Object selection and count completeness still require review.');
   return messages;
 }
+
+
+export function canResolveComparison(answer) {
+  const comparison = answer?.reconciliation;
+  return answer?.source_changed !== true && !!comparison && ['agreement', 'disagreement'].includes(comparison.status)
+    && Number.isFinite(comparison.native_value) && Number.isFinite(comparison.visual_value);
+}
