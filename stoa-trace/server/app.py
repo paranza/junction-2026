@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import llm, rendering, store
-from .normalize import to_english
+from .normalize import to_english, translation_preserves_constraints
 from .selection import highlight_target, native_highlight, describe_highlights
 
 ACCESS_TOKEN = os.environ.get('STOA_ACCESS_TOKEN', '')
@@ -480,9 +480,10 @@ def _compute_analysis(payload, question, data, source):
         if result is None and payload.mode == 'auto' and llm.model_available() and not normalized and re.search(r'[^\x00-\x7f]', question):
             try:
                 translated = llm.translate_question(question)
-                result = answer_native(translated, native_data, source, store.DATA_ROOT) if not payload.region else _native_region_answer(translated, data, source, payload.page, payload.region)
-                if result:
-                    result['interpreted_question'] = translated
+                if translation_preserves_constraints(question, translated):
+                    result = answer_native(translated, native_data, source, store.DATA_ROOT) if not payload.region else _native_region_answer(translated, data, source, payload.page, payload.region)
+                    if result:
+                        result['interpreted_question'] = translated
             except llm.ModelError:
                 pass
         native_result = copy.deepcopy(result)
