@@ -191,6 +191,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
     if (!focusToken) { lastFocusToken.current = 0; return; }
     if (focusToken === lastFocusToken.current || imageState !== 'ready' || loadedImageRef.current !== imageUrl
         || String(focusTarget?.documentId) !== String(document?.id) || Number(focusTarget?.page || 1) !== page
+        || viewSize.width <= 0 || viewSize.height <= 0
         || !viewportRef.current?.clientWidth || !viewportRef.current?.clientHeight) return;
     lastFocusToken.current = focusToken; setShowEvidence(true); focusEvidence();
   }, [focusToken, imageState, imageUrl, focusEvidence, focusTarget?.documentId, focusTarget?.page, document?.id, page]);
@@ -247,7 +248,7 @@ function UsageDetails({ answer }) {
   const callsKnown = Number.isFinite(usage?.model_calls);
   if (!usage) return null;
   return <details className="usage-details"><summary>{usageLabel(answer)} · {callsKnown ? `${usage.model_calls} model ${usage.model_calls === 1 ? 'call' : 'calls'}` : 'Call count unavailable'}</summary>
-    <dl><dt>This question</dt><dd>{costText(usage)}</dd><dt>Input / output tokens</dt><dd>{Number(usage.input_tokens || 0).toLocaleString()} / {Number(usage.output_tokens || 0).toLocaleString()}</dd>{Number(usage.cached_input_tokens || 0) > 0 && <><dt>Cached input tokens</dt><dd>{Number(usage.cached_input_tokens).toLocaleString()}</dd></>}{answer.model && <><dt>Model</dt><dd>{answer.model}</dd></>}{initial && <><dt>Initial visual extraction</dt><dd>{Number(initial.model_calls || 0)} calls · {costText(initial)}</dd></>}</dl>
+    <dl><dt>This question</dt><dd>{costText(usage)}</dd><dt>Analysis method</dt><dd>{readable(answer.method || 'Source analysis')}</dd>{answer.duration_ms != null && <><dt>Response time</dt><dd>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</dd></>}<dt>Input / output tokens</dt><dd>{Number(usage.input_tokens || 0).toLocaleString()} / {Number(usage.output_tokens || 0).toLocaleString()}</dd>{Number(usage.cached_input_tokens || 0) > 0 && <><dt>Cached input tokens</dt><dd>{Number(usage.cached_input_tokens).toLocaleString()}</dd></>}{answer.model && <><dt>Model</dt><dd>{answer.model}</dd></>}{initial && <><dt>Initial visual extraction</dt><dd>{Number(initial.model_calls || 0)} calls · {costText(initial)}</dd></>}</dl>
     <p>{usage.usage_incomplete ? 'The provider did not report all token usage. Any known cost is a subtotal.' : usage.cost_estimate_usd == null && usage.cost_basis !== 'native' ? 'A price is unavailable for some model usage. Any known cost is a subtotal.' : usage.model_calls === 0 ? 'No model inference was needed. Hosting and storage costs are separate.' : 'Estimate uses published or explicitly configured token rates before credits. It is not a provider invoice.'}</p>
   </details>;
 }
@@ -450,7 +451,7 @@ function App() {
       activeAskRef.current = null; setAsking(false);
       setFocusToken(0); setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
       const primaryEvidence = allEvidence(result).find(item => evidenceBBox(item)) || allEvidence(result)[0];
-      setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null);
+      setSelectedEvidence(null);
       // Open the relevant source page, while retaining a whole-page view.
       if (primaryEvidence?.document_id && String(primaryEvidence.document_id) !== String(documentId)) selectDocument(primaryEvidence.document_id, true, primaryEvidence.page);
       else if (evidenceBBox(primaryEvidence) && primaryEvidence?.page && Number(primaryEvidence.page) !== page) setPage(Number(primaryEvidence.page));
@@ -556,7 +557,7 @@ function App() {
       const documentId = result.document_id || item.documentId;
       selectDocument(primaryEvidence?.document_id || documentId, true, primaryEvidence?.page || result.provenance?.page);
       setFocusToken(0); setQuestion(''); setPendingQuestion(null); setAnswerQuestion(result.question || item.question); setAnswerDocumentName(result.document?.name || item.documentName); setAnswer(result); setAnswerDocumentId(documentId); loadReviewDraft(result);
-      setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null); setAnswerOpen(true);
+      setSelectedEvidence(null); setAnswerOpen(true);
       setHistory(items => mergeHistory(items, [historyItem(result, item)]));
 
     } catch (error) { if (error.name !== 'AbortError' && activeHistoryRef.current === controller) setAskError(`Could not load the saved answer: ${error.message}`); }
@@ -622,7 +623,7 @@ function App() {
 
             {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{quantityUnit(answer)}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
-            <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
+            <div className="answer-metadata"><span>{scopeText(answer.scope) || 'Requested source scope'}</span></div>
             <MessageInferenceCost usage={answer.usage} />
             <details className="answer-section-details"><summary>Calculation and usage</summary><UsageDetails answer={answer} />
             {answer.calculation && <div className="calculation"><span>Calculation</span><code>{calculationText(answer.calculation, answer)}</code></div>}

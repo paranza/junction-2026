@@ -15,9 +15,10 @@ export default function InferenceCost({ snapshot, unavailable }) {
   const cost = inferenceCost(usage);
   const messages = Array.isArray(snapshot?.by_message) ? snapshot.by_message.slice().reverse() : [];
   const total = usage ? cost.text : unavailable ? 'Unavailable' : 'Loading…';
+  const compactTotal = usage && cost.unknown ? 'Incomplete' : total;
   return <div className="session-inference" aria-label="Current session inference cost">
     <button type="button" className="session-cost-trigger" popoverTarget={popoverId} aria-label={`Session inference cost: ${total}. View breakdown`}>
-      <span>Session cost</span><strong aria-live="polite">{total}</strong><ChevronDown size={14} aria-hidden="true" />
+      <span>Inference cost</span><strong aria-live="polite">{compactTotal}</strong><ChevronDown size={14} aria-hidden="true" />
     </button>
     <div id={popoverId} popover="auto" className="session-inference-popover" role="region" aria-label="Session inference breakdown">
       <div className="session-inference-heading"><span>Session inference</span><strong>{total}</strong></div>
