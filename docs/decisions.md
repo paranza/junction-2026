@@ -120,3 +120,18 @@ rather than specializing the application for piping or another guessed task.
 Improve shared source inspection, quantity transcription, dimensional checks
 and calculation. This scope update does not establish that arbitrary geometry
 or network reconstruction is solved. See [source guidance and live checks](research/stoa-final-evaluation-20261114.md).
+
+## 2026-11-15: Original-source inspection for complex drawing questions
+
+Enable a bounded source inspection agent for PDF and large image fallback.
+It chooses original-resolution crops and returns typed operands plus an
+executable dimensional expression. Python computes the answer and preserves
+the cited source locations. Counts begin with overlapping full-scope sectors.
+On seven frozen numerical checks across four public complex Stoa examples,
+the current Carbon path solved five, the same reader with Argon solved two,
+and Argon source inspection solved all seven. This is a development comparison,
+not proof of arbitrary-question accuracy. Native solvers remain unchanged;
+the user requested no further broad simple/native benchmark work for this slice.
+Preserve failures, including a later provider timeout, and keep the cumulative
+request ledger. Do not enable the rejected residential detector or provision
+another GPU. See [comparison, API verification and limits](evaluation/complex-source-inspection.md).

@@ -1,0 +1,26 @@
+{
+  "code_revision": "6f46d2f1120b6674a487beb3fa59bca527ea6d84",
+  "backend_tests": {
+    "status": "passed",
+    "tests": 427,
+    "log_sha256": "9f4c4ce6236953435ea5ffeb3e196c5cb05693ff0a0d8bae04b4b040f6b72f32",
+    "credentials_empty_in_test_process": true,
+    "legacy_fixture_reader": "off",
+    "inspection_tests_enable_reader_explicitly": true
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "tests": 59,
+    "reused_identical_source_from": "24b7a66596111bdb1fb95baf725898cbfc11f76b",
+    "git_tree": "8d4c6383d1a1a9269485ad0984ae38ddd830983d"
+  },
+  "frontend_build": {
+    "status": "passed",
+    "reused_identical_source_from": "24b7a66596111bdb1fb95baf725898cbfc11f76b"
+  },
+  "frontend_build_sha256": {
+    "frontend/dist/index.html": "ac63763c7e77ea257c6bdd6f7cbe7fae795dc838142b5b2a5ece28157e634d65",
+    "frontend/dist/assets/index-DJDJJ6la.js": "4916bde82b6109d05c84162432f1045c0a0ccffd86f33f46193540b8bfa2c0a4",
+    "frontend/dist/assets/index-BJdZkLss.css": "7c9e96310156641f17b0f50c1273264723a1eb994260d4a95faa52debe818231"
+  }
+}
