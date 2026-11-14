@@ -17,3 +17,11 @@
 The quality target is 99.9% on questions supported by the input. Abstentions on answerable questions are failures. This target has not been achieved or established by the current tests. Reserved reference values never enter application prompts, extraction, caches or normalizer tables.
 
 The user requested committing and pushing the current changes, then waiting and staying within Riccardo's assigned work. Competitor monitoring is paused. Scheduled deployment tasks remain within the existing Riccardo assignment. No further unsolicited product or competitor work should start after this delivery.
+
+## Local chat-history recovery, 14 November
+
+The workspace client now uses `/api/workspace/chats` and `/api/workspace/projects`; existing API paths remain compatible. Refresh reads existing threads without creating new ones. A local metadata index preserves previously loaded navigation during temporary connection failures. History recovery no longer blocks other pages. Explicit preview cache policies remain intact; mutable JSON defaults to `no-store`.
+
+Removed the two large sidebar upload/new-chat controls. New conversations use the small Chats heading control; attachment remains available in the composer and empty drawing view.
+
+Verification: 326 Python tests, 41 frontend tests and the production frontend build passed. The live local service returned the existing one project and three threads. An in-app browser control tab restored the saved drawing conversation after refresh and local server restart, with no console errors. The user's older tab could not be claimed by the browser controller, so its reported failure was not reproduced or directly verified. The original cause of that tab's failed request remains unconfirmed. No model requests, data resets or production deployment were performed.

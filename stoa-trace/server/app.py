@@ -48,7 +48,7 @@ async def project_access(request: Request, call_next):
             return JSONResponse({'detail': 'This workspace needs an authorized project connection.'}, status_code=401)
     response = await call_next(request)
     if request.url.path.startswith('/api/') or request.url.path == '/':
-        response.headers['Cache-Control'] = 'no-store'
+        response.headers.setdefault('Cache-Control', 'no-store')
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'same-origin'
     return response
@@ -913,15 +913,18 @@ class ChatUpdate(BaseModel):
     project_id: str | None = None
     document_id: str | None = None
 
+@app.get('/api/workspace/chats')
 @app.get('/api/chats')
 def chats():
     return store.chat_workspace()
 
+@app.post('/api/workspace/projects')
 @app.post('/api/chat-projects')
 def create_project(payload: ChatCreate):
     identity=store.create_chat(payload.name.strip() or 'Untitled project',project=True)
     return {'id':identity}
 
+@app.post('/api/workspace/chats')
 @app.post('/api/chats')
 def create_chat(payload: ChatCreate):
     try:
@@ -933,6 +936,7 @@ def create_chat(payload: ChatCreate):
 class ThreadAnswer(BaseModel):
     answer_id: str
 
+@app.post('/api/workspace/chats/{identity}/answers')
 @app.post('/api/chats/{identity}/answers')
 def remember_chat_answer(identity: str,payload: ThreadAnswer):
     workspace=store.chat_workspace()
@@ -945,6 +949,7 @@ def remember_chat_answer(identity: str,payload: ThreadAnswer):
     if inserted: store.record_message_usage(identity,'saved:'+payload.answer_id,answer.get('usage'),answer.get('question','Measurement'),'completed',payload.answer_id)
     return {'status':'ok'}
 
+@app.patch('/api/workspace/chats/{identity}')
 @app.patch('/api/chats/{identity}')
 def update_chat(identity: str,payload: ChatUpdate):
     try:

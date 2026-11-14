@@ -43,6 +43,24 @@ class BackendUpgrade(unittest.TestCase):
     def ask(self, question='How many windows?', **kwargs):
         return self.client.post('/api/ask', json={'document_id': self.doc['id'], 'question': question, **kwargs})
 
+    def test_workspace_refresh_preserves_threads_and_avoids_cached_history(self):
+        project = self.client.post('/api/workspace/projects', json={'name': 'Building'}).json()['id']
+        created = self.client.post('/api/workspace/chats', json={
+            'name': 'Ground floor', 'project_id': project, 'document_id': self.doc['id']
+        })
+        self.assertEqual(created.status_code, 200)
+        thread_id = created.json()['id']
+        renamed = self.client.patch('/api/workspace/chats/' + thread_id, json={'title': 'Entrance'})
+        self.assertEqual(renamed.status_code, 200)
+        first = self.client.get('/api/workspace/chats')
+        second = self.client.get('/api/workspace/chats')
+        self.assertEqual(first.headers['cache-control'], 'no-store')
+        self.assertEqual(first.json(), second.json())
+        self.assertEqual(first.json(), self.client.get('/api/chats').json())
+        self.assertEqual(len(first.json()['threads']), 1)
+        self.assertEqual(first.json()['threads'][0]['title'], 'Entrance')
+        self.assertEqual(first.json()['threads'][0]['document_id'], self.doc['id'])
+
     def inventory_result(self):
         return {'complete': True, 'warnings': [], 'objects': [
             {'category': 'window', 'label': 'Window 1', 'image_index': 0, 'bbox': [.1, .1, .2, .2], 'ambiguous': False},

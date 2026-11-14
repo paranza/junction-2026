@@ -4,7 +4,7 @@ import { loadChatWorkspace } from '../src/chatLoading.js';
 test('refresh reads existing chats without creating or changing a thread',async()=>{
  const calls=[];const data={projects:[],threads:[{id:'existing'}]};
  assert.equal(await loadChatWorkspace(async(...args)=>{calls.push(args);return data}),data);
- assert.deepEqual(calls,[['/api/chats']]);
+ assert.deepEqual(calls,[['/api/workspace/chats']]);
 });
 test('a transient service failure is retried and recovered',async()=>{
  let calls=0;const data={projects:[],threads:[]};

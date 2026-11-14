@@ -1000,7 +1000,7 @@ function App({thread, chatWorkspace}) {
     finally { sessionUsage.refresh(); if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
   };
   const acceptMeasuredAnswer = useCallback(result => {
-    jsonRequest(`/api/chats/${thread.id}/answers`, {answer_id:result.id}).then(sessionUsage.refresh).catch(() => setAskError('The measurement was saved, but could not be linked to this chat.'));
+    jsonRequest(`/api/workspace/chats/${thread.id}/answers`, {answer_id:result.id}).then(sessionUsage.refresh).catch(() => setAskError('The measurement was saved, but could not be linked to this chat.'));
     if (String(result.document_id) !== String(selectedId)) return;
     cancelAsk(); cancelHistory(); cancelManual();
     setFocusToken(0); setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion('');
@@ -1561,7 +1561,7 @@ function App({thread, chatWorkspace}) {
                 }}
               />
 
-              <div className="docked-composer-footer">
+              <div className="docked-composer-footer"><button type="button" className="composer-attach" aria-label="Attach floor plan" title="Attach floor plan" disabled={uploading} onClick={()=>fileInputRef.current?.click()}><Plus size={18}/></button>
                 <select
                   className="composer-scope-select"
                   value={region ? 'region' : scope}
