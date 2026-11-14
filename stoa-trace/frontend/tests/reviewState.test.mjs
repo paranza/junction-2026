@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
+import { evidenceBox, evidenceBoxCenter, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
+  assert.deepEqual(evidenceBoxCenter({ polygon: [[.2, .3], [.6, .4], [.4, .7]] }), [.4, .5]);
+  assert.equal(evidenceBoxCenter({ bbox: [.8, .2, .1, .9] }), null);
   assert.equal(evidenceBox({ polygon: [[.2, .3], [Number.NaN, .4], [.5, .9]] }), null);
   assert.equal(evidenceBox({ bbox: [.8, .2, .1, .9] }), null);
   assert.equal(evidenceBox({ bbox: [null, .2, .8, .9] }), null);

@@ -13,6 +13,12 @@ export function evidenceBox(evidence) {
   return result[0] < result[2] && result[1] < result[3] ? result : null;
 }
 
+export function evidenceBoxCenter(evidence) {
+  const box = evidenceBox(evidence);
+  if (!box) return null;
+  return [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+}
+
 export function evidenceKind(item) {
   if (item?.evidence_kind === 'manual' || item?.manual || item?.source === 'manual' || item?.method === 'manual' || item?.origin === 'human' || String(item?.id || '').startsWith('manual-')) return 'manual';
   if (item?.evidence_kind === 'native' || item?.evidence_kind === 'visual') return item.evidence_kind;
