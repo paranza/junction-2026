@@ -646,6 +646,15 @@ def _compute_analysis(payload, question, data, source, previous=None):
             except llm.ModelError:
                 result = None
     if result is None and contextual:
+        from . import deep_reader
+        if payload.mode != 'native' and deep_reader.eligible(native_data, source, payload.page):
+            try:
+                result = deep_reader.answer(question, native_data, source, payload.page, payload.scope, payload.region, previous=previous)
+            except llm.ModelError as exc:
+                raise HTTPException(503, str(exc)) from None
+            except (ValueError, OSError):
+                raise HTTPException(422, 'This source has no usable visual preview. Native source tools remain available.') from None
+    if result is None and contextual:
         result = {'answer':'Do you mean the objects from the previous answer, or every matching object in the current selection?',
                   'value':None,'unit':None,'method':'context_clarification','status':'needs_clarification',
                   'evidence':[],'can_review':False,'warnings':[]}

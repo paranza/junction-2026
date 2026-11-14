@@ -141,6 +141,21 @@ class SourceInspection(unittest.TestCase):
         self.assertEqual(render.call_count, 7)
         self.assertEqual(result['value'], 1)
 
+    def test_followup_uses_locators_without_trusting_previous_quantities(self):
+        item = self.evidence('', None, None, label='Door', image_index=1)
+        final = {'action': 'answer', 'regions': [], 'reason': 'Inspected the referenced source',
+                 'result': self.raw([item], operation='count', unit='count', expression=None)}
+        previous = {'question': 'Locate the tagged equipment', 'value': 99999,
+                    'evidence': [{'label': 'Equipment A', 'page': 1, 'bbox': [.1, .1, .2, .2], 'value': 99999}]}
+        with patch.dict(os.environ, {'STOA_COMPLEX_READER': 'auto'}), patch.object(llm, 'PROVIDER', 'gemini'), \
+             patch.object(llm, '_request', return_value=final) as request, \
+             patch('server.rendering.render_region', return_value=Image.new('RGB', (32, 32))):
+            result = deep_reader.answer('How many of those?', self.document, Path('unknown.png'), previous=previous)
+        text = '\n'.join(part.get('text', '') for part in request.call_args.args[0])
+        self.assertIn('Equipment A', text)
+        self.assertNotIn('99999', text)
+        self.assertEqual(result['value'], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

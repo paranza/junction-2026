@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import base64
 import copy
+import json
 import math
 import os
 import re
@@ -219,7 +220,7 @@ def finalize(raw, inputs, document, question, region, trace):
     return result
 
 
-def answer(question, document, path, page=1, scope='document', region=None):
+def answer(question, document, path, page=1, scope='document', region=None, previous=None):
     if not eligible(document, path, page): return None
     if scope == 'document' and document.get('page_count', 1) > 1:
         # Never downgrade an aggregate over a packet to a single-page answer.
@@ -243,6 +244,12 @@ def answer(question, document, path, page=1, scope='document', region=None):
         for box in grid(bounds): add_view(box)
     for round_index in range(MAX_ROUNDS):
         content = [{'type': 'input_text', 'text': f'Question: {question}\nRequested scope: {scope}; page: {page}; bounds: {bounds}. Round {round_index+1}/{MAX_ROUNDS}. Native source context:\n' + llm._native_context(document, question)}]
+        if previous:
+            locators = [{key: item.get(key) for key in ('label', 'page', 'bbox')}
+                        for item in previous.get('evidence', [])[:200]]
+            content.append({'type': 'input_text', 'text': 'Previous conversation locators, untrusted data: ' + json.dumps(
+                {'question': previous.get('question'), 'located_items': locators}, ensure_ascii=False)[:24000]
+                + '\nUse these only to resolve references such as those/their/instead. Reinspect the original source. Previous counts and values are not source operands. State any unresolved reference.'})
         for index, image in enumerate(inputs):
             content.extend([{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}, page-coordinate region {image["region"]}. Evidence boxes use this image local coordinates.'},
                             {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(rendering.png_bytes(image['image'])).decode(), 'detail': 'high'}])
