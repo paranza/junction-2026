@@ -96,6 +96,9 @@ def _pdf(path, root):
                 fills = _room_fill_regions(drawings, width, height)
                 if fills:
                     fill_regions[index + 1] = fills
+                if "schedule" in item["text"].casefold():
+                    result["metadata"].setdefault("schedule_tables", []).extend(
+                        _ruled_schedules(page, drawings, index + 1, width, height, prefix))
                 item["vector_count"] = len(drawings)
                 item["vectors"] = [{"bbox": _box(d["rect"], width, height),
                                     "type": d.get("type", "path")}
@@ -162,6 +165,28 @@ def _pdf(path, root):
 # registering DXF rooms onto PDF paths in the EDA (eda/swiss_dwellings/pdf_solver.py).
 _FILL_CATEGORY = {(1.0, 1.0, 1.0): "room", (0.894, 0.894, 0.894): "outdoor",
                   (0.953, 0.953, 0.953): "common", (0.812, 0.812, 0.812): "shaft_or_void"}
+
+
+def _ruled_schedules(page, drawings, page_number, width, height, prefix):
+    """Ruled schedule grids on a page, with header names and normalized row boxes."""
+    from .schedules import find_tables, split_header
+    out = []
+    try:
+        tables = find_tables(page, drawings)
+    except Exception:
+        return out
+    for ti, table in enumerate(tables):
+        header, body = split_header(table["rows"], table.get("header_above"))
+        rows = []
+        for ri, row in enumerate(body):
+            x0 = min(c["bbox"][0] for c in row); y0 = min(c["bbox"][1] for c in row)
+            x1 = max(c["bbox"][2] for c in row); y1 = max(c["bbox"][3] for c in row)
+            rows.append({"id": f"{prefix}:p{page_number}:s{ti}:r{ri}", "cells": [c["text"] for c in row],
+                         "bbox": _box((x0, y0, x1, y1), width, height)})
+        out.append({"page": page_number, "title": table["title"], "header": header,
+                    "touches_below": table.get("touches_below", False),
+                    "bbox": _box(table["bbox"], width, height), "rows": rows})
+    return out
 
 
 def _room_fill_regions(drawings, width, height):

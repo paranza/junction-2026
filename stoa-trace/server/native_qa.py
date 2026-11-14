@@ -760,6 +760,30 @@ def _native_schedule(question, document):
     return None
 
 
+def _native_ruled_schedule(question, document):
+    """Counts over any ruled schedule on the sheet (door, window, type schedules), by code."""
+    from .schedules import answer_count
+    tables = document.get("metadata", {}).get("schedule_tables", [])
+    if not tables:
+        return None
+    found = answer_count(question, tables)
+    if found is None:
+        return None
+    table = found["table"]
+    source = document.get("metadata", {}).get("source_path")
+    objects = [{"id": r["id"], "label": " | ".join(c for c in r["cells"][:3] if c), "type": "schedule_row",
+                "page": table["page"], "bbox": r["bbox"], "source_path": source,
+                "properties": {"cells": dict(zip(table["header"], r["cells"])), "schedule": table["title"]}}
+               for r in found["rows"]]
+    calculation = {"operation": "sum" if found["terms"] is not None else "count_rows", "basis": found["basis"]}
+    if found["terms"] is not None:
+        calculation["terms"] = found["terms"]
+    result = _result(found["value"], "count", objects, "native_pdf_ruled_schedule", f"Schedule: {table['title']}",
+                     calculation=calculation)
+    result["answer"] = f"{found['value']} ({found['basis']} in {table['title']})."
+    return result
+
+
 def answer_native(question: str, document: dict, source_path: Path, data_root: Path) -> dict | None:
     """Return a supported native answer, or None for model/vision fallback."""
     source_path, data_root = Path(source_path), Path(data_root)
@@ -767,6 +791,7 @@ def answer_native(question: str, document: dict, source_path: Path, data_root: P
         lambda: _native_ifc(question, document, source_path, data_root),
         lambda: _native_cad(question, document),
         lambda: _native_schedule(question, document),
+        lambda: _native_ruled_schedule(question, document),
     ):
         result = handler()
         if result is not None:
