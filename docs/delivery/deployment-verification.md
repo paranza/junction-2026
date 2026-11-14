@@ -1,5 +1,27 @@
 # Deployment verification
 
+## Complex scan and quantity notation release
+
+Reviewed main application revision `24b7a66596111bdb1fb95baf725898cbfc11f76b`
+is deployed on the existing protected VM. All 412 backend tests, 59 frontend
+tests and the frontend build passed. The 7,066-case native development gate
+retained all previously correct cases, with unchanged outcomes, source hashes,
+zero errors and zero model calls. This gate protects compatibility; its IFC
+results are not evidence of final scan accuracy.
+
+Authentication, native answers, previews, review/export and restart persistence
+passed. The database backup and previous image are retained. Existing answers,
+uploads, event history, credentials and explicit model policy are preserved.
+Production attempts remain 17/1,000. Both local apps load the release with
+unchanged state and counters of 4/1,000 and 140/200. Neither reserved evaluation
+was rerun. The separate three-request live development check is described in
+[scan readiness](../evaluation/final-scan-readiness.md).
+
+[Deployment hashes](../../stoa-trace/ops/reports/final-evaluation-readiness/deployment.json),
+[native gate](../../stoa-trace/ops/reports/final-evaluation-readiness/native-development.json),
+[tests and build](../../stoa-trace/ops/reports/final-evaluation-readiness/build-checks.json),
+[local continuity](../../stoa-trace/ops/reports/final-evaluation-readiness/local-continuity.json).
+
 ## Source attribute release, Saturday evening
 
 Reviewed main `af767260c3611fb00c43e4689ea9adf105652353` is deployed on the

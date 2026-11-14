@@ -2,6 +2,20 @@
 
 14 November 2026. Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
+Latest final-evaluation update: application `24b7a66` is on main, deployed and
+loaded in both local apps. It accepts larger scans, inspects selected source
+regions at original resolution and fixes generic engineering quantity notation
+and unit checks. 412 backend tests, 59 frontend tests/build and the 7,066-case
+native regression passed with no losses. Production remains at 17/1,000
+attempts, with its explicit policy and persisted state preserved.
+
+The user reports IFC is excluded from final evaluation. New work prioritizes
+PDF and image questions and reports their results separately. Three repaired
+live numerical development checks passed; they are not a new general accuracy
+estimate. The full archive is downloaded and selectively prepared, without
+reading its question file or the reserved preview cases. See
+[scan readiness and limitations](../evaluation/final-scan-readiness.md).
+
 Latest evening update: application revision `af76726` is on main and deployed
 on the existing VM. It retains full IFC property sets, declared materials and
 typed dimensions, supports exact source attributes and per-object measurement
