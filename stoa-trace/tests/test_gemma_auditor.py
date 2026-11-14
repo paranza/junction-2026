@@ -26,7 +26,8 @@ class GemmaRequestRouting(unittest.TestCase):
                    patch.object(llm, 'MODEL', 'gemini-4-carbon'),
                    patch.object(llm, 'KEY', 'mock-google-credential'),
                    patch.object(llm, 'MAX_CALLS', 50),
-                   patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high'}),
+                   patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high',
+                                           'STOA_GEMMA_THINKING_LEVEL': 'high'}),
                    patch.object(llm.store, 'reserve_model_request', return_value=True),
                    patch.object(llm.store, 'record_event'),
                    patch.object(gemini_provider, 'request', side_effect=completed)]

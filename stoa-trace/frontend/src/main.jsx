@@ -284,7 +284,7 @@ function App() {
   const [page, setPage] = useState(1);
   const [scope, setScope] = useState('document');
   const [crossCheck, setCrossCheck] = useState(false);
-  const [verifyVisual, setVerifyVisual] = useState(true);
+  const [verifyVisual, setVerifyVisual] = useState(false);
   const [region, setRegion] = useState(null);
   const [question, setQuestion] = useState('');
   const [suggestions, setSuggestions] = useState([]);
