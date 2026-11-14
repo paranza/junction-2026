@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
+import MeasurementPanel from './MeasurementPanel.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
@@ -76,7 +77,7 @@ function DocumentIcon({ doc, size = 18 }) {
   return formatOf(doc) === 'IFC' ? <Box size={size} /> : ['PNG', 'JPG', 'JPEG', 'SVG'].includes(formatOf(doc)) ? <FileImage size={size} /> : <FileText size={size} />;
 }
 
-function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, imageVersion = 0 }) {
+function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, imageVersion = 0 }) {
   const viewportRef = useRef(null);
   const dragRef = useRef(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
@@ -87,6 +88,9 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
   const [showEvidence, setShowEvidence] = useState(true);
   const [tool, setTool] = useState('pan');
   const [draftRegion, setDraftRegion] = useState(null);
+  const [captureMode, setCaptureMode] = useState(null);
+  const [measurementPoints, setMeasurementPoints] = useState([]);
+  const clearMeasurementPoints = useCallback(() => setMeasurementPoints([]), []);
   const applyTransform = useCallback(next => { transformRef.current = next; setTransform(next); }, []);
   const imageUrl = document?.id ? `/api/documents/${encodeURIComponent(document.id)}/pages/${page}/image?v=${imageVersion}` : null;
   const fit = useCallback(() => {
@@ -102,7 +106,8 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
     return () => observer.disconnect();
   }, []);
   useEffect(() => { setImageState('loading'); setTool('pan'); }, [imageUrl]);
-  useEffect(() => { setTool(manualMode ? 'manual' : 'pan'); }, [manualMode]);
+  useEffect(() => { setTool(captureMode ? 'measure' : manualMode ? 'manual' : 'pan'); }, [manualMode, captureMode]);
+  useEffect(() => { setCaptureMode(null); setMeasurementPoints([]); }, [document?.id, page, imageVersion]);
   useEffect(() => { fit(); }, [fit, imageUrl]);
   const zoomAt = useCallback((factor, cx = viewSize.width / 2, cy = viewSize.height / 2) => {
     const current = transformRef.current;
@@ -129,12 +134,12 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
   const pointerDown = event => {
     if (event.button !== 0 || event.target.closest('button')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = tool === 'region' || tool === 'manual' ? { type: tool, start: pointInDrawing(event) } : { type: 'pan', clientX: event.clientX, clientY: event.clientY, ...transformRef.current };
+    dragRef.current = tool === 'region' || tool === 'manual' || tool === 'measure' ? { type: tool, start: pointInDrawing(event) } : { type: 'pan', clientX: event.clientX, clientY: event.clientY, ...transformRef.current };
     if (tool === 'region' || tool === 'manual') { const [x, y] = dragRef.current.start; setDraftRegion([x, y, x, y]); }
   };
   const pointerMove = event => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag || drag.type === 'measure') return;
     if (drag.type === 'pan') applyTransform({ x: drag.x + event.clientX - drag.clientX, y: drag.y + event.clientY - drag.clientY, scale: drag.scale });
     else {
       const [x, y] = pointInDrawing(event);
@@ -143,7 +148,10 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
   };
   const pointerUp = event => {
     const drag = dragRef.current;
-    if (drag?.type === 'manual') {
+    if (drag?.type === 'measure') {
+      const point = event ? pointInDrawing(event) : drag.start;
+      setMeasurementPoints(previous => captureMode === 'polygon' ? [...previous, point].slice(0, 512) : previous.length >= 2 ? [point] : [...previous, point]);
+    } else if (drag?.type === 'manual') {
       const end = event ? pointInDrawing(event) : drag.start;
       let box = draftRegion;
       if (!box || box[2] - box[0] < 0.003 || box[3] - box[1] < 0.003) {
@@ -185,6 +193,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
           const box = evidenceBBox(item); const isSelected = item._key === selectedEvidence;
           return item.polygon?.length ? <polygon key={item._key} points={item.polygon.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : box ? <rect key={item._key} x={box[0] * 1000} y={box[1] * 1000} width={(box[2] - box[0]) * 1000} height={(box[3] - box[1]) * 1000} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : null;
         })}{activeRegion && <rect className="region-shape" x={activeRegion[0] * 1000} y={activeRegion[1] * 1000} width={(activeRegion[2] - activeRegion[0]) * 1000} height={(activeRegion[3] - activeRegion[1]) * 1000} />}</svg>}
+        {captureMode && measurementPoints.length > 0 && <svg className="evidence-shapes measurement-shapes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><polyline points={measurementPoints.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} fill={captureMode === 'polygon' ? 'rgba(34,125,75,.12)' : 'none'} stroke="#247d4b" strokeWidth="3" vectorEffect="non-scaling-stroke" />{measurementPoints.map(([x, y], index) => <circle key={index} cx={x * 1000} cy={y * 1000} r={4 / transform.scale} fill="#247d4b" />)}</svg>}
         {showEvidence && evidence.map(item => {
           const box = evidenceBBox(item);
           if (!box) return null;
@@ -193,6 +202,8 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
       </div>}
       {imageState === 'loading' && <div className="canvas-message"><LoaderCircle className="spin" size={24} /><strong>Preparing drawing</strong><span>Opening the source at full resolution</span></div>}
       {imageState === 'error' && <div className="canvas-message canvas-fallback"><Box size={30} /><strong>{formatOf(document) === 'IFC' ? 'Building model' : 'Preview unavailable'}</strong><span>{formatOf(document) === 'IFC' ? 'Ask about the model’s objects, spaces, and quantities.' : 'You can still inspect the source and ask a question.'}</span>{arrayOf(document?.objects).length > 0 && <div className="native-objects"><strong>Model objects</strong>{document.objects.slice(0, 8).map((item, index) => <div key={item.id || item.guid || index}><span>{item.name || item.label || item.type || 'Element'}</span><small>{item.type || item.ifc_type || ''}</small></div>)}</div>}<a className="button secondary" href={`/api/documents/${encodeURIComponent(document.id)}/original`} target="_blank" rel="noreferrer"><ArrowDownToLine size={15} /> Open original</a></div>}
+      {captureMode && <div className="manual-notice">Click {captureMode === 'calibration' ? 'two reference endpoints' : captureMode === 'polygon' ? 'each boundary corner' : 'two segment endpoints'}. <button type="button" onClick={() => setCaptureMode(null)}>Stop marking</button></div>}
+      {imageState === 'ready' && <MeasurementPanel documentId={document?.id} page={page} captureMode={captureMode} points={measurementPoints} onCaptureModeChange={setCaptureMode} onClearPoints={clearMeasurementPoints} onAnswer={onMeasuredAnswer} disabled={manualMode} />}
       {manualMode && <div className="manual-notice"><Plus size={14} /> Drag a box or click the missed object.<button type="button" onClick={onCancelManual}>Cancel marking</button></div>}
       {region && <div className="region-notice"><SquareDashedMousePointer size={14} /> Selected area <button type="button" onClick={() => onRegion(null)} aria-label="Clear selected area"><X size={14} /></button></div>}
     </div>
@@ -260,6 +271,7 @@ function App() {
   const [page, setPage] = useState(1);
   const [scope, setScope] = useState('document');
   const [crossCheck, setCrossCheck] = useState(false);
+  const [verifyVisual, setVerifyVisual] = useState(true);
   const [region, setRegion] = useState(null);
   const [question, setQuestion] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -383,7 +395,7 @@ function App() {
     const context = contextRef.current, sequence = ++askSequenceRef.current, controller = new AbortController();
     activeAskRef.current = { sequence, controller, context };
     try {
-      const result = await jsonRequest('/api/ask', { document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck }, { signal: controller.signal });
+      const result = await jsonRequest('/api/ask', { document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
       if (controller.signal.aborted || activeAskRef.current?.sequence !== sequence || contextRef.current !== context) return;
       activeAskRef.current = null; setAsking(false);
       setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
@@ -395,6 +407,15 @@ function App() {
     } catch (error) { if (error.name !== 'AbortError' && activeAskRef.current?.sequence === sequence) setAskError(error.message); }
     finally { if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
   };
+  const acceptMeasuredAnswer = useCallback(result => {
+    if (String(result.document_id) !== String(selectedId)) return;
+    cancelAsk(); cancelHistory(); cancelManual();
+    setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion(result.question);
+    setAnswerDocumentName(documentName(result.document)); loadReviewDraft(result); setAskError(''); setAnswerOpen(true);
+    const primary = arrayOf(result.evidence)[0];
+    setSelectedEvidence(primary ? evidenceKey(primary, 0) : null); setFocusToken(value => value + 1);
+    setHistory(items => mergeHistory(items, [historyItem(result, { timestamp: Date.now() })]));
+  }, [selectedId, cancelAsk, cancelHistory, cancelManual, loadReviewDraft]);
   const askRegion = next => { cancelAsk(); cancelHistory(); cancelManual(); setRegion(next); };
   const changeScope = next => { cancelAsk(); cancelHistory(); cancelManual(); setScope(next); };
   const uploadFiles = async files => {
@@ -510,15 +531,15 @@ function App() {
           {documents.map(doc => <button key={doc.id} type="button" className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`} onClick={() => selectDocument(doc.id)} title={documentName(doc)} aria-pressed={String(doc.id) === String(selectedId)}><span className={`document-icon format-${formatOf(doc).toLowerCase()}`}><DocumentIcon doc={doc} /></span><span className="document-item-text"><strong>{documentName(doc)}</strong><span>{formatOf(doc)}<span className="mini-dot" />{readable(doc.source || (doc.indexed ? 'Indexed' : 'Ready to open'))}</span></span>{doc.indexed && <span className="indexed-dot" title="Indexed" aria-label="Indexed" />}</button>)}
           {documents.length < total && <button type="button" className="load-more" onClick={loadMore} disabled={documentsLoading}>{documentsLoading ? 'Loading…' : 'Load more drawings'}<ChevronDown size={14} /></button>}
         </div>
-        <div className="library-footer"><input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><button type="button" className="button upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</button>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
+        <div className="library-footer"><input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><button type="button" className="button upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</button>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
       </aside>
       <main className="main-drawing" aria-label="Selected drawing">
-        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} imageVersion={refreshVersion} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><div className="empty-illustration"><Layers3 size={42} /></div><span className="eyebrow">INSPECT THE SOURCE</span><h2>Start with a drawing.</h2><p>Find an answer in the details.<br />Inspect its source records and drawing evidence.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
+        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><div className="empty-illustration"><Layers3 size={42} /></div><span className="eyebrow">INSPECT THE SOURCE</span><h2>Start with a drawing.</h2><p>Find an answer in the details.<br />Inspect its source records and drawing evidence.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
       </main>
       <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Ask Trace and inspect answers">
         <div className="answer-panel-heading"><div><span className="assistant-mark"><Crosshair size={17} /></span><h2>Ask Trace</h2></div><IconButton label="Close answer panel" className="mobile-close" onClick={() => setAnswerOpen(false)}><X size={18} /></IconButton><span className="evidence-badge"><ShieldCheck size={12} /> Evidence first</span></div>
         <div className="answer-panel-scroll">
-          <form className="question-form" onSubmit={event => ask(event, crossCheck)}><label className="question-label" htmlFor="question-input">What do you need to know?</label><div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask about rooms, quantities, dimensions, or materials…" value={question} onChange={event => setQuestion(event.target.value)} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck); }} rows={3} /><div className="question-input-footer"><span>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole document'}</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={17} className="spin" /> : <ArrowUp size={18} />}</button></div></div><div className="query-options"><label><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><span className="keyboard-hint">⌘ ↵ to ask</span></div><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>Optional. May use a model request; scopes must match.</small></span></label></form>
+          <form className="question-form" onSubmit={event => ask(event, crossCheck)}><label className="question-label" htmlFor="question-input">What do you need to know?</label><div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask about rooms, quantities, dimensions, or materials…" value={question} onChange={event => setQuestion(event.target.value)} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck); }} rows={3} /><div className="question-input-footer"><span>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole document'}</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={17} className="spin" /> : <ArrowUp size={18} />}</button></div></div><div className="query-options"><label><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><span className="keyboard-hint">⌘ ↵ to ask</span></div><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>Optional. May use a model request; scopes must match.</small></span></label><label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>Search again for missed or incorrect objects. Uses one extra model call.</small></span></label></form>
           {askError && <div className="inline-error query-error" role="alert"><strong>Couldn’t complete the question</strong><span>{askError}</span><button type="button" onClick={event => ask(event, crossCheck)} disabled={asking}>Try again</button></div>}
           {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Tracing the answer</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
           {!answer && !asking && <section className="suggestions-section"><div className="section-label"><span>START WITH A QUESTION</span><CircleHelp size={14} /></div>{suggestions.length ? <div className="question-suggestions">{suggestions.slice(0, 5).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={14} /></button>)}</div> : <div className="question-empty"><div className="subtle-target"><Crosshair size={22} /></div><strong>From question to source.</strong><p>Ask in your own words. Trace will find the relevant objects or drawing regions and show its work.</p><div className="workflow-steps"><span><span>1</span> Ask a question</span><span><span>2</span> Inspect the evidence</span><span><span>3</span> Verify the result</span></div></div>}</section>}

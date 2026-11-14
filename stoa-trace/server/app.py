@@ -139,7 +139,7 @@ async def upload(files: list[UploadFile] = File(...)):
     for file in files:
         name = Path(file.filename or 'drawing').name
         if Path(name).suffix.lower() not in store.FORMATS:
-            raise HTTPException(415, 'Use PDF, PNG, JPEG, SVG, DXF, DWG or IFC files.')
+            raise HTTPException(415, 'Use PDF, common raster images, SVG, DXF, DWG or IFC files.')
         names.append(re.sub(r'[^\w.() -]', '_', name)[:180])
     if len({name.casefold() for name in names}) != len(names):
         raise HTTPException(422, 'Upload each filename once per batch so paired drawing files remain unambiguous.')
@@ -199,6 +199,76 @@ class AskRequest(BaseModel):
     region: list[float] | None = None
     mode: str = 'auto'
     cross_check: bool = False
+    verify_visual: bool = True
+
+
+class MeasurementRequest(BaseModel):
+    page: int = Field(default=1, ge=1)
+    kind: Literal['area', 'length'] = 'area'
+    source_fingerprint: str = Field(min_length=16, max_length=128)
+    calibration: dict
+    geometry: list[list[float]] = Field(min_length=2, max_length=513)
+
+
+def _measurement_context(doc_id, page):
+    data = extracted(doc_id)
+    if page > data.get('page_count', 1):
+        raise HTTPException(422, 'That drawing page does not exist.')
+    try:
+        picture, _ = rendering.render_page(store.get_path(doc_id), page, 2400)
+    except (ValueError, OSError):
+        raise HTTPException(422, 'This source has no calibrated two-dimensional measurement view.') from None
+    return data, {'document_id': doc_id, 'page': page,
+                  'source_fingerprint': data['source_fingerprint'],
+                  'image_width': picture.width, 'image_height': picture.height}
+
+
+@app.get('/api/documents/{doc_id}/measurement-context')
+def measurement_context(doc_id: str, page: int = 1):
+    if page < 1:
+        raise HTTPException(422, 'Page must be positive.')
+    return _measurement_context(doc_id, page)[1]
+
+
+@app.post('/api/documents/{doc_id}/measurement')
+def measure_document(doc_id: str, payload: MeasurementRequest):
+    from .measurements import calibrated_polygon_area, calibrated_length, MeasurementError
+    data, context = _measurement_context(doc_id, payload.page)
+    if payload.source_fingerprint != context['source_fingerprint']:
+        raise HTTPException(409, 'The source changed. Reload the page and set its reference length again.')
+    operation = calibrated_polygon_area if payload.kind == 'area' else calibrated_length
+    try:
+        measured = operation(payload.geometry, payload.calibration, page=payload.page,
+                             image_width=context['image_width'], image_height=context['image_height'], document_id=doc_id)
+    except MeasurementError as exc:
+        raise HTTPException(422, str(exc)) from None
+    doc = known_document(doc_id)
+    answer_id = uuid.uuid4().hex
+    xs, ys = zip(*payload.geometry)
+    evidence = {'id': 'measurement-' + answer_id, 'document_id': doc_id, 'page': payload.page,
+                'label': 'Your outlined area' if payload.kind == 'area' else 'Your measured segment',
+                'bbox': [min(xs), min(ys), max(xs), max(ys)], 'evidence_kind': 'manual',
+                'manual': True, 'source_verified': False, 'value': measured['value'], 'unit': measured['unit'],
+                'properties': {'measurement_basis': 'Explicit reference length and user-selected geometry',
+                               'reference_length': f"{payload.calibration.get('value')} {payload.calibration.get('unit')}",
+                               'reference_points': payload.calibration.get('points')}}
+    if payload.kind == 'area':
+        evidence['polygon'] = payload.geometry
+    result = {**measured, 'id': answer_id, 'document_id': doc_id, 'document': doc,
+              'question': 'Measure my outlined area' if payload.kind == 'area' else 'Measure my selected length',
+              'answer': f"{measured['value']:g} {measured['unit']}, calculated from your reference length and selected geometry.",
+              'operation': payload.kind, 'status': 'needs_review', 'scope': f'Page {payload.page}',
+              'can_review': False, 'evidence': [evidence],
+              'calculation': f"Selected geometry, scaled using your {payload.calibration.get('value')} {payload.calibration.get('unit')} reference = {measured['value']:g} {measured['unit']}",
+              'usage': {'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0,
+                        'cache_hit': False, 'cost_estimate_usd': 0.0, 'cost_basis': 'deterministic_geometry'},
+              'warnings': ['Check the reference endpoints, stated length, perspective and boundary. This is a user-calibrated measurement, not an independently verified net/gross room area.'],
+              'request_context': {'document_id': doc_id, 'scope': 'page', 'page': payload.page, 'region': None},
+              'provenance': {'source_path': doc['path'], 'source_fingerprint': data['source_fingerprint'],
+                             'source_sha256': data['source_sha256'], 'solver_revision': _solver_revision(),
+                             'scope': 'page', 'page': payload.page, 'question_source': 'user_calibration'}}
+    store.save_answer(answer_id, doc_id, result['question'], result)
+    return result
 
 
 def _evidence(result, doc_id):
@@ -234,7 +304,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py'):
+    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -385,6 +455,9 @@ def _compute_analysis(payload, question, data, source):
             if result is None:
                 result = llm.answer_with_model(question, data, source, payload.page, payload.scope, payload.region)
             result = _guard_visual_measurements(result)
+            if payload.verify_visual:
+                from .visual_audit import audit_visual_count
+                result = audit_visual_count(question, result, data, source, payload.page, payload.scope, payload.region)
         except llm.ModelError as exc:
             raise HTTPException(503, str(exc)) from None
         except (ValueError, OSError):
@@ -417,7 +490,7 @@ def ask(payload: AskRequest):
                             'extractor': data.get('extractor_revision'), 'solver': _solver_revision(),
                             'model': llm.MODEL, 'prompt': llm.PROMPT_REVISION, 'question': question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
-                            'mode': payload.mode, 'cross_check': payload.cross_check})
+                            'mode': payload.mode, 'cross_check': payload.cross_check, 'verify_visual': payload.verify_visual})
     with llm.usage_scope():
         with store.key_lock('answer:' + key):
             result = store.cached_analysis(key)

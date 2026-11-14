@@ -31,7 +31,7 @@ from urllib import error, parse, request
 import uuid
 
 
-FORMATS = {'.pdf', '.png', '.jpg', '.jpeg', '.svg', '.dxf', '.dwg', '.ifc'}
+FORMATS = {'.pdf', '.png', '.jpg', '.jpeg', '.svg', '.dxf', '.dwg', '.ifc', '.gif', '.webp', '.bmp', '.tif', '.tiff'}
 MAX_UPLOAD = 120 * 1024 * 1024
 
 

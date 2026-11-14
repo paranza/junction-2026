@@ -3,6 +3,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import io
+
+from PIL import Image
 
 from fastapi.testclient import TestClient
 
@@ -50,6 +53,42 @@ class IndependentUploads(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(store.list_documents()['total'], before)
         self.assertEqual(list((self.runtime / 'uploads').iterdir()), [])
+
+    def measurement_source(self):
+        content = io.BytesIO()
+        Image.new('RGB', (1200, 600), 'white').save(content, format='PNG')
+        response = self.client.post('/api/upload', files=[('files', ('new-drawing.png', content.getvalue()))])
+        doc_id = response.json()['documents'][0]['id']
+        context = self.client.get(f'/api/documents/{doc_id}/measurement-context?page=1').json()
+        payload = {'page': 1, 'kind': 'area', 'source_fingerprint': context['source_fingerprint'],
+                   'calibration': {'page': 1, 'document_id': doc_id, 'points': [[.1, .1], [.9, .1]], 'value': 8, 'unit': 'm'},
+                   'geometry': [[.1, .1], [.9, .1], [.9, .9], [.1, .9]]}
+        return doc_id, payload
+
+    def test_new_image_can_be_measured_and_saved_without_any_model(self):
+        doc_id, payload = self.measurement_source()
+        with patch('server.llm._request', side_effect=AssertionError('Geometry must make no model request')):
+            response = self.client.post(f'/api/documents/{doc_id}/measurement', json=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        answer = response.json()
+        self.assertAlmostEqual(answer['value'], 32)
+        self.assertEqual(answer['unit'], 'm²')
+        self.assertEqual(answer['usage']['model_calls'], 0)
+        self.assertFalse(answer['evidence'][0]['source_verified'])
+        self.assertEqual(answer['evidence'][0]['polygon'], payload['geometry'])
+        saved = self.client.get('/api/answers/' + answer['id']).json()
+        self.assertEqual(saved['value'], answer['value'])
+        self.assertFalse(saved['source_changed'])
+
+    def test_measurement_cannot_reuse_a_different_source_or_page_or_missing_scale(self):
+        doc_id, payload = self.measurement_source()
+        route = f'/api/documents/{doc_id}/measurement'
+        changed = {**payload, 'source_fingerprint': '0' * 64}
+        self.assertEqual(self.client.post(route, json=changed).status_code, 409)
+        for calibration in ({}, {**payload['calibration'], 'page': 2},
+                            {**payload['calibration'], 'document_id': 'other-drawing'}):
+            response = self.client.post(route, json={**payload, 'calibration': calibration})
+            self.assertEqual(response.status_code, 422, response.text)
 
 
 class MeasurementSafety(unittest.TestCase):
