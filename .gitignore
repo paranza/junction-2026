@@ -36,3 +36,8 @@ Thumbs.db
 
 # Partner dataset (Stoa), not redistributable via Git
 preview_dataset/
+
+# Local secrets (any folder)
+.env
+.env.*
+!.env.example

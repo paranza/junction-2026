@@ -41,3 +41,7 @@ Implement typed source-operand checks, strict unresolved-constraint handling, Sw
 ### 2026-11-14: add a raster specialist app with our own PyTorch models (`Michele-testing/`)
 
 On branch `feat/blueprint-analyzer`, add a separate FastAPI app (port 9999) whose raster models are trained by us in plain PyTorch: PlanNet (U-Net segmentation plus CenterNet-style object heatmaps) and GlyphNet (CRNN text reader). Training labels come from the Swiss Dwellings DXF projected onto the PNGs and from CubiCasa5K SVG annotations; the preview's own plans stay held out. Questions are answered by deterministic multilingual templates over the extracted facts; Gemini flash-lite is a fallback over text facts only. Reason: the partner asked for accurate, visibly justified measurements at low inference cost, and `stoa-trace` reports 0 % coverage on CubiCasa raster plans. Details and measured results: `Michele-testing/docs/`. Owner: the teammate running the overnight build; integration with `stoa-trace` is a team decision.
+
+### 2026-11-14: remove `Michele-testing/` and build only in Trace
+
+The team works on one product, Trace (`stoa-trace/`). The separate raster app is removed from main. Its useful parts are ported into Trace under the Saturday plan: the Swiss DXF rules (`vector_dxf.py`) into the native solvers and the multilingual templates (`questions.py`) into the normalizer. The code, weights and docs remain in history at commit `a4bd811`. Owner: Michele.
