@@ -1,0 +1,204 @@
+{
+  "manifest_sha256": "a97b1ab16f6786e8eea6c18f0d927860cd63cdf53d8334fd9b0860c371144bc9",
+  "cases": 100,
+  "before": {
+    "cases": 100,
+    "answered": 44,
+    "coverage": 0.44,
+    "numeric_cases": 97,
+    "numeric_answered": 44,
+    "numeric_correct": 41,
+    "accuracy_all": 0.422680412371134,
+    "accuracy_answered": 0.9318181818181818,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 3,
+    "text_answered_for_manual_review": 0,
+    "review_flagged_answers": 0,
+    "errors": 0,
+    "methods": {
+      "native": 56,
+      "native_cad_area_annotations": 23,
+      "native_cad_symbol_inventory": 8,
+      "native_cad_room_labels": 13
+    },
+    "statuses": {
+      "insufficient_evidence": 56,
+      "supported": 44
+    },
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": null,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 100,
+      "total": 6843.92,
+      "p50": 6.23,
+      "p95": 204.17
+    },
+    "evidence": {
+      "items": 361,
+      "answers_with_evidence": 44,
+      "answers_with_geometry": 44,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 0,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "after": {
+    "cases": 100,
+    "answered": 58,
+    "coverage": 0.58,
+    "numeric_cases": 97,
+    "numeric_answered": 58,
+    "numeric_correct": 55,
+    "accuracy_all": 0.5670103092783505,
+    "accuracy_answered": 0.9482758620689655,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 3,
+    "text_answered_for_manual_review": 0,
+    "review_flagged_answers": 0,
+    "errors": 0,
+    "methods": {
+      "native": 42,
+      "native_cad_area_annotations": 27,
+      "native_cad_symbol_inventory": 15,
+      "native_cad_room_labels": 13,
+      "native_cad_unit_outlines": 3
+    },
+    "statuses": {
+      "insufficient_evidence": 42,
+      "supported": 58
+    },
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 100,
+      "total": 5730.36,
+      "p50": 7.24,
+      "p95": 159.02
+    },
+    "evidence": {
+      "items": 430,
+      "answers_with_evidence": 58,
+      "answers_with_geometry": 58,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 0,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "numeric_correct_delta": 14,
+  "accuracy_percentage_point_delta": 14.432989690721648,
+  "changed_cases": [
+    {
+      "id": "grouped-0368e16bb6fadec1",
+      "source": "swiss_dwellings",
+      "type": "area",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-00c59a6513d6d89b",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-0131cb5c61156328",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-08db70cbad107dff",
+      "source": "swiss_dwellings",
+      "type": "area",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-027103665e3bf192",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-052135f9673e2f10",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-05e6d6f71dcefc6c",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-100e374b747e5fec",
+      "source": "swiss_dwellings",
+      "type": "area",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-06e4a1eba11e7a73",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-073aac821f8672f3",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-0a1f88116f0b8fbd",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-0ad9969dda9b2f1d",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-0b861f62b3aca696",
+      "source": "swiss_dwellings",
+      "type": "count",
+      "before": "unanswered",
+      "after": "correct"
+    },
+    {
+      "id": "grouped-1fe9ffad227c6fcb",
+      "source": "swiss_dwellings",
+      "type": "area",
+      "before": "unanswered",
+      "after": "correct"
+    }
+  ],
+  "limits": "Same-case paired comparison. Source/type stratification is not a naturally weighted competition score. Native-mode results do not measure hosted vision accuracy."
+}
