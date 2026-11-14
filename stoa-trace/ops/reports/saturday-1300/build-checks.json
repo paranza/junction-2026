@@ -1,0 +1,28 @@
+{
+  "code_revision": "8d4b822391300e2127c30a1077222c30fb969d20",
+  "python": "3.11.3",
+  "node": "v22.14.0",
+  "npm": "10.9.2",
+  "backend_tests": {
+    "status": "passed",
+    "count": 301,
+    "log_sha256": "d03855922bef73af16a3e107916e5dfa2ad6b579ce2393a47b7dd74312956094"
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "count": 34,
+    "log_sha256": "2bce20926f2a95e479a54dd4af67bb7d0470b4d95bc4a216c7838c30bcac9ac6"
+  },
+  "frontend_build": {
+    "status": "passed",
+    "log_sha256": "573ed8cbc40a70342934305bb436ca6a52ba1766942edae2c42e258031a7636c"
+  },
+  "built_file_sha256": {
+    "stoa-trace/frontend/dist/assets/index-BWCTnsTx.css": "688d233b1fcbaa3ff2ee9cf5cf43f0baa781e46a4857a85cea9f7b261c736b0f",
+    "stoa-trace/frontend/dist/assets/index-kHP1C8SQ.js": "b94fc8f174adcee32379e2dc635e06e4a7217b3c3c5c7fa5da94ad1d57955719",
+    "stoa-trace/frontend/dist/index.html": "9eb68f392d2c4bcdce07ade0cb56552ae799580f5c9c4edaefb128b7e00c28db"
+  },
+  "temporary_dependency_symlink_removed": true,
+  "model_requests": 0,
+  "reserved_evaluations": 0
+}

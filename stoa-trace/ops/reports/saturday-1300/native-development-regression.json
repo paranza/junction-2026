@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-14T12:03:01.820100+00:00",
+  "code_revision": "8d4b822391300e2127c30a1077222c30fb969d20",
+  "mode": "native",
+  "manifest_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+  "cases": 7066,
+  "before": {
+    "cases": 7066,
+    "answered": 3026,
+    "numeric_cases": 6801,
+    "numeric_answered": 3023,
+    "numeric_correct": 2929,
+    "accuracy_all": 0.4306719600058815,
+    "accuracy_answered": 0.968905061197486,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 3376,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    }
+  },
+  "after": {
+    "cases": 7066,
+    "answered": 3237,
+    "numeric_cases": 6801,
+    "numeric_answered": 3234,
+    "numeric_correct": 3234,
+    "accuracy_all": 0.47551830613145124,
+    "accuracy_answered": 1.0,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 3376,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    }
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "before": {
+        "cases": 3534,
+        "answered": 0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 1767,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 3534,
+        "answered": 0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 1767,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      }
+    },
+    "ifc_bench": {
+      "before": {
+        "cases": 249,
+        "answered": 1,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 249,
+        "answered": 1,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      }
+    },
+    "ifc_models": {
+      "before": {
+        "cases": 1049,
+        "answered": 963,
+        "numeric_cases": 1049,
+        "numeric_answered": 963,
+        "numeric_correct": 957,
+        "accuracy_all": 0.9122974261201144,
+        "accuracy_answered": 0.9937694704049844,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 524,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 1049,
+        "answered": 1029,
+        "numeric_cases": 1049,
+        "numeric_answered": 1029,
+        "numeric_correct": 1029,
+        "accuracy_all": 0.9809342230695901,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 524,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      }
+    },
+    "opening_design": {
+      "before": {
+        "cases": 64,
+        "answered": 12,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 64,
+        "answered": 37,
+        "numeric_cases": 48,
+        "numeric_answered": 35,
+        "numeric_correct": 35,
+        "accuracy_all": 0.7291666666666666,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      }
+    },
+    "swiss_dwellings": {
+      "before": {
+        "cases": 2170,
+        "answered": 2050,
+        "numeric_cases": 2170,
+        "numeric_answered": 2050,
+        "numeric_correct": 1962,
+        "accuracy_all": 0.904147465437788,
+        "accuracy_answered": 0.9570731707317073,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 1085,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 2170,
+        "answered": 2170,
+        "numeric_cases": 2170,
+        "numeric_answered": 2170,
+        "numeric_correct": 2170,
+        "accuracy_all": 1.0,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 1085,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      }
+    }
+  },
+  "numeric_correct_delta": 305,
+  "changed_outcome_count": 305,
+  "previously_correct_regression_count": 0,
+  "new_correct_count": 305,
+  "source_hash_change_count": 0,
+  "request_error_count": 0,
+  "database_model_request_count": 0,
+  "database_event_counts": {},
+  "manifest_validation": {
+    "manifest_hash_valid": true,
+    "local_labels_checked": true,
+    "missing_drawing_paths": []
+  },
+  "server_source_sha256": {
+    "server/__init__.py": "9fb4bc3056c051d527f006b820f70ecff9b9ae269a59a2ecc5426afcb9958490",
+    "server/app.py": "72de4ece89950b01a8155c4251a831b285526032fc7d49d94f930f88a7bb6eef",
+    "server/cloudinary_media.py": "63c46298eb30f9730036d22c88fbc3e99f7547eeefa70bb9830e3c1cae4568c1",
+    "server/config.py": "3f0c34c2088c535aaea1748d47938cfb0f21be5d9a027e96c8be89f37d529fd5",
+    "server/costs.py": "30401703c22aeb4308de04526eb3f83475d234ccd8c25e53be3a72a7ae139c82",
+    "server/extraction.py": "0d435ba70e6a09da7f9b7b5389507b004d704cda9be097451336935b99bdfcb2",
+    "server/gemini_provider.py": "dbf5a878b8355cf48fb13a0f5ea6ecbc353fd4fe61ae01e1b7e3ef1f641f5e3d",
+    "server/inspector.py": "ab1c0f4a39247ca9f5d787d7ba08eadb6b12f5aba3f477ae3f328eaf99a3fc2b",
+    "server/inventory.py": "992b44f6d4dda3b56c2d2a7cde0230b6430c51a6d919346a3568c7a251d3907f",
+    "server/llm.py": "da0e2f9ce31f448f37d31c95060ee0be95239b4a40ac89672ecd16c4ed8a8d3c",
+    "server/measurements.py": "d1df1f24bbb0dcec3affa3f4335fcfd44c6a5296e69972e26ba96cf480d6ba21",
+    "server/native_qa.py": "9fd44ef2ed732bc7c00019e8c110cf9275d0f1d0e39e36b5983b4c32e5735fc3",
+    "server/normalize.py": "e46aabf6b2d047b75cbe40aa9cd3c27c100d2f8be7463a226e4f147d2fb5438b",
+    "server/question_templates.json": "295a091bdd460b3a39268515332764098a44f8ae069f514abb9625cacaf2efc1",
+    "server/rendering.py": "03460f8943aa88d883c33fdfaa675bb0b2dd49b2bfe01556d47afa5572ee4fb8",
+    "server/schedule_planner.py": "1a3b868ab556c1f8b33af3cd7ed0ae56076a601a7a0e5d91c185a2b425fc9a63",
+    "server/schedules.py": "db91892dd54eb8b9ce57e186a98aee4f7942330a87d28e33bd1e9c38b80f7c13",
+    "server/selection.py": "27c9973a47d058c95a0aa52570c3262dd72886058baae5fc9e9f877d9c08d50c",
+    "server/store.py": "3737842e3aff9a0877190acc3bbc443cafb610b6735cfa22af664a135240eed7",
+    "server/verification.py": "1e8b5a605a5c4a247c6e742c46820bc490f45644fff8585a2e35f30eae41d3f4",
+    "server/visual_audit.py": "e31916b8b7268df94328387c2158005e461272d2f90db9c617682e18b0632c29"
+  },
+  "before_report_sha256": "970496f235dd30ae58694e866d16ca804235be552ad07790ee0613a49539c865",
+  "after_report_sha256": "49f5410f05256361d72c52f152383918298a98100fb00b5bdd4fc859d0428628",
+  "reserved_preview_scored": false,
+  "independent_held_out_rerun": false,
+  "all_case_identities_matched": true,
+  "limits": "Development-only native evaluation. Abstentions count as failures on answerable numeric questions. Does not evaluate hosted vision accuracy or establish arbitrary-file generalization. No source files, expected answers, questions or model credentials are included in this aggregate.",
+  "gate": "PASS"
+}

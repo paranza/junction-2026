@@ -2,7 +2,19 @@
 
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
-Current runtime source matches **`70c1af2`**, deployed on 14 November 2026. All 18 server source files, including the question-template JSON, and both generated frontend assets match the VM. Subsequent commits record reports and documentation. The integrated main commit is recorded in the final release record. Active inference uses **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap and 600-second transport timeout. Gemma 4 31B with minimal reasoning is available as an optional visual count recheck. Rechecks are off by default while their measured benefit remains unproven.
+Current runtime source matches reviewed main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed on **14 November 2026 at 13:06 Europe/Helsinki** during Riccardo's scheduled deployment. All 21 server files and all three generated frontend files match the running container by SHA256. Later commits may contain verification records or teammate work not yet deployed. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
+
+
+## Saturday 13:00 deployment
+
+- Frozen reviewed main: `8d4b822`; **301 Python tests**, **34 frontend tests**, and the production frontend build passed in an isolated worktree.
+- The same **7,066 development questions** retained every previously correct case. Numeric correct increased **2,929 to 3,234 of 6,801 (47.55% across all numeric questions)**, with zero source-hash changes, request errors or model calls. Abstentions remain failures; this is a native development comparison, not a hosted-vision or unseen-file score.
+- Authentication rejected unauthenticated access with 401. Authenticated health, the native 211-door IFC answer and 211 evidence items, PNG preview, review/restoration, JSON export and persistence through restart passed.
+- All **25 existing answers**, all **11 uploaded files**, the model-event history and the original runtime configuration/credentials were preserved. Verification added one native answer. The cumulative ledger stayed **17/1,000**, with zero model requests from this task.
+- SQLite's backup API created `/srv/stoa/backups/trace-before-saturday-1300-20261114.sqlite3`; its integrity check passed. The previous image remains `stoa-junction:before-saturday-1300-20261114`. The new image built before replacing the running container. No second VM was provisioned.
+- The separate 924-question preview reserve was not scored or inspected, and the released independent-file evaluation was not repeated.
+
+[Deployment, policy and source hashes](../../stoa-trace/ops/reports/saturday-1300/deployment.json), [paired native development regression](../../stoa-trace/ops/reports/saturday-1300/native-development-regression.json), [build checks](../../stoa-trace/ops/reports/saturday-1300/build-checks.json). Earlier releases below are historical records.
 
 ## Cloudinary evidence release verification
 
