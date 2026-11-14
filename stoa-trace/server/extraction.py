@@ -1057,6 +1057,9 @@ def _ifc(path, root):
 
 def extract_document(path: Path, data_root: Path) -> dict:
     path, data_root = Path(path), Path(data_root)
+    from . import native_worker
+    if path.suffix.lower() in {".pdf", ".dxf", ".ifc"} and not native_worker.in_worker():
+        return native_worker.call("extract",path=str(path.resolve()),data_root=str(data_root.resolve()))
     if path.suffix.lower() == ".dxf" and path.with_suffix(".pdf").exists():
         # The viewer uses the paired sheet; reuse its anchor-fitted evidence.
         result = _pdf(path.with_suffix(".pdf"), data_root)
@@ -1095,6 +1098,10 @@ def extract_cached(path: str, data_root: str, mtime_ns: int = 0) -> dict:
 
 def render_page(path: Path, page: int = 1, scale: float = 1.5) -> bytes:
     """Rasterize a source page without modifying the drawing."""
+    from . import native_worker
+    if not native_worker.in_worker():
+        import base64
+        return base64.b64decode(native_worker.call("legacy_render",path=str(Path(path).resolve()),page=page,scale=scale)["png"])
     import fitz
     path = Path(path)
     if path.suffix.lower() in (".ifc", ".dxf"):

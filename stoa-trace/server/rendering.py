@@ -135,12 +135,24 @@ def _dxf_render(path, mtime_ns, size):
 
 
 def dxf_render(path):
+    from . import native_worker
+    if not native_worker.in_worker():
+        import base64
+        result=native_worker.call("dxf",path=str(Path(path).resolve()))
+        return base64.b64decode(result["pdf"]),result["transform"]
     path = Path(path).resolve()
     stat = path.stat()
     return _dxf_render(str(path), stat.st_mtime_ns, stat.st_size)
 
 
 def render_page(path: Path, page=1, max_edge=2400):
+    path=Path(path)
+    from . import native_worker
+    if path.suffix.lower() not in RASTER_SUFFIXES and not native_worker.in_worker():
+        import base64
+        result=native_worker.call("render",path=str(path.resolve()),page=page,max_edge=max_edge)
+        with Image.open(io.BytesIO(base64.b64decode(result["png"]))) as image:
+            return image.copy(),Path(result["source"])
     if page < 1:
         raise ValueError('Page numbers begin at 1')
     sources = visual_sources(path)
