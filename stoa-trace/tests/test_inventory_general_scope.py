@@ -125,6 +125,13 @@ class GenericInventory(unittest.TestCase):
         self.assertEqual(signature['small_image_crops'], False)
         self.assertEqual(other['small_image_crops'], True)
 
+    def test_provider_signature_changes_inventory_cache_key(self):
+        with patch.object(llm, 'provider_signature', return_value='openai:test:responses-v1', create=True):
+            first = inventory._key(self.document, 1)
+        with patch.object(llm, 'provider_signature', return_value='gemini:test:generate-content-v1', create=True):
+            second = inventory._key(self.document, 1)
+        self.assertNotEqual(first, second)
+
     def test_small_image_crop_flag_changes_actual_inputs(self):
         with patch.object(rendering, 'SMALL_IMAGE_CROPS', False):
             overview = rendering.image_inputs(self.path, [1])

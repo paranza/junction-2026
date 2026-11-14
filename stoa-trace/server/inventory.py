@@ -254,6 +254,7 @@ def answer_category(question, result):
 def _key(document, page, system=SYSTEM):
     return store.analysis_key('inventory', {'source': document.get('source_fingerprint') or document.get('source_sha256'),
                               'document_id': document.get('document_id'), 'page': page, 'model': llm.MODEL,
+                              'provider_signature': llm.provider_signature(),
                               'extractor': store.EXTRACTOR_REVISION, 'inventory': config_signature(),
                               'render': hashlib.sha256((Path(__file__).parent / 'rendering.py').read_bytes()).hexdigest(),
                               'schema': hashlib.sha256((system + json.dumps(SCHEMA, sort_keys=True)).encode()).hexdigest()})
@@ -307,7 +308,8 @@ def page_inventory(document, path, page):
                              cached_input_tokens=usage.get('input_tokens_details', {}).get('cached_tokens', 0))
         inventory = {'objects': objects, 'page': page, 'complete_scope_claimed': bool(result.get('complete')),
                      'discarded_candidates': discarded, 'uncertain_envelopes': uncertain, 'warnings': result.get('warnings', []),
-                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.MODEL}
+                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.MODEL,
+                     'provider_signature': llm.provider_signature()}
         if discarded:
             inventory['warnings'] = list(inventory['warnings']) + [f'{discarded} invalid candidate locations were discarded; the inventory needs review.']
         if uncertain:
@@ -353,7 +355,7 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
             'value': value, 'unit': 'count', 'operation': 'count', 'method': 'visual_inventory', 'status': 'needs_review' if value is not None else 'insufficient_evidence',
             'scope': 'Selected region' if region else (f'Page {page}' if scope == 'page' else 'All drawing pages'),
             'evidence': candidates, 'can_review': bool(candidates) or value is not None, 'calculation': f'Count of {len(candidates)} distinct located {named} candidates.',
-            'warnings': warnings, 'model': llm.MODEL,
+            'warnings': warnings, 'model': llm.MODEL, 'provider_signature': llm.provider_signature(),
             'inventory_cache_hit': all(i['cache_hit'] for i in inventories),
             'ingestion_usage': ingestion, 'ingestion_by_page': initial_usage,
             'coverage': {'inspected_pages': pages, 'total_pages': page_count, 'complete_scope_claimed': complete},
