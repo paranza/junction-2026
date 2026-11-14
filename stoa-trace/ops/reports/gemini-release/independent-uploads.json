@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "code_revision": "a8a8422",
+  "split": "reserved",
+  "provided_answers": 26,
+  "unrun_cases": 0,
+  "numeric_cases": 20,
+  "numeric_correct": 18,
+  "numeric_answered": 18,
+  "numeric_accuracy": 0.9,
+  "required_abstention_cases": 3,
+  "correct_required_abstentions": 3,
+  "unscored_cases": 3,
+  "errors": 0,
+  "localized_reference_cases": 12,
+  "object_precision": 1.0,
+  "object_recall": 1.0,
+  "object_iou_threshold": 0.3,
+  "limitations": "Unrun cases and ambiguous external references are explicit; small corpus, synthetic conventions and analyst annotations do not establish universal accuracy.",
+  "by_kind": {
+    "external": {
+      "questions": 8,
+      "numeric_cases": 4,
+      "numeric_correct": 4,
+      "required_abstentions": 1,
+      "correct_abstentions": 1
+    },
+    "procedural": {
+      "questions": 18,
+      "numeric_cases": 16,
+      "numeric_correct": 14,
+      "required_abstentions": 2,
+      "correct_abstentions": 2
+    }
+  },
+  "usage": {
+    "model_calls": 26,
+    "input_tokens": 95661,
+    "output_tokens": 46170,
+    "cached_input_tokens": 0,
+    "cache_hits": 0,
+    "cost_estimate_usd": 0.653022
+  },
+  "raw_answers_sha256": "fef4fdd682b060bcf208e5af84dd17ac161a4ad29614bab9dfd568c23be66c90",
+  "freeze_sha256": "32c54684b10594fb81c472c6e3097fad334ba17bf9bea75b1fdd0526bdc13fbc",
+  "policy": {
+    "provider": "gemini",
+    "model": "gemini-4-carbon",
+    "image_resolution": "high",
+    "thinking_level": "medium",
+    "max_output_tokens": 24000,
+    "timeout_seconds": 600,
+    "visual_recheck": false,
+    "small_image_crops": false,
+    "call_ceiling": 100
+  },
+  "drawing_groups": 10,
+  "procedural_groups": 6,
+  "external_groups": 4,
+  "reserved_preview_questions_scored": 0,
+  "recorded_solver_revision": "8dd0564f1b9a9c16f9ad"
+}
