@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceBoxCenter, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
+import { evidenceBox, evidenceBoxCenter, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue, createSessionTracker, recordSessionQuery, formatCostDetail, displayQuantity } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -110,4 +110,39 @@ test('quantity presentation limits float noise without altering values or exact 
   assert.equal(formatQuantityValue(17, 'count'), '17');
   assert.equal(formatQuantityValue(.0001234567, 'm³'), '0.0001235');
   assert.equal(value, 13.617073235712027);
+});
+
+test('session cost tracker accumulates queries and token usage accurately', () => {
+  const initial = createSessionTracker();
+  assert.equal(initial.queriesCount, 0);
+  assert.equal(initial.totalCostUsd, 0);
+
+  const step1 = recordSessionQuery(initial, { model_calls: 1, input_tokens: 300, output_tokens: 50, cost_estimate_usd: 0.0025 });
+  assert.equal(step1.queriesCount, 1);
+  assert.equal(step1.inputTokens, 300);
+  assert.equal(step1.outputTokens, 50);
+  assert.equal(step1.totalCostUsd, 0.0025);
+
+  const step2 = recordSessionQuery(step1, { model_calls: 0, input_tokens: 0, output_tokens: 0, cost_basis: 'native' });
+  assert.equal(step2.queriesCount, 2);
+  assert.equal(step2.totalCostUsd, 0.0025);
+
+  const detail = formatCostDetail({ input_tokens: 500, output_tokens: 120, cost_estimate_usd: 0.0045 });
+  assert.equal(detail.costStr, '$0.0045');
+  assert.equal(detail.tokensTotal, 620);
+  assert.ok(detail.detailStr.includes('620 tokens'));
+
+  const freeDetail = formatCostDetail({ model_calls: 0, cost_basis: 'native' });
+  assert.equal(freeDetail.costStr, '$0.0000 (Free)');
+});
+
+test('unit preference converts display values only and leaves the source untouched', () => {
+  const area = 124.5;
+  assert.deepEqual(displayQuantity(area, 'm²', 'metric'), { value: 124.5, unit: 'm²' });
+  const imperial = displayQuantity(area, 'm²', 'imperial');
+  assert.equal(imperial.unit, 'ft²');
+  assert.ok(Math.abs(imperial.value - 1340.1) < 1);
+  assert.deepEqual(displayQuantity(14, 'count', 'imperial'), { value: 14, unit: 'count' });
+  assert.deepEqual(displayQuantity('unrated', 'm²', 'imperial'), { value: 'unrated', unit: 'm²' });
+  assert.equal(area, 124.5);
 });

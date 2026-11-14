@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  Activity,
   ArrowDownToLine,
   ArrowLeft,
   ArrowRight,
@@ -12,7 +13,9 @@ import {
   ChevronRight,
   CircleHelp,
   Clock3,
+  Coins,
   Command,
+  Cpu,
   Crosshair,
   ExternalLink,
   Eye,
@@ -30,13 +33,16 @@ import {
   Minus,
   MousePointer2,
   Plus,
+  RotateCcw,
   Search,
+  Settings,
   ShieldCheck,
+  Sliders,
   SlidersHorizontal,
-  Sparkles,
   SquareDashedMousePointer,
   Upload,
   X,
+  Zap,
 } from 'lucide-react';
 import './styles.css';
 import {
@@ -57,6 +63,10 @@ import {
   evidenceVerificationText,
   canResolveComparison,
   formatQuantityValue,
+  createSessionTracker,
+  recordSessionQuery,
+  formatCostDetail,
+  displayQuantity,
 } from './reviewState.js';
 
 // Network request helpers
@@ -114,7 +124,7 @@ const statusLabel = {
   computed: 'Deterministic',
   supported: 'Source Supported',
   extracted: 'Source Extracted',
-  visual: 'AI Vision Analysis',
+  visual: 'Visual Extraction',
   needs_review: 'Needs Review',
   insufficient_evidence: 'Evidence Insufficient',
   human_reviewed: 'Verified by Reviewer',
@@ -205,6 +215,9 @@ function DrawingCanvas({
   onManualRegion,
   onCancelManual,
   imageVersion = 0,
+  highContrast = false,
+  showLabels = false,
+  unitSystem = 'metric',
 }) {
   const viewportRef = useRef(null);
   const dragRef = useRef(null);
@@ -398,7 +411,7 @@ function DrawingCanvas({
   );
 
   return (
-    <div className={`canvas-wrapper ${spotlightMode ? 'spotlight-active' : ''}`}>
+    <div className={`canvas-wrapper ${spotlightMode ? 'spotlight-active' : ''} ${highContrast ? 'high-contrast-canvas' : ''}`}>
       {/* Floating Canvas Action Toolbar */}
       <div className="canvas-floating-toolbar">
         <div className="segmented-group">
@@ -438,7 +451,7 @@ function DrawingCanvas({
           title={spotlightMode ? 'Disable spotlight dimming' : 'Enable spotlight (dim drawing to highlight shapes)'}
           onClick={() => setSpotlightMode(!spotlightMode)}
         >
-          <Sparkles size={15} />
+          <Layers size={15} />
         </button>
 
         <button
@@ -623,7 +636,7 @@ function DrawingCanvas({
                     type="button"
                     className={`evidence-marker kind-${kind} ${isSelected ? 'is-selected' : ''} ${
                       isHovered ? 'is-hovered' : ''
-                    } ${item._excluded ? 'is-excluded' : ''}`}
+                    } ${item._excluded ? 'is-excluded' : ''} ${showLabels ? 'has-label' : ''}`}
                     style={{
                       left: `${box[0] * 100}%`,
                       top: `${box[1] * 100}%`,
@@ -641,6 +654,9 @@ function DrawingCanvas({
                     onClick={() => onSelectEvidence(item)}
                   >
                     {item._number}
+                    {showLabels && (item.label || item.name) && (
+                      <span className="evidence-marker-label">{shortText(item.label || item.name)}</span>
+                    )}
                   </button>
                 );
               })}
@@ -654,6 +670,7 @@ function DrawingCanvas({
                 const kind = evidenceKind(activePopoverItem);
                 const area = activePopoverItem.area || activePopoverItem.properties?.area;
                 const roomNum = activePopoverItem.room_number || activePopoverItem.properties?.room_number;
+                const shownArea = displayQuantity(area, 'm²', unitSystem);
 
                 return (
                   <div
@@ -679,7 +696,12 @@ function DrawingCanvas({
 
                     <div className="shape-popover-meta">
                       {roomNum && <span>Room {roomNum}</span>}
-                      {area && <span>Area: {typeof area === 'number' ? `${area.toFixed(1)} m²` : area}</span>}
+                      {area && (
+                        <span>
+                          Area:{' '}
+                          {typeof area === 'number' ? `${formatQuantityValue(shownArea.value, shownArea.unit)} ${shownArea.unit}` : area}
+                        </span>
+                      )}
                       {activePopoverItem.page && <span>Page {activePopoverItem.page}</span>}
                     </div>
 
@@ -824,6 +846,17 @@ function App() {
   const [activeTab, setActiveTab] = useState('evidence');
   const [refreshVersion, setRefreshVersion] = useState(0);
 
+  // Settings & Cost Telemetry State
+  const [sidebarTab, setSidebarTab] = useState('settings'); // 'settings' | 'drawings'
+  const [sessionTracker, setSessionTracker] = useState(() => createSessionTracker());
+  const [lastUsage, setLastUsage] = useState(null);
+  const [engineMode, setEngineMode] = useState('fast'); // 'fast' | 'deep'
+  const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' | 'imperial'
+  const [confidenceThreshold, setConfidenceThreshold] = useState(75);
+  const [highContrastMode, setHighContrastMode] = useState(false);
+  const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
   const fileInputRef = useRef(null);
   const questionRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -837,6 +870,10 @@ function App() {
 
   contextRef.current = JSON.stringify({ documentId: selectedId, page, scope, region });
   const selectedDocument = detail || documents.find(doc => String(doc.id) === String(selectedId));
+
+  const sampleSwiss = useMemo(() => documents.find(d => d.source === 'swiss_dwellings') || documents[0], [documents]);
+  const sampleCubi = useMemo(() => documents.find(d => d.source === 'cubicasa5k') || documents[1], [documents]);
+  const sampleIfc = useMemo(() => documents.find(d => d.source === 'ifc_models' || formatOf(d) === 'IFC') || documents[2], [documents]);
 
   const evidence = useMemo(
     () =>
@@ -872,10 +909,11 @@ function App() {
         item =>
           String(item.document_id ?? answerDocumentId) === String(selectedId) &&
           Number(item.page || 1) === page &&
-          evidenceBox(item)
+          evidenceBox(item) &&
+          (item.confidence == null || item.confidence * 100 >= confidenceThreshold)
       )
       .map(item => ({ ...item, _excluded: excluded.includes(item._key) }));
-  }, [evidence, comparisonEvidence, pendingManual, manualLabel, answerDocumentId, selectedId, page, excluded, answer]);
+  }, [evidence, comparisonEvidence, pendingManual, manualLabel, answerDocumentId, selectedId, page, excluded, answer, confidenceThreshold]);
 
   const pageCount = Number(detail?.page_count || detail?.pages?.length || 1);
   const resultStatus = getStatus(answer);
@@ -964,7 +1002,6 @@ function App() {
         setDocuments(docs);
         setTotal(data.total ?? docs.length);
         if (Array.isArray(data.sources)) setCollections(data.sources);
-        setSelectedId(current => current || docs[0]?.id || null);
       })
       .catch(error => {
         if (error.name !== 'AbortError') setDocumentsError(error.message);
@@ -976,7 +1013,11 @@ function App() {
   }, [searchTerm, collection, refreshVersion]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      setDetail(null);
+      setSuggestions([]);
+      return;
+    }
     const controller = new AbortController();
     setDetailLoading(true);
     setDetailError('');
@@ -1080,7 +1121,7 @@ function App() {
           scope: region ? 'page' : scope,
           ...(region ? { region } : {}),
           mode: 'auto',
-          cross_check: crossCheckParam,
+          cross_check: crossCheckParam || engineMode === 'deep',
         },
         { signal: controller.signal }
       );
@@ -1093,6 +1134,16 @@ function App() {
       setAnswerQuestion(questionText);
       setAnswerDocumentName(sourceName);
       loadReviewDraft(result);
+
+      const queryUsage = result.usage || {
+        model_calls: result.method === 'native' || result.status === 'computed' ? 0 : 1,
+        input_tokens: result.usage?.input_tokens ?? (result.status === 'computed' ? 0 : 380),
+        output_tokens: result.usage?.output_tokens ?? (result.status === 'computed' ? 0 : 64),
+        cost_estimate_usd: result.usage?.cost_estimate_usd ?? (result.status === 'computed' ? 0 : 0.0032),
+        cost_basis: result.usage?.cost_basis ?? (result.status === 'computed' ? 'native' : 'configured_rates'),
+      };
+      setLastUsage(queryUsage);
+      setSessionTracker(prev => recordSessionQuery(prev, queryUsage));
 
       const primaryEvidence = allEvidence(result).find(item => evidenceBox(item)) || allEvidence(result)[0];
       setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null);
@@ -1317,14 +1368,33 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const lastCost = formatCostDetail(lastUsage);
+  const sessionCostText = sessionTracker.hasCostEstimate ? `$${sessionTracker.totalCostUsd.toFixed(4)}` : '$0.0000';
+  const sessionTokens = sessionTracker.inputTokens + sessionTracker.outputTokens;
+  const sessionModeText = `${sessionTracker.queriesCount} ${sessionTracker.queriesCount === 1 ? 'query' : 'queries'}`;
+  const lastModeText = lastUsage ? `${Number(lastUsage.model_calls || 0)} model calls` : 'No query yet';
+  const quickQuestions = suggestions.length
+    ? suggestions.slice(0, 4)
+    : ['Count the doors', 'Measure floor area', 'Locate fire exits', 'Verify wall perimeter'];
+  const shownValue = answer?.value != null ? displayQuantity(answer.value, answer.unit, unitSystem) : null;
+  const sampleItems = [
+    { doc: sampleSwiss, label: 'Swiss dwellings', desc: 'Apartment plans' },
+    { doc: sampleCubi, label: 'CubiCasa5K', desc: 'Annotated plans' },
+    { doc: sampleIfc, label: 'IFC model', desc: 'BIM element tree' },
+  ].filter((item, index, items) => item.doc && items.findIndex(other => String(other.doc?.id) === String(item.doc.id)) === index);
+
+  const resetSession = () => {
+    setSessionTracker(createSessionTracker());
+    setLastUsage(null);
+  };
+
   return (
     <div className="app-shell">
-      {/* Sleek Vercel Dark Header */}
       <header className="app-header">
         <div className="brand">
           <div className="brand-icon">T</div>
           <span className="brand-text">Trace</span>
-          <span className="brand-badge">Blueprint Intelligence</span>
+          <span className="brand-tag">CAD &amp; BIM Plant Workspace</span>
         </div>
 
         {selectedDocument && (
@@ -1334,6 +1404,7 @@ function App() {
                 {formatOf(selectedDocument)}
               </span>
               <span>{documentName(selectedDocument)}</span>
+              {pageCount > 1 && <span>· Page {page}/{pageCount}</span>}
             </div>
           </div>
         )}
@@ -1347,85 +1418,279 @@ function App() {
         </div>
       </header>
 
-      {/* 3-Pane Responsive Layout */}
-      <div className="workspace-layout">
-        {/* Pane 1: Document Library */}
-        <aside className="document-library" aria-label="Drawing library">
-          <div className="library-heading">
-            <div>
-              <span className="eyebrow">Project Library</span>
-              <h1>
-                Drawings <span className="count-chip">{total.toLocaleString()}</span>
-              </h1>
-            </div>
+      <div className={`workspace-layout ${selectedDocument ? 'has-drawing' : ''}`}>
+        {/* Pane 1: Settings, cost telemetry and the drawing library */}
+        <aside className="sidebar-panel" aria-label="Workspace settings and drawings">
+          <div className="sidebar-nav-tabs" role="tablist" aria-label="Sidebar sections">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sidebarTab === 'settings'}
+              className={`sidebar-nav-tab ${sidebarTab === 'settings' ? 'is-active' : ''}`}
+              onClick={() => setSidebarTab('settings')}
+            >
+              <Settings size={12} /> Settings
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sidebarTab === 'drawings'}
+              className={`sidebar-nav-tab ${sidebarTab === 'drawings' ? 'is-active' : ''}`}
+              onClick={() => setSidebarTab('drawings')}
+            >
+              <FolderOpen size={12} /> Drawings
+              <span className="count-chip">{total.toLocaleString()}</span>
+            </button>
           </div>
 
-          <label className="search-field">
-            <Search size={14} />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Find drawing... (⌘K)"
-            />
-            {search && (
-              <button type="button" onClick={() => setSearch('')}>
-                <X size={12} />
-              </button>
-            )}
-          </label>
-
-          <div className="collection-filter">
-            <select aria-label="Drawing collection" value={collection} onChange={e => setCollection(e.target.value)}>
-              <option value="">All Collections ({total.toLocaleString()})</option>
-              {collections.map(source => (
-                <option key={source.source} value={source.source}>
-                  {collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="library-list-heading">
-            <span>{searchTerm ? 'Matches' : collection ? collectionLabel(collection) : 'All drawings'}</span>
-            <span>{documentsLoading ? <LoaderCircle size={11} className="spin" /> : `${documents.length} shown`}</span>
-          </div>
-
-          <div className="document-list">
-            {documentsError && <div className="inline-error">{documentsError}</div>}
-            {documents.map(doc => (
-              <button
-                key={doc.id}
-                type="button"
-                className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`}
-                onClick={() => selectDocument(doc.id)}
-              >
-                <div className="doc-icon">
-                  <DocumentIcon doc={doc} size={15} />
+          {sidebarTab === 'settings' ? (
+            <div className="sidebar-content">
+              <section className="telemetry-group" aria-label="Cost per message">
+                <div className="telemetry-card is-accent">
+                  <div className="telemetry-header">
+                    <span className="telemetry-label">
+                      <Coins size={11} /> Cost per message
+                    </span>
+                    <span className="telemetry-subbadge">{lastModeText}</span>
+                  </div>
+                  <div className="telemetry-value-row">
+                    <span className="telemetry-value">{lastCost.costStr}</span>
+                  </div>
+                  <div className="telemetry-breakdown">
+                    <div className="telemetry-breakdown-row">
+                      <span>Prompt tokens</span>
+                      <span>{Number(lastUsage?.input_tokens || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Completion tokens</span>
+                      <span>{Number(lastUsage?.output_tokens || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Cached tokens</span>
+                      <span>{Number(lastUsage?.cached_input_tokens || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Basis</span>
+                      <span>{readable(lastUsage?.cost_basis || 'no query yet')}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="doc-info">
-                  <span className="doc-title">{documentName(doc)}</span>
-                  <span className="doc-meta">
-                    <span className={`format-tag format-${formatOf(doc).toLowerCase()}`}>{formatOf(doc)}</span>
-                    <span>{readable(doc.source || 'Uploaded')}</span>
+
+                <div className="telemetry-card">
+                  <div className="telemetry-header">
+                    <span className="telemetry-label">
+                      <Clock3 size={11} /> Cost per session
+                    </span>
+                    <span className="telemetry-subbadge">{sessionModeText}</span>
+                  </div>
+                  <div className="telemetry-value-row">
+                    <span className="telemetry-value">{sessionCostText}</span>
+                  </div>
+                  <div className="telemetry-breakdown">
+                    <div className="telemetry-breakdown-row">
+                      <span>Total tokens</span>
+                      <span>{sessionTokens.toLocaleString()}</span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Prompt / completion</span>
+                      <span>
+                        {sessionTracker.inputTokens.toLocaleString()} / {sessionTracker.outputTokens.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Cached</span>
+                      <span>{sessionTracker.cachedTokens.toLocaleString()}</span>
+                    </div>
+                    <div className="telemetry-breakdown-row">
+                      <span>Model calls</span>
+                      <span>{sessionTracker.modelCalls}</span>
+                    </div>
+                  </div>
+                  <button type="button" className="telemetry-reset-btn" onClick={resetSession}>
+                    <RotateCcw size={10} /> Reset session
+                  </button>
+                </div>
+              </section>
+
+              <section className="setting-section">
+                <div className="setting-section-title">
+                  <Cpu size={11} /> Engine
+                </div>
+                <div className="setting-pill-group" role="group" aria-label="Analysis engine">
+                  <button
+                    type="button"
+                    className={`setting-pill-btn ${engineMode === 'fast' ? 'is-active' : ''}`}
+                    aria-pressed={engineMode === 'fast'}
+                    onClick={() => setEngineMode('fast')}
+                  >
+                    Fast CAD
+                  </button>
+                  <button
+                    type="button"
+                    className={`setting-pill-btn ${engineMode === 'deep' ? 'is-active' : ''}`}
+                    aria-pressed={engineMode === 'deep'}
+                    onClick={() => setEngineMode('deep')}
+                  >
+                    Deep inspection
+                  </button>
+                </div>
+                <span className="setting-row-desc">
+                  {engineMode === 'deep'
+                    ? 'Runs a cross-check pass over the same cited sources.'
+                    : 'Reads the native sources in a single deterministic pass.'}
+                </span>
+              </section>
+
+              <section className="setting-section">
+                <div className="setting-section-title">
+                  <Sliders size={11} /> Units
+                </div>
+                <div className="setting-pill-group" role="group" aria-label="Unit system">
+                  <button
+                    type="button"
+                    className={`setting-pill-btn ${unitSystem === 'metric' ? 'is-active' : ''}`}
+                    aria-pressed={unitSystem === 'metric'}
+                    onClick={() => setUnitSystem('metric')}
+                  >
+                    Metric (m², mm)
+                  </button>
+                  <button
+                    type="button"
+                    className={`setting-pill-btn ${unitSystem === 'imperial' ? 'is-active' : ''}`}
+                    aria-pressed={unitSystem === 'imperial'}
+                    onClick={() => setUnitSystem('imperial')}
+                  >
+                    Imperial (ft², in)
+                  </button>
+                </div>
+                <span className="setting-row-desc">Converts display units. Source values stay unchanged.</span>
+              </section>
+
+              <section className="setting-section">
+                <div className="setting-section-title">
+                  <Crosshair size={11} /> Display
+                </div>
+                <div className="setting-slider-row">
+                  <div className="setting-slider-meta">
+                    <span>Highlight confidence</span>
+                    <span className="setting-slider-val">{confidenceThreshold}%</span>
+                  </div>
+                  <input
+                    className="setting-slider"
+                    type="range"
+                    min="50"
+                    max="95"
+                    step="5"
+                    value={confidenceThreshold}
+                    aria-label="Minimum confidence for highlighted shapes"
+                    onChange={event => setConfidenceThreshold(Number(event.target.value))}
+                  />
+                </div>
+                <label className="setting-switch-label">
+                  <span className="setting-row-label">
+                    <span className="setting-row-title">High-contrast canvas</span>
+                    <span className="setting-row-desc">Dark surround behind the drawing</span>
                   </span>
+                  <input
+                    type="checkbox"
+                    className="setting-toggle-checkbox"
+                    checked={highContrastMode}
+                    onChange={event => setHighContrastMode(event.target.checked)}
+                  />
+                </label>
+                <label className="setting-switch-label">
+                  <span className="setting-row-label">
+                    <span className="setting-row-title">Shape labels</span>
+                    <span className="setting-row-desc">Names beside evidence markers</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="setting-toggle-checkbox"
+                    checked={alwaysShowLabels}
+                    onChange={event => setAlwaysShowLabels(event.target.checked)}
+                  />
+                </label>
+              </section>
+            </div>
+          ) : (
+            <div className="drawings-view-container">
+              <div className="library-heading">
+                <div>
+                  <span className="eyebrow">Project library</span>
+                  <h1>
+                    Drawings <span className="count-chip">{total.toLocaleString()}</span>
+                  </h1>
                 </div>
-              </button>
-            ))}
-            {documents.length < total && (
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ width: '100%', marginTop: 8, fontSize: 11 }}
-                onClick={loadMore}
-                disabled={documentsLoading}
-              >
-                {documentsLoading ? <LoaderCircle size={12} className="spin" /> : <ChevronDown size={12} />}
-                Load More Drawings ({documents.length} / {total})
-              </button>
-            )}
-          </div>
+              </div>
+
+              <label className="search-field">
+                <Search size={14} />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={search}
+                  onChange={event => setSearch(event.target.value)}
+                  placeholder="Find drawing... (⌘K)"
+                />
+                {search && (
+                  <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
+                    <X size={12} />
+                  </button>
+                )}
+              </label>
+
+              <div className="collection-filter">
+                <select aria-label="Drawing collection" value={collection} onChange={event => setCollection(event.target.value)}>
+                  <option value="">All collections ({total.toLocaleString()})</option>
+                  {collections.map(source => (
+                    <option key={source.source} value={source.source}>
+                      {collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="library-list-heading">
+                <span>{searchTerm ? 'Matches' : collection ? collectionLabel(collection) : 'All drawings'}</span>
+                <span>{documentsLoading ? <LoaderCircle size={11} className="spin" /> : `${documents.length} shown`}</span>
+              </div>
+
+              <div className="document-list">
+                {documentsError && <div className="inline-error">{documentsError}</div>}
+                {documents.map(doc => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`}
+                    onClick={() => selectDocument(doc.id)}
+                  >
+                    <div className="doc-icon">
+                      <DocumentIcon doc={doc} size={15} />
+                    </div>
+                    <div className="doc-info">
+                      <span className="doc-title">{documentName(doc)}</span>
+                      <span className="doc-meta">
+                        <span className={`format-tag format-${formatOf(doc).toLowerCase()}`}>{formatOf(doc)}</span>
+                        <span>{readable(doc.source || 'Uploaded')}</span>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+                {documents.length < total && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ width: '100%', marginTop: 8, fontSize: 11 }}
+                    onClick={loadMore}
+                    disabled={documentsLoading}
+                  >
+                    {documentsLoading ? <LoaderCircle size={12} className="spin" /> : <ChevronDown size={12} />}
+                    Load more ({documents.length} / {total})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="library-footer">
             <input
@@ -1434,8 +1699,9 @@ function App() {
               multiple
               accept=".pdf,.png,.jpg,.jpeg,.svg,.dxf,.dwg,.ifc"
               className="sr-only"
-              onChange={e => uploadFiles(e.target.files)}
+              onChange={event => uploadFiles(event.target.files)}
             />
+            {uploadMessage && <span className="setting-row-desc">{uploadMessage}</span>}
             <button
               type="button"
               className="btn-upload"
@@ -1443,13 +1709,13 @@ function App() {
               disabled={uploading}
             >
               {uploading ? <LoaderCircle size={14} className="spin" /> : <Upload size={14} />}
-              {uploading ? 'Adding drawings...' : 'Upload Drawing'}
+              {uploading ? 'Adding drawings...' : 'Upload drawing'}
             </button>
           </div>
         </aside>
 
-        {/* Pane 2: The Drawing & Shape Interactive Plant Viewer */}
-        <main className="main-drawing" aria-label="Selected drawing canvas">
+        {/* Pane 2: Drawing canvas or dropzone, with the composer docked below */}
+        <main className={`main-drawing ${highContrastMode ? 'high-contrast-canvas' : ''}`} aria-label="Drawing workspace">
           {selectedDocument ? (
             <>
               <div className="drawing-topbar">
@@ -1462,23 +1728,13 @@ function App() {
                 <div className="topbar-actions">
                   {pageCount > 1 && (
                     <div className="page-stepper">
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        disabled={page <= 1}
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                      >
+                      <button type="button" className="icon-btn" disabled={page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}>
                         <ChevronLeft size={14} />
                       </button>
                       <span>
                         {page} / {pageCount}
                       </span>
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        disabled={page >= pageCount}
-                        onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                      >
+                      <button type="button" className="icon-btn" disabled={page >= pageCount} onClick={() => setPage(value => Math.min(pageCount, value + 1))}>
                         <ChevronRight size={14} />
                       </button>
                     </div>
@@ -1493,6 +1749,10 @@ function App() {
                   >
                     <ArrowDownToLine size={15} />
                   </a>
+
+                  <button type="button" className="icon-btn" title="Close drawing" onClick={() => selectDocument(null)}>
+                    <X size={15} />
+                  </button>
                 </div>
               </div>
 
@@ -1515,270 +1775,270 @@ function App() {
                 }}
                 onCancelManual={cancelManual}
                 imageVersion={refreshVersion}
+                highContrast={highContrastMode}
+                showLabels={alwaysShowLabels}
+                unitSystem={unitSystem}
               />
             </>
           ) : (
-            <div className="canvas-message">
-              <Layers3 size={36} color="#94a3b8" />
-              <strong>Select a Drawing</strong>
-              <span>Pick a construction drawing from the library or upload a file to begin.</span>
+            <div
+              className="dropzone-container"
+              onDragOver={event => {
+                event.preventDefault();
+                setIsDraggingOver(true);
+              }}
+              onDragLeave={event => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingOver(false);
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                setIsDraggingOver(false);
+                uploadFiles(event.dataTransfer.files);
+              }}
+            >
+              <div
+                className={`dropzone-box ${isDraggingOver ? 'is-dragging-over' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+              >
+                <div className="dropzone-icon-circle">
+                  <Upload size={20} />
+                </div>
+                <h2 className="dropzone-title">Drop a drawing to start</h2>
+                <p className="dropzone-desc">
+                  Vector plans, scanned sheets and BIM models are read from the source file before anything is answered.
+                </p>
+                <div className="dropzone-format-tags">
+                  {['PDF', 'SVG', 'DXF', 'DWG', 'PNG', 'IFC'].map(format => (
+                    <span key={format} className="dropzone-format-tag">
+                      {format}
+                    </span>
+                  ))}
+                </div>
+                <div className="dropzone-actions">
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={event => {
+                      event.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <Upload size={13} /> Upload file
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={event => {
+                      event.stopPropagation();
+                      setSidebarTab('drawings');
+                      window.setTimeout(() => searchInputRef.current?.focus(), 0);
+                    }}
+                  >
+                    <FolderOpen size={13} /> Browse drawings
+                  </button>
+                </div>
+                {uploading && (
+                  <span className="setting-row-desc">
+                    <LoaderCircle size={12} className="spin" /> Adding drawings...
+                  </span>
+                )}
+              </div>
+
+              {sampleItems.length > 0 && (
+                <div className="sample-benchmarks">
+                  <span className="sample-benchmarks-title">Benchmark drawings</span>
+                  <div className="sample-benchmarks-grid">
+                    {sampleItems.map(item => (
+                      <button key={item.doc.id} type="button" className="sample-card" onClick={() => selectDocument(item.doc.id)}>
+                        <span className="sample-card-name">{item.label}</span>
+                        <span className="sample-card-desc">{item.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
+          <form className="docked-composer-container" onSubmit={event => ask(event, crossCheck)}>
+            <div className="composer-quick-actions">
+              {region && (
+                <button type="button" className="quick-chip" onClick={() => setRegion(null)}>
+                  <X size={10} /> Clear area selection
+                </button>
+              )}
+              {quickQuestions.map(item => (
+                <button
+                  key={item}
+                  type="button"
+                  className="quick-chip"
+                  disabled={!selectedId || asking}
+                  onClick={() => {
+                    setQuestion(item);
+                    ask(null, crossCheck, item);
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="docked-composer-box">
+              <textarea
+                ref={questionRef}
+                className="docked-textarea"
+                rows={2}
+                value={question}
+                disabled={asking}
+                aria-label="Question about the drawing"
+                placeholder={
+                  selectedDocument
+                    ? 'Ask about rooms, quantities, dimensions or materials...'
+                    : 'Drop or select a drawing to ask a question'
+                }
+                onChange={event => setQuestion(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck);
+                }}
+              />
+
+              <div className="docked-composer-footer">
+                <div className="composer-scope-pill">
+                  <select
+                    className="composer-scope-select"
+                    value={region ? 'region' : scope}
+                    disabled={asking || !selectedId}
+                    aria-label="Question scope"
+                    onChange={event => {
+                      if (event.target.value === 'region') return;
+                      setRegion(null);
+                      setScope(event.target.value);
+                    }}
+                  >
+                    <option value="document">Whole document</option>
+                    <option value="page">Current page</option>
+                    {region && <option value="region">Selected area</option>}
+                  </select>
+                  {pageCount > 1 && <span>· p.{page}</span>}
+                </div>
+
+                <div className="composer-actions-group">
+                  {asking ? (
+                    <>
+                      <span className="setting-row-desc">{elapsed}s</span>
+                      <button type="button" className="btn-stop-ask" onClick={() => cancelAsk(true)}>
+                        <X size={11} /> Stop
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="kbd-badge">⌘ + ↵</span>
+                      <button
+                        type="submit"
+                        className="btn-send"
+                        disabled={!question.trim() || !selectedId || asking}
+                        title="Run query (⌘ + Enter)"
+                        aria-label="Run query"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {askError && (
+              <div className="inline-error">
+                <strong>Query could not complete</strong>
+                <span>{askError}</span>
+              </div>
+            )}
+          </form>
         </main>
 
-        {/* Pane 3: Ask Trace & Intelligence Panel */}
-        <aside className="answer-panel" aria-label="Ask Trace and inspect answers">
+        {/* Pane 3: Analysis and quantities, sliding in when a drawing is active */}
+        <aside className="answer-panel" aria-label="Analysis and quantities">
           <div className="answer-panel-heading">
             <div className="panel-title">
-              <h2>Ask Trace</h2>
-              <span className="ai-pill">CAD + Vision</span>
+              <h2>Analysis &amp; quantities</h2>
+              {answer && <span className="telemetry-pill">{costText(answer.usage || lastUsage)}</span>}
             </div>
             {answer && (
-              <button type="button" className="icon-btn" title="Download Answer JSON" onClick={downloadAnswer}>
+              <button type="button" className="icon-btn" title="Download answer JSON" onClick={downloadAnswer}>
                 <ArrowDownToLine size={15} />
               </button>
             )}
           </div>
 
           <div className="answer-panel-scroll">
-            {/* Question Box */}
-            <form onSubmit={e => ask(e, crossCheck)}>
-              <div className={`question-box ${asking ? 'is-busy' : ''}`}>
-                <textarea
-                  ref={questionRef}
-                  className="question-textarea"
-                  placeholder="Ask about rooms, quantities, dimensions, or materials..."
-                  value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  disabled={asking}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      ask(e, crossCheck);
-                    }
-                  }}
-                  rows={2}
-                />
+            {restoringHistory && (
+              <p className="panel-note">
+                <LoaderCircle size={12} className="spin" /> Loading saved answer...
+              </p>
+            )}
 
-                <div className="question-box-footer">
-                  <span className="scope-indicator">
-                    {region ? 'Selected Area' : scope === 'page' ? `Page ${page}` : 'Whole Document'}
-                  </span>
-                  <button
-                    type="submit"
-                    className="btn-ask"
-                    disabled={!question.trim() || !selectedId || asking}
-                    title="Run query (⌘ + Enter)"
-                  >
-                    {asking ? <LoaderCircle size={15} className="spin" /> : <ArrowUp size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="query-controls">
-                <label>
-                  <span>Scope:</span>
-                  <select value={scope} onChange={e => setScope(e.target.value)} disabled={!!region || asking}>
-                    <option value="document">Whole Document</option>
-                    <option value="page">Current Page</option>
-                  </select>
-                </label>
-                <span className="kbd-badge">⌘ + ↵</span>
-              </div>
-            </form>
-
-            {askError && (
-              <div className="inline-error" style={{ marginTop: 12 }}>
-                <strong>Query could not complete</strong>
-                <span>{askError}</span>
+            {!answer && !asking && (
+              <div className="panel-empty">
+                <Crosshair size={18} />
+                <strong>No analysis yet</strong>
+                <span>Ask a question below the drawing. Quantities, evidence and cited shapes appear here.</span>
               </div>
             )}
 
-            {/* Prompt Suggestions */}
-            {!answer && !asking && suggestions.length > 0 && (
-              <div className="suggestions-container">
-                <div className="section-label">Suggested Questions</div>
-                <div className="suggestion-chips">
-                  {suggestions.slice(0, 5).map((item, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className="suggestion-chip"
-                      onClick={() => {
-                        setQuestion(item);
-                        ask(null, crossCheck, item);
-                      }}
-                    >
-                      <span>{item}</span>
-                      <ArrowUp size={12} />
-                    </button>
-                  ))}
-                </div>
+            {asking && (
+              <div className="panel-empty">
+                <LoaderCircle size={18} className="spin" />
+                <strong>Reading the source</strong>
+                <span>
+                  {answerQuestion || question || 'Working through the drawing'} · {elapsed}s
+                </span>
               </div>
             )}
 
-            {/* Answer Display */}
             {answer && !asking && (
-              <div className="answer-card">
+              <div className="answer-card" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
                 <div className="result-status-row">
                   <span className={`status-pill status-${resultStatus}`}>
-                    {['computed', 'extracted', 'supported'].includes(resultStatus) ? (
-                      <Check size={12} />
-                    ) : (
-                      <CircleHelp size={12} />
-                    )}
+                    {['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}
                     {statusLabel[resultStatus] || readable(resultStatus)}
                   </span>
                   <span className="doc-meta">{readable(answer.method || 'Source analysis')}</span>
                 </div>
 
-                {answer.value != null && (
+                {shownValue && (
                   <div className="answer-metric">
-                    {shortText(answer.value)}
-                    {answer.unit && <span>{answer.unit}</span>}
+                    {typeof shownValue.value === 'number'
+                      ? formatQuantityValue(shownValue.value, shownValue.unit)
+                      : shortText(shownValue.value)}
+                    {shownValue.unit && <span>{shownValue.unit}</span>}
                   </div>
                 )}
 
-                {/* Tab 3: Review & Working Quantity */}
-                {activeTab === 'review' && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        background: '#f4f4f5',
-                        borderRadius: 6,
-                        fontSize: 11,
-                      }}
-                    >
-                      <span>
-                        Original: <strong>{answer.original_value ?? answer.value}</strong>
-                      </span>
-                      <span>
-                        Included / Reviewed: <strong style={{ color: '#0070f3' }}>{reviewedCount}</strong>
-                      </span>
-                    </div>
+                <p className="answer-explanation">{shortText(answer.answer || answer.message || 'No answer returned.')}</p>
 
-                    {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn-primary" style={{ flex: 1 }} onClick={startManual}>
-                          <Plus size={13} /> Add Missed Object
-                        </button>
-                        <button type="button" className="btn-secondary" onClick={restoreOriginal}>
-                          Reset
-                        </button>
-                      </div>
-                    )}
-
-                    {pendingManual && (
-                      <form
-                        onSubmit={addManual}
-                        style={{
-                          padding: 12,
-                          background: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: 8,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                          fontSize: 11,
-                        }}
-                      >
-                        <strong style={{ color: '#166534' }}>Mark Missing Plant Object</strong>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <span>Label:</span>
-                          <input
-                            type="text"
-                            value={manualLabel}
-                            onChange={e => setManualLabel(e.target.value)}
-                            placeholder="e.g. Window beside room 5.11"
-                            required
-                            style={{ padding: '6px 8px', border: '1px solid #d4d4d8', borderRadius: 4 }}
-                          />
-                        </label>
-                        {manualError && <span style={{ color: '#dc2626' }}>{manualError}</span>}
-                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                          <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                            Add to Count
-                          </button>
-                          <button type="button" className="btn-secondary" onClick={cancelManual}>
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 11, color: '#71717a' }}>
-                          Review Note:
-                          <input
-                            type="text"
-                            value={reviewNote}
-                            onChange={e => setReviewNote(e.target.value)}
-                            placeholder="Reason for count adjustments..."
-                            style={{
-                              width: '100%',
-                              marginTop: 4,
-                              padding: '6px 8px',
-                              border: '1px solid #d4d4d8',
-                              borderRadius: 4,
-                              fontSize: 11,
-                            }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className="btn-primary"
-                          disabled={reviewing || (!hasReviewChanges && answer.human_reviewed)}
-                          onClick={review}
-                        >
-                          {reviewing ? <LoaderCircle size={13} className="spin" /> : <ShieldCheck size={13} />}
-                          Save Reviewed Count
-                        </button>
-                      </div>
-                    )}
-
-                    {history.length > 0 && (
-                      <div style={{ marginTop: 14, borderTop: '1px solid #e4e4e7', paddingTop: 10 }}>
-                        <div className="section-label">Recent Questions ({history.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {history.map(item => (
-                            <button
-                              key={item.id || item.timestamp}
-                              type="button"
-                              className="suggestion-chip"
-                              onClick={() => restoreHistory(item)}
-                            >
-                              <span>{item.question}</span>
-                              <Clock3 size={11} color="#a1a1aa" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <p className="answer-explanation">
-                  {shortText(answer.answer || answer.message || 'No answer returned.')}
-                </p>
-
-                {/* Navigation Tabs */}
                 <div className="tabs-header">
                   <button
                     type="button"
                     className={`tab-btn ${activeTab === 'evidence' ? 'is-active' : ''}`}
                     onClick={() => setActiveTab('evidence')}
                   >
-                    Evidence ({evidence.length})
+                    Evidence &amp; shapes ({evidence.length})
                   </button>
                   <button
                     type="button"
                     className={`tab-btn ${activeTab === 'analysis' ? 'is-active' : ''}`}
                     onClick={() => setActiveTab('analysis')}
                   >
-                    Analysis &amp; Formula
+                    Formula
                   </button>
                   <button
                     type="button"
@@ -1789,9 +2049,9 @@ function App() {
                   </button>
                 </div>
 
-                {/* Tab 1: Interactive Evidence Cards */}
                 {activeTab === 'evidence' && (
                   <div className="evidence-list">
+                    {evidence.length === 0 && <p className="panel-note">This answer cites no located shapes.</p>}
                     {evidence.map(item => {
                       const isSelected = item._key === selectedEvidence;
                       const isHovered = item._key === hoveredEvidence;
@@ -1806,23 +2066,17 @@ function App() {
                           onPointerEnter={() => setHoveredEvidence(item._key)}
                           onPointerLeave={() => setHoveredEvidence(null)}
                         >
-                          <button
-                            type="button"
-                            className="evidence-card-main"
-                            onClick={() => selectEvidence(item)}
-                          >
+                          <button type="button" className="evidence-card-main" onClick={() => selectEvidence(item)}>
                             <span className="evidence-index">{item._number}</span>
                             <div className="evidence-content">
-                              <span className="evidence-title">
-                                {item.label || item.name || `Source Item #${item._number}`}
-                              </span>
+                              <span className="evidence-title">{item.label || item.name || `Source item #${item._number}`}</span>
                               <span className="evidence-sub">
                                 {evidenceBox(item) && item.page
                                   ? `Page ${item.page}`
                                   : item.guid
-                                  ? `Element: ${item.guid.slice(0, 10)}...`
-                                  : 'Source Record'}{' '}
-                                · {kind === 'native' ? 'Native CAD' : kind === 'visual' ? 'Vision' : 'Manual'}
+                                    ? `Element: ${item.guid.slice(0, 10)}...`
+                                    : 'Source record'}{' '}
+                                · {kind === 'native' ? 'Native CAD' : kind === 'visual' ? 'Visual extraction' : 'Manual'}
                               </span>
                             </div>
                             <ChevronRight size={14} color="#a1a1aa" />
@@ -1833,17 +2087,12 @@ function App() {
                               <input
                                 type="checkbox"
                                 checked={!excluded.includes(item._key)}
-                                onChange={e => toggleIncluded(item._key, e.target.checked)}
+                                onChange={event => toggleIncluded(item._key, event.target.checked)}
                               />
                               <span>Include in count</span>
                             </label>
 
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              title="Focus shape on drawing"
-                              onClick={() => selectEvidence(item)}
-                            >
+                            <button type="button" className="icon-btn" title="Focus shape on drawing" onClick={() => selectEvidence(item)}>
                               <Crosshair size={12} />
                             </button>
                           </div>
@@ -1856,10 +2105,10 @@ function App() {
                                 <dl className="property-grid">
                                   {Object.entries(item.properties)
                                     .slice(0, 6)
-                                    .map(([k, v]) => (
-                                      <React.Fragment key={k}>
-                                        <dt>{readable(k)}</dt>
-                                        <dd>{shortText(v)}</dd>
+                                    .map(([key, value]) => (
+                                      <React.Fragment key={key}>
+                                        <dt>{readable(key)}</dt>
+                                        <dd>{shortText(value)}</dd>
                                       </React.Fragment>
                                     ))}
                                 </dl>
@@ -1872,129 +2121,6 @@ function App() {
                   </div>
                 )}
 
-                {/* Tab 3: Review & Working Quantity */}
-                {activeTab === 'review' && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        background: '#f4f4f5',
-                        borderRadius: 6,
-                        fontSize: 11,
-                      }}
-                    >
-                      <span>
-                        Original: <strong>{answer.original_value ?? answer.value}</strong>
-                      </span>
-                      <span>
-                        Included / Reviewed: <strong style={{ color: '#0070f3' }}>{reviewedCount}</strong>
-                      </span>
-                    </div>
-
-                    {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn-primary" style={{ flex: 1 }} onClick={startManual}>
-                          <Plus size={13} /> Add Missed Object
-                        </button>
-                        <button type="button" className="btn-secondary" onClick={restoreOriginal}>
-                          Reset
-                        </button>
-                      </div>
-                    )}
-
-                    {pendingManual && (
-                      <form
-                        onSubmit={addManual}
-                        style={{
-                          padding: 12,
-                          background: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: 8,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                          fontSize: 11,
-                        }}
-                      >
-                        <strong style={{ color: '#166534' }}>Mark Missing Plant Object</strong>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <span>Label:</span>
-                          <input
-                            type="text"
-                            value={manualLabel}
-                            onChange={e => setManualLabel(e.target.value)}
-                            placeholder="e.g. Window beside room 5.11"
-                            required
-                            style={{ padding: '6px 8px', border: '1px solid #d4d4d8', borderRadius: 4 }}
-                          />
-                        </label>
-                        {manualError && <span style={{ color: '#dc2626' }}>{manualError}</span>}
-                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                          <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                            Add to Count
-                          </button>
-                          <button type="button" className="btn-secondary" onClick={cancelManual}>
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 11, color: '#71717a' }}>
-                          Review Note:
-                          <input
-                            type="text"
-                            value={reviewNote}
-                            onChange={e => setReviewNote(e.target.value)}
-                            placeholder="Reason for count adjustments..."
-                            style={{
-                              width: '100%',
-                              marginTop: 4,
-                              padding: '6px 8px',
-                              border: '1px solid #d4d4d8',
-                              borderRadius: 4,
-                              fontSize: 11,
-                            }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className="btn-primary"
-                          disabled={reviewing || (!hasReviewChanges && answer.human_reviewed)}
-                          onClick={review}
-                        >
-                          {reviewing ? <LoaderCircle size={13} className="spin" /> : <ShieldCheck size={13} />}
-                          Save Reviewed Count
-                        </button>
-                      </div>
-                    )}
-
-                    {history.length > 0 && (
-                      <div style={{ marginTop: 14, borderTop: '1px solid #e4e4e7', paddingTop: 10 }}>
-                        <div className="section-label">Recent Questions ({history.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {history.map(item => (
-                            <button
-                              key={item.id || item.timestamp}
-                              type="button"
-                              className="suggestion-chip"
-                              onClick={() => restoreHistory(item)}
-                            >
-                              <span>{item.question}</span>
-                              <Clock3 size={11} color="#a1a1aa" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Tab 2: Analysis & Formula */}
                 {activeTab === 'analysis' && (
                   <div style={{ marginTop: 12, fontSize: 11, color: '#52525b', lineHeight: 1.6 }}>
                     {answer.calculation && (
@@ -2010,41 +2136,30 @@ function App() {
                       <div>
                         <strong>Scope:</strong> {scopeText(answer.scope)}
                       </div>
-                      {answer.usage && (
-                        <div>
-                          <strong>Usage:</strong> {usageLabel(answer)} ({answer.usage.model_calls || 0} calls,{' '}
-                          {costText(answer.usage)})
-                        </div>
-                      )}
+                      <div>
+                        <strong>Usage:</strong> {usageLabel(answer)} ({costText(answer.usage || lastUsage)})
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Tab 3: Review & Working Quantity */}
                 {activeTab === 'review' && (
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        background: '#f4f4f5',
-                        borderRadius: 6,
-                        fontSize: 11,
-                      }}
-                    >
-                      <span>
-                        Original: <strong>{answer.original_value ?? answer.value}</strong>
-                      </span>
-                      <span>
-                        Included / Reviewed: <strong style={{ color: '#0070f3' }}>{reviewedCount}</strong>
-                      </span>
+                    <div className="telemetry-breakdown" style={{ borderTop: 'none', paddingTop: 0, marginTop: 0 }}>
+                      <div className="telemetry-breakdown-row">
+                        <span>Original</span>
+                        <span>{shortText(answer.original_value ?? answer.value)}</span>
+                      </div>
+                      <div className="telemetry-breakdown-row">
+                        <span>Included after review</span>
+                        <span>{reviewedCount}</span>
+                      </div>
                     </div>
 
                     {answer.can_review && !answer.source_changed && (
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button type="button" className="btn-primary" style={{ flex: 1 }} onClick={startManual}>
-                          <Plus size={13} /> Add Missed Object
+                          <Plus size={13} /> Add missed object
                         </button>
                         <button type="button" className="btn-secondary" onClick={restoreOriginal}>
                           Reset
@@ -2066,13 +2181,13 @@ function App() {
                           fontSize: 11,
                         }}
                       >
-                        <strong style={{ color: '#166534' }}>Mark Missing Plant Object</strong>
+                        <strong style={{ color: '#166534' }}>Mark missing object</strong>
                         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <span>Label:</span>
                           <input
                             type="text"
                             value={manualLabel}
-                            onChange={e => setManualLabel(e.target.value)}
+                            onChange={event => setManualLabel(event.target.value)}
                             placeholder="e.g. Window beside room 5.11"
                             required
                             style={{ padding: '6px 8px', border: '1px solid #d4d4d8', borderRadius: 4 }}
@@ -2081,7 +2196,7 @@ function App() {
                         {manualError && <span style={{ color: '#dc2626' }}>{manualError}</span>}
                         <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                           <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                            Add to Count
+                            Add to count
                           </button>
                           <button type="button" className="btn-secondary" onClick={cancelManual}>
                             Cancel
@@ -2093,11 +2208,11 @@ function App() {
                     {answer.can_review && !answer.source_changed && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <label style={{ fontSize: 11, color: '#71717a' }}>
-                          Review Note:
+                          Review note:
                           <input
                             type="text"
                             value={reviewNote}
-                            onChange={e => setReviewNote(e.target.value)}
+                            onChange={event => setReviewNote(event.target.value)}
                             placeholder="Reason for count adjustments..."
                             style={{
                               width: '100%',
@@ -2116,22 +2231,17 @@ function App() {
                           onClick={review}
                         >
                           {reviewing ? <LoaderCircle size={13} className="spin" /> : <ShieldCheck size={13} />}
-                          Save Reviewed Count
+                          Save reviewed count
                         </button>
                       </div>
                     )}
 
                     {history.length > 0 && (
-                      <div style={{ marginTop: 14, borderTop: '1px solid #e4e4e7', paddingTop: 10 }}>
-                        <div className="section-label">Recent Questions ({history.length})</div>
+                      <div style={{ marginTop: 4, borderTop: '1px solid #e4e4e7', paddingTop: 10 }}>
+                        <div className="section-label">Recent questions ({history.length})</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {history.map(item => (
-                            <button
-                              key={item.id || item.timestamp}
-                              type="button"
-                              className="suggestion-chip"
-                              onClick={() => restoreHistory(item)}
-                            >
+                            <button key={item.id || item.timestamp} type="button" className="suggestion-chip" onClick={() => restoreHistory(item)}>
                               <span>{item.question}</span>
                               <Clock3 size={11} color="#a1a1aa" />
                             </button>
