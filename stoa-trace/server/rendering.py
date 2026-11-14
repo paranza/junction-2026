@@ -190,7 +190,7 @@ def png_bytes(image: Image.Image):
     return out.getvalue()
 
 
-def image_inputs(path: Path, pages: list[int], region=None):
+def image_inputs(path: Path, pages: list[int], region=None, *, small_image_crops=None):
     """Overview plus detail crops, with invertible image-to-page coordinates."""
     inputs = []
     for page in pages:
@@ -204,7 +204,7 @@ def image_inputs(path: Path, pages: list[int], region=None):
         overview = image.copy()
         overview.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
         inputs.append({'image': overview, 'page': page, 'region': [0, 0, 1, 1], 'kind': 'overview'})
-        small = SMALL_IMAGE_CROPS and max(image.size) <= 1600
+        small = (SMALL_IMAGE_CROPS if small_image_crops is None else small_image_crops) and max(image.size) <= 1600
         if (max(image.size) > 1600 or small) and len(pages) <= 2:
             # Overlap makes tiny symbols crossing a crop boundary inspectable.
             for x0, y0, x1, y1 in ((0, 0, .55, .55), (.45, 0, 1, .55), (0, .45, .55, 1), (.45, .45, 1, 1)):

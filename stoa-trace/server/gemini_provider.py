@@ -32,6 +32,9 @@ _IMAGE = re.compile(r'data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)\Z'
 
 class ProviderError(Exception):
     """Public-safe provider error without request data or credential contents."""
+    def __init__(self,message,*,recoverable=False):
+        super().__init__(message)
+        self.recoverable=recoverable
 
 
 def image_resolution():
@@ -89,12 +92,22 @@ def config_signature(model=None):
     return f'{revision}:{API_REVISION}:' + ':'.join(values)
 
 
-def prepare_request(content, system, schema, max_tokens, model):
+def prepare_request(content, system, schema, max_tokens, model, *, visual_policy=None):
     # Validate before shared llm._request reserves a potentially billable attempt.
     resolution = image_resolution()
     visual_thinking = visual_thinking_level(model)
     output_override = visual_output_limit()
     timeout_seconds()
+    if visual_policy is not None:
+        if not isinstance(visual_policy,dict) or set(visual_policy)-{'image_resolution','thinking_level','max_output_tokens'}:
+            raise ProviderError('Unsupported per-request visual policy.')
+        resolution=visual_policy.get('image_resolution',resolution)
+        visual_thinking=visual_policy.get('thinking_level',visual_thinking)
+        output_override=visual_policy.get('max_output_tokens',output_override)
+        if resolution not in IMAGE_RESOLUTIONS or visual_thinking not in {'low','medium','high'}:
+            raise ProviderError('Invalid per-request visual policy.')
+        if output_override is not None and (type(output_override) is not int or not 1000<=output_override<=65536):
+            raise ProviderError('Invalid per-request output allowance.')
     if str(model).startswith('gemma-') and model not in GEMMA_MODELS:
         raise ProviderError('The configured Gemma model is not supported by this adapter.')
     inputs = []
@@ -133,7 +146,7 @@ def _tokens(value):
 def normalize_response(body):
     """Map current Interactions steps/usage to the existing Responses-like shape."""
     if not isinstance(body, dict):
-        raise ProviderError('Gemini returned an unreadable response.')
+        raise ProviderError('Gemini returned an unreadable response.',recoverable=True)
     raw_usage = body.get('usage')
     usage = None
     if isinstance(raw_usage, dict):
@@ -165,7 +178,7 @@ def request(payload, key):
         with httpx.Client(timeout=httpx.Timeout(timeout, connect=15), follow_redirects=False) as client:
             response = client.post(ENDPOINT, headers={'x-goog-api-key': key, 'Api-Revision': API_REVISION}, json=payload)
     except httpx.HTTPError:
-        raise ProviderError('Gemini could not be reached. Please retry or use native tools.') from None
+        raise ProviderError('Gemini could not be reached. Please retry or use native tools.',recoverable=True) from None
     if response.status_code != 200:
         reason = {400: 'Gemini rejected the drawing request or model configuration.',
                   401: 'Gemini authentication failed.',
@@ -173,9 +186,9 @@ def request(payload, key):
                   404: 'The configured Gemini model or API is unavailable.',
                   429: 'Gemini reached an account rate or credit limit.'}.get(
                       response.status_code, 'Gemini could not complete this request.')
-        raise ProviderError(reason)
+        raise ProviderError(reason,recoverable=response.status_code>=500)
     try:
         body = response.json()
     except ValueError:
-        raise ProviderError('Gemini returned an unreadable response.') from None
+        raise ProviderError('Gemini returned an unreadable response.',recoverable=True) from None
     return normalize_response(body)

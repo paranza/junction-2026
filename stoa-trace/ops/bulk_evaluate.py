@@ -385,6 +385,7 @@ def main(argv=None):
                 local.client = Client(args.base_url, args.timeout)
             return local.client.api('/api/ask', payload)
         readings = int((health.get('inventory_signature') or {}).get('readings', 1))
+        readings += int(((health.get('inventory_signature') or {}).get('failure_fallback') or {}).get('maximum_attempts',0))
         evaluation = Evaluation(cases, documents, checkpoint, ask, mode=args.mode, verify_visual=args.verify_visual, readings=readings,
                                 max_model_calls=args.max_model_calls, concurrency=args.concurrency,
                                 tolerance=manifest.get('scoring', {}).get('measurement_relative_tolerance', .02))

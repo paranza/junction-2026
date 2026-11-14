@@ -95,7 +95,7 @@ def _typed_candidates(properties, operation, prefix='properties'):
             continue
         if operation == 'volume' and 'volume' not in name:
             continue
-        if operation == 'length' and not any(word in name for word in ('length', 'width', 'height', 'perimeter')):
+        if operation == 'length' and not any(word in name for word in ('length', 'width', 'height', 'perimeter','thickness')):
             continue
         yield {'value': value, 'unit': unit, 'property_path': path,
                'role': 'gross' if 'gross' in name else 'net' if 'net' in name else None}

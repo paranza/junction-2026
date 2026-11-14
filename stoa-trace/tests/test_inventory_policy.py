@@ -18,11 +18,52 @@ class ReadingPolicy(unittest.TestCase):
         return {'complete':True,'warnings':[],'objects':[
             {'category':'window','label':'Window','image_index':0,'bbox':[.1+i*.2,.1,.2+i*.2,.2],'ambiguous':ambiguous} for i in range(count)]}
     def run_inventory(self,responses,**settings):
-        with patch.dict(os.environ,{'STOA_INVENTORY_POLICY':'adaptive','STOA_SYMBOL_READER':'standard',**settings}),\
+        with patch.dict(os.environ,{'STOA_INVENTORY_POLICY':'adaptive','STOA_SYMBOL_READER':'standard','STOA_INVENTORY_FALLBACK_MODEL':'',**settings}),\
              patch.object(inventory,'READINGS',2),patch.object(detector,'signature',return_value=None),\
              patch.object(inventory,'image_inputs',return_value=self.images),patch.object(llm,'_request',side_effect=responses) as request:
             result=inventory.page_inventory(self.native,self.path,1)
             return result,request.call_count
+    def test_one_larger_model_fallback_only_after_all_retryable_failures(self):
+        response=self.response();response['_model']='gemini-4-argon'
+        with patch.object(llm,'PROVIDER','gemini'),patch.object(llm,'MODEL','gemini-4-carbon'):
+            result,calls=self.run_inventory([llm.ModelError('Incomplete',recoverable=True),llm.ModelError('Transport timeout',recoverable=True),response],
+                STOA_INVENTORY_POLICY='repeat',STOA_INVENTORY_FALLBACK_MODEL='gemini-4-argon')
+        self.assertEqual(calls,3);self.assertEqual(result['model'],'gemini-4-argon')
+        self.assertEqual(result['reading_policy']['failure_fallback_model'],'gemini-4-argon')
+        self.assertEqual(result['reading_policy']['attempts'],3)
+        self.assertEqual(len(result['objects']),1)
+    def test_authentication_failure_never_triggers_fallback(self):
+        with patch.object(llm,'PROVIDER','gemini'),patch.object(llm,'MODEL','gemini-4-carbon'):
+            with self.assertRaisesRegex(llm.ModelError,'authentication'):
+                self.run_inventory([llm.ModelError('authentication'),llm.ModelError('authentication')],
+                    STOA_INVENTORY_POLICY='repeat',STOA_INVENTORY_FALLBACK_MODEL='gemini-4-argon')
+    def test_successful_primary_reading_is_never_replaced(self):
+        with patch.object(llm,'PROVIDER','gemini'),patch.object(llm,'MODEL','gemini-4-carbon'):
+            result,calls=self.run_inventory([self.response(),self.response(count=2)],
+                STOA_INVENTORY_POLICY='repeat',STOA_INVENTORY_FALLBACK_MODEL='gemini-4-argon')
+        self.assertEqual(calls,2);self.assertEqual(len(result['objects']),1)
+    def test_real_request_ledger_counts_failed_readings_and_recovery(self):
+        usage={'input_tokens':10,'output_tokens':20,'input_tokens_details':{'cached_tokens':0}}
+        incomplete={'status':'incomplete','usage':usage,'output':[]}
+        complete={'status':'completed','usage':usage,'output':[{'content':[{'type':'output_text','text':json.dumps(self.response())}]}]}
+        with patch.dict(os.environ,{'STOA_INVENTORY_POLICY':'repeat','STOA_INVENTORY_FALLBACK_MODEL':'gemini-4-argon'}),\
+             patch.object(llm,'PROVIDER','gemini'),patch.object(llm,'MODEL','gemini-4-carbon'),patch.object(llm,'KEY','test-key'),patch.object(llm,'MAX_CALLS',3),\
+             patch.object(inventory,'READINGS',2),patch.object(inventory,'image_inputs',return_value=self.images),patch.object(detector,'signature',return_value=None),\
+             patch.object(llm.gemini_provider,'request',side_effect=[incomplete,incomplete,complete]),llm.usage_scope():
+            result=inventory.page_inventory(self.native,self.path,1)
+            usage=llm.usage_snapshot()
+        self.assertEqual(usage['model_calls'],3);self.assertEqual(usage['input_tokens'],30)
+        self.assertEqual(usage['output_tokens'],60);self.assertEqual(result['ingestion_usage']['model_calls'],3)
+        with llm.store.connection() as db:self.assertEqual(db.execute("SELECT COUNT(*) FROM events WHERE kind='model_request'").fetchone()[0],3)
+    def test_recovery_cannot_exceed_persisted_attempt_ceiling(self):
+        incomplete={'status':'incomplete','usage':None,'output':[]}
+        with patch.dict(os.environ,{'STOA_INVENTORY_POLICY':'repeat','STOA_INVENTORY_FALLBACK_MODEL':'gemini-4-argon'}),\
+             patch.object(llm,'PROVIDER','gemini'),patch.object(llm,'MODEL','gemini-4-carbon'),patch.object(llm,'KEY','test-key'),patch.object(llm,'MAX_CALLS',2),\
+             patch.object(inventory,'READINGS',2),patch.object(inventory,'image_inputs',return_value=self.images),patch.object(detector,'signature',return_value=None),\
+             patch.object(llm.gemini_provider,'request',return_value=incomplete) as request,llm.usage_scope():
+            with self.assertRaisesRegex(llm.ModelError,'allowance'):inventory.page_inventory(self.native,self.path,1)
+        self.assertEqual(request.call_count,2)
+        with llm.store.connection() as db:self.assertEqual(db.execute("SELECT COUNT(*) FROM events WHERE kind='model_request'").fetchone()[0],2)
     def test_adaptive_skips_repeat_for_clean_first_reading(self):
         result,calls=self.run_inventory([self.response()])
         self.assertEqual(calls,1)
@@ -49,6 +90,30 @@ class ReadingPolicy(unittest.TestCase):
 
 
 class LocalDetector(unittest.TestCase):
+    def test_tiled_boxes_own_centers_and_preserve_source_coordinates(self):
+        import numpy as np
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory);(folder/'model.onnx').write_bytes(b'tiled-fixture')
+            manifest={'kind':'yolo_boxes','model_file':'model.onnx','model_sha256':hashlib.sha256(b'tiled-fixture').hexdigest(),
+                      'classes':['door','window'],'input_size':320,'inference_mode':'native_tiles'}
+            path=folder/'manifest.json';path.write_text(json.dumps(manifest))
+            class Session:
+                def get_inputs(self):return [type('Input',(),{'name':'images'})()]
+                def run(self,_,inputs):
+                    points=np.argwhere(inputs['images'][0,0]<.01)
+                    output=np.zeros((1,6,max(1,len(points))),np.float32)
+                    for i,(y,x) in enumerate(points):output[0,:,i]=[x,y,2,2,0,1]
+                    return [output]
+            image=Image.new('RGB',(600,200),'white');image.putpixel((159,100),(0,0,0));image.putpixel((162,100),(0,0,0))
+            with patch.dict(os.environ,{'STOA_DETECTOR_MANIFEST':str(path)}),patch.object(detector,'_session',return_value=Session()):
+                result=detector.detect_image(image,document_id='source-a',page=3)
+                other=detector.detect_image(image,document_id='source-b',page=3)
+            self.assertFalse(result.get('unavailable'));self.assertEqual(len(result['objects']),2)
+            self.assertEqual(result['inference_mode'],'native_tiles')
+            self.assertAlmostEqual(result['objects'][0]['point'][0],159/600)
+            self.assertAlmostEqual(result['objects'][1]['point'][0],162/600)
+            self.assertTrue(set(o['id'] for o in result['objects']).isdisjoint(o['id'] for o in other['objects']))
     def test_box_detector_maps_letterbox_and_deduplicates(self):
         import numpy as np
         import tempfile

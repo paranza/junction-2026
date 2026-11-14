@@ -124,7 +124,9 @@ complete describes whether you inspected the entire requested scope, not statist
 
 
 class ModelError(Exception):
-    pass
+    def __init__(self,message,*,recoverable=False):
+        super().__init__(message)
+        self.recoverable=recoverable
 
 
 def model_available():
@@ -137,7 +139,7 @@ def provider_signature():
     return f'{PROVIDER}:{MODEL}:{revision}'
 
 
-def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=None):
+def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=None, visual_policy=None):
     if PROVIDER not in ('openai', 'gemini'):
         raise ModelError('STOA_PROVIDER must be openai or gemini. Native drawing tools remain available.')
     if not model_available():
@@ -145,13 +147,15 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
         raise ModelError(f'Vision is not configured. Set {variable} privately on the server. Native drawing tools remain available.')
     selected_model = MODEL if model is None else model
     if (not isinstance(selected_model, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', selected_model)
-            or (selected_model != MODEL and (PROVIDER != 'gemini' or selected_model not in gemini_provider.GEMMA_MODELS))):
-        raise ModelError('A model override must use a supported Gemma model with the Gemini provider.')
+            or (selected_model != MODEL and (PROVIDER != 'gemini' or selected_model not in gemini_provider.GEMMA_MODELS|{'gemini-4-argon','gemini-4-carbon'}))):
+        raise ModelError('A model override must use a supported Gemini or Gemma model with the Gemini provider.')
+    if visual_policy is not None and (PROVIDER!='gemini' or selected_model in gemini_provider.GEMMA_MODELS):
+        raise ModelError('Per-request visual policies require a supported Gemini model.')
     if PROVIDER == 'gemini':
         try:
-            payload = gemini_provider.prepare_request(content, system, schema, max_tokens, selected_model)
+            payload = gemini_provider.prepare_request(content, system, schema, max_tokens, selected_model,**({'visual_policy':visual_policy} if visual_policy is not None else {}))
         except gemini_provider.ProviderError as error:
-            raise ModelError(str(error)) from None
+            raise ModelError(str(error),recoverable=error.recoverable) from None
     else:
         payload = {'model': selected_model, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
                    'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
@@ -175,7 +179,7 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
         try:
             body = gemini_provider.request(payload, KEY)
         except gemini_provider.ProviderError as error:
-            raise ModelError(str(error)) from None
+            raise ModelError(str(error),recoverable=error.recoverable) from None
     else:
         try:
             with httpx.Client(timeout=httpx.Timeout(180, connect=15), follow_redirects=False) as client:
@@ -200,14 +204,14 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
         ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
     store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status'), **tracking})
     if body.get('status') != 'completed':
-        raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
+        raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.',recoverable=True)
     text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')
     try:
         result = json.loads(text)
     except (ValueError, TypeError):
-        raise ModelError('The model returned an unreadable result.') from None
+        raise ModelError('The model returned an unreadable result.',recoverable=True) from None
     if not isinstance(result, dict):
-        raise ModelError('The model returned an unreadable result.')
+        raise ModelError('The model returned an unreadable result.',recoverable=True)
     result['_usage'] = body.get('usage') or {}
     result['_provider'] = PROVIDER
     result['_model'] = selected_model
@@ -315,6 +319,12 @@ def _scoped_context(document, path, page, scope, region, selected_pages):
 def requested_quantity(question):
     """High-confidence task intent is independent of the model's answer type."""
     q = question.casefold()
+    # The object after "how many" may itself be a measurement unit.
+    # A later threshold, as in "how many doors wider than 2 m", stays a count.
+    measured_count=re.search(r'\bhow many\s+(?:(square|cubic)\s+)?(met(?:er|re)s?|feet|foot|m[²³23]|sq\.?\s*(?:m|ft))\b',q)
+    if measured_count:
+        phrase=measured_count.group(0)
+        return 'volume' if measured_count.group(1)=='cubic' or re.search(r'm[³3]',phrase) else 'area' if measured_count.group(1)=='square' or re.search(r'm[²2]|sq',phrase) else 'length'
     for kind, pattern in (
         ('count', r'\b(how many|number of|count|montako|kuinka monta|mitu|quanti|quante|combien|wie viele)\b'),
         ('volume', r'\b(volume|volumen|tilavuus|maht)\b|m[³3]'),

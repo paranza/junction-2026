@@ -11,6 +11,24 @@ from server import gemini_provider as gemini, llm
 
 
 class GeminiProviderTests(unittest.TestCase):
+    def test_visual_fallback_policy_is_request_local_and_budgeted(self):
+        _,post=self.client()
+        with patch.dict(os.environ,{'STOA_GEMINI_MAX_OUTPUT_TOKENS':'24000','STOA_GEMINI_THINKING_LEVEL':'medium'}),llm.usage_scope():
+            result=llm._request([{'type':'input_text','text':'Read the source'}],model='gemini-4-argon',max_tokens=65536,
+                visual_policy={'image_resolution':'ultra_high','thinking_level':'high','max_output_tokens':65536})
+            self.assertEqual(post.call_args.kwargs['json']['generation_config']['max_output_tokens'],65536)
+            self.assertEqual(post.call_args.kwargs['json']['generation_config']['thinking_level'],'high')
+            self.assertEqual(result['_model'],'gemini-4-argon')
+            self.assertEqual(llm.usage_snapshot()['model_calls'],1)
+            base=gemini.prepare_request([{'type':'input_text','text':'Next request'}],'source',{},65536,'gemini-4-carbon')
+            self.assertEqual(base['generation_config']['max_output_tokens'],24000)
+            self.assertEqual(base['generation_config']['thinking_level'],'medium')
+            self.assertEqual(os.environ['STOA_GEMINI_MAX_OUTPUT_TOKENS'],'24000')
+        self.assertEqual(self.reserve.call_count,1)
+    def test_invalid_visual_fallback_policy_reserves_no_attempt(self):
+        with self.assertRaises(llm.ModelError):
+            llm._request([],model='gemini-4-argon',visual_policy={'max_output_tokens':999999})
+        self.reserve.assert_not_called()
     def setUp(self):
         self.patches = [patch.object(llm, 'PROVIDER', 'gemini'),
                         patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high',

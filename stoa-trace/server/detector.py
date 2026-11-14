@@ -9,7 +9,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 
-REVISION = 'symbol-detectors-onnx-v2'
+REVISION = 'symbol-detectors-onnx-v3'
 _lock = threading.Lock()
 
 
@@ -36,6 +36,7 @@ def _manifest():
         thresholds=manifest.get('class_thresholds',{})
         if not isinstance(thresholds,dict) or any(k not in classes or not 0<float(v)<1 for k,v in thresholds.items()):raise ValueError('Invalid class threshold')
         if manifest.get('color_mode','rgb') not in {'rgb','grayscale'}:raise ValueError('Invalid detector color mode')
+        if manifest.get('inference_mode','full_page') not in {'full_page','native_tiles'}:raise ValueError('Invalid detector inference mode')
     return {**manifest,'threshold':float(manifest.get('threshold',.35)),
             'class_thresholds':{k:float(v) for k,v in manifest.get('class_thresholds',{}).items()},
             'iou_threshold':float(manifest.get('iou_threshold',.5)),'path':str(model)}
@@ -48,7 +49,7 @@ def signature():
                 'threshold':manifest.get('threshold',.35),'classes':manifest['classes'],
                 'kind':manifest['kind'],'input_size':manifest.get('input_size'),
                 'class_thresholds':manifest.get('class_thresholds',{}),'iou_threshold':manifest.get('iou_threshold'),
-                'color_mode':manifest.get('color_mode','rgb')} if manifest else None
+                'color_mode':manifest.get('color_mode','rgb'),'inference_mode':manifest.get('inference_mode','full_page')} if manifest else None
     except (KeyError,ValueError,OSError,TypeError):
         return {'revision':REVISION,'unavailable':True}
 
@@ -126,6 +127,8 @@ def _overlap(a,b):
 def _detect_boxes(image,session,manifest,document_id,page,started):
     import numpy as np
     from PIL import Image
+    if manifest.get('inference_mode')=='native_tiles':
+        return _detect_tiled_boxes(image,session,manifest,document_id,page,started)
     width,height=image.size;size=manifest.get('input_size',1024)
     scale=min(size/width,size/height)
     new_width,new_height=round(width*scale),round(height*scale)
@@ -158,10 +161,47 @@ def _detect_boxes(image,session,manifest,document_id,page,started):
     objects=[]
     for row in selected:
         box=row['bbox'];category=row['category']
-        identity=hashlib.sha256(json.dumps([manifest['model_sha256'],page,category,box]).encode()).hexdigest()[:18]
+        identity=hashlib.sha256(json.dumps([manifest['model_sha256'],document_id,page,category,box]).encode()).hexdigest()[:18]
         objects.append({**row,'id':'detector-'+identity,'type':category,'label':category.title()+' detector candidate',
                         'page':page,'document_id':document_id,'point':[(box[0]+box[2])/2,(box[1]+box[3])/2],
                         'evidence_kind':'visual','source_verified':False,'location_kind':'detected_box','extent_estimated':True})
     return {'objects':objects,'model_sha256':manifest['model_sha256'],'name':manifest.get('name','Symbol detector'),
             'training_domain':manifest.get('training_domain','Unknown'),'calibrated':False,'abstained':not objects,
             'duration_ms':round((time.monotonic()-started)*1000),'revision':REVISION}
+
+
+def _detect_tiled_boxes(image,session,manifest,document_id,page,started):
+    """Keep native line detail, assigning each center to one overlapping tile."""
+    from PIL import Image
+    size=manifest.get('input_size',1024)
+    if max(image.size)<=size:
+        return _detect_boxes(image,session,{**manifest,'inference_mode':'full_page'},document_id,page,started)
+    source=image.convert('RGB').copy()
+    source.thumbnail((size*2,size*2),Image.Resampling.LANCZOS)
+    width,height=source.size;core=size//2;margin=(size-core)//2
+    candidates=[]
+    for top in range(0,height,core):
+        for left in range(0,width,core):
+            origin_x,origin_y=left-margin,top-margin
+            tile=Image.new('RGB',(size,size),'white')
+            xa,ya=max(0,origin_x),max(0,origin_y)
+            xb,yb=min(width,origin_x+size),min(height,origin_y+size)
+            tile.paste(source.crop((xa,ya,xb,yb)),(xa-origin_x,ya-origin_y))
+            found=_detect_boxes(tile,session,{**manifest,'inference_mode':'full_page'},document_id,page,started)
+            for row in found['objects']:
+                box=row['bbox']
+                center_x=(box[0]+box[2])/2*size+origin_x
+                center_y=(box[1]+box[3])/2*size+origin_y
+                if not left<=center_x<min(width,left+core) or not top<=center_y<min(height,top+core):continue
+                mapped=[max(0,(box[0]*size+origin_x)/width),max(0,(box[1]*size+origin_y)/height),
+                        min(1,(box[2]*size+origin_x)/width),min(1,(box[3]*size+origin_y)/height)]
+                if mapped[2]>mapped[0] and mapped[3]>mapped[1]:candidates.append({**row,'bbox':mapped})
+    selected=[]
+    for row in sorted(candidates,key=lambda value:-value['score']):
+        if any(previous['category']==row['category'] and _overlap(previous['bbox'],row['bbox'])>manifest.get('iou_threshold',.5) for previous in selected):continue
+        box=row['bbox']
+        identity=hashlib.sha256(json.dumps([manifest['model_sha256'],document_id,page,row['category'],box]).encode()).hexdigest()[:18]
+        selected.append({**row,'id':'detector-'+identity,'point':[(box[0]+box[2])/2,(box[1]+box[3])/2]})
+    return {'objects':selected,'model_sha256':manifest['model_sha256'],'name':manifest.get('name','Symbol detector'),
+            'training_domain':manifest.get('training_domain','Unknown'),'calibrated':False,'abstained':not selected,
+            'duration_ms':round((time.monotonic()-started)*1000),'revision':REVISION,'inference_mode':'native_tiles'}

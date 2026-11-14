@@ -703,7 +703,11 @@ def _ask_question(payload: AskRequest, answer_id: str):
         if len(r) != 4 or not all(math.isfinite(v) and 0 <= v <= 1 for v in r) or r[0] >= r[2] or r[1] >= r[3]:
             raise HTTPException(422, 'The selected drawing region is invalid.')
     data = extracted(payload.document_id)
-    if payload.page > data.get('page_count', 1):
+    page_count=data.get('page_count',1)
+    model_without_views=doc.get('format')=='ifc' and not data.get('pages')
+    if model_without_views and (payload.scope!='document' or payload.region is not None):
+        raise HTTPException(422,'This IFC has no linked two-dimensional pages. Ask about the complete model.')
+    if payload.page > (1 if model_without_views else page_count):
         raise HTTPException(422, 'That drawing page does not exist.')
     doc = store.get_document(payload.document_id)
     source = store.get_path(payload.document_id)

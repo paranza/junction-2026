@@ -892,6 +892,31 @@ def _ifc_explicit_quantities(entity, metadata):
     return result
 
 
+def _ifc_material_properties(entity,metadata):
+    """Explicit material names and declared layer thickness, never a geometry guess."""
+    import ifcopenshell.util.element as element_util
+    result={}
+    try:
+        materials=element_util.get_materials(entity)
+        names=[material.Name for material in materials if isinstance(getattr(material,'Name',None),str) and material.Name.strip()]
+        if names:result.update(materials=names,material_names='; '.join(names))
+        material=element_util.get_material(entity,should_skip_usage=True)
+        if material is not None and material.is_a('IfcMaterialLayerSet'):
+            layers=list(material.MaterialLayers or ())
+            values=[getattr(layer,'LayerThickness',None) for layer in layers]
+            scale=metadata.get('length_unit_scale')
+            if values and scale and all(type(value) in (int,float) and math.isfinite(value) and value>=0 for value in values):
+                result['material_thickness_m']=sum(values)*scale
+                result['quantity_sources']={'material_thickness_m':{
+                    'value':result['material_thickness_m'],'unit':'m',
+                    'property_path':'IfcMaterialLayerSet.MaterialLayers.LayerThickness',
+                    'unit_basis':'project LENGTHUNIT','basis':'sum of declared material layer thicknesses',
+                    'layer_values_raw':values,'length_unit_scale':scale}}
+    except (AttributeError,TypeError,ValueError,RuntimeError):
+        pass
+    return result
+
+
 def _ifc(path, root):
     import ifcopenshell
     import ifcopenshell.util.element as element_util
@@ -975,14 +1000,16 @@ def _ifc(path, root):
                     and base(whole.is_a()) == base(entity.is_a())):
                 props.update(nested_in=whole.is_a(), nested_in_guid=getattr(whole, "GlobalId", None))
             # Large walls/MEP models can contain tens of thousands of products.
-            # Read full property sets only where this native QA route uses them.
-            psets = element_util.get_psets(entity) if entity.is_a("IfcSpace") else {}
+            # Model-planned questions need the actual source schema, including
+            # wall, envelope and service properties. Context examples are bounded
+            # later; the extracted source is never reduced to those examples.
+            psets = element_util.get_psets(entity)
             if psets:
                 props["property_sets"] = _safe(psets)
                 # Common exporter-specific area properties, e.g. Estonian
                 # AR_Ruum.120_Pindala. Do not confuse a length unit with area.
                 candidates = []
-                for set_name, values in psets.items():
+                for set_name, values in (psets.items() if entity.is_a("IfcSpace") else []):
                     if not isinstance(values, dict):
                         continue
                     for property_name, value in values.items():
@@ -1026,11 +1053,21 @@ def _ifc(path, root):
                 props["predefined_type"] = str(predefined)
         except Exception:
             pass
+        material_properties=_ifc_material_properties(entity,result['metadata'])
+        quantity_sources=material_properties.pop('quantity_sources',{})
+        if quantity_sources:props.setdefault('quantity_sources',{}).update(quantity_sources)
+        props.update(material_properties)
         # Dimensions are model length units, separate from area quantities.
         for key in ("OverallWidth", "OverallHeight"):
             value = getattr(entity, key, None)
             if value is not None and result["metadata"]["length_unit_scale"] is not None:
                 props[key] = value * result["metadata"]["length_unit_scale"]
+                canonical='overall_width_m' if key=='OverallWidth' else 'overall_height_m'
+                props[canonical]=props[key]
+                props.setdefault('quantity_sources',{})[canonical]={
+                    'property_path':'IfcDoor.'+key if entity.is_a('IfcDoor') else entity.is_a()+'.'+key,
+                    'value':props[key],'unit':'m','raw_value':value,
+                    'unit_scale':result['metadata']['length_unit_scale'],'unit_basis':'project LENGTHUNIT'}
             elif value is not None:
                 props[key+"_raw"] = value
                 props["dimension_warning"] = "No project LENGTHUNIT assignment; raw dimensions are not SI quantities."

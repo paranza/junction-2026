@@ -8,7 +8,8 @@ import statistics
 
 from .verification import _typed_candidates, normalized, unit_spec, convert_quantity
 
-REVISION = 'native-query-v3'
+REVISION = 'native-query-v5'
+TEXT_AGGREGATES=['lookup','values','unique_values']
 SCALAR = {'type': ['string', 'number', 'boolean']}
 FILTER = {'type':'object','additionalProperties':False,'properties':{
     'field':{'type':'string'},
@@ -25,7 +26,7 @@ SELECTION = {'type':'object','additionalProperties':False,'properties':{
 },'required':['object_type','object_ids','filters','aggregate','property']}
 SCHEMA = {'type':'object','additionalProperties':False,'properties':{
     'answerable':{'type':'boolean'}, **SELECTION['properties'],
-    'aggregate':{'type':'string','enum':BASE_AGGREGATES+['group_count','group_sum','group_mean','ratio','percentage','difference']},
+    'aggregate':{'type':'string','enum':BASE_AGGREGATES+TEXT_AGGREGATES+['group_count','group_sum','group_mean','ratio','percentage','difference']},
     'group_by':{'type':['string','null']}, 'output_unit':{'type':['string','null']},
     'comparison':{'anyOf':[SELECTION,{'type':'null'}]},
     'explanation':{'type':'string'}, 'clarification':{'type':['string','null']},
@@ -34,6 +35,8 @@ SYSTEM = """Interpret the question as a query over the supplied native drawing r
 Select an exact supplied object_type, or explicit object_ids. null IDs selects ALL objects of that type in the requested page/region, including omitted examples. An empty list selects nothing. Filters are AND. A field is label, type, page or an exact properties.<name> path. Do not invent properties, identifiers, names, classifications or relationships. Preserve source labels and net/gross/printed/geometric distinctions. Numeric filter values use the named source field's stated unit.
 Use one_of or none_of with an array for OR values within one field. To count several source object types together, object_type can be null only with an explicit type one_of filter. Do not silently widen any requested group.
 Choose count, value (one object), sum, min, max, mean, median, group_count, group_sum or group_mean. Grouping needs an exact scalar group_by field, not a guessed category. Min/max compares all eligible objects, not a guessed winner. output_unit is null or a compatible explicit unit the user requested.
+For textual source attributes, lookup retrieves one selected object's exact string or boolean property, values lists the selected objects' strings, and unique_values lists distinct source strings. Text attributes require property and null output_unit, cannot answer measurement/count questions, and cannot generate text not present in the source. For a per-object measurement breakdown, values can instead return a table of a typed quantity property with its stated unit; every selected object must have that quantity.
+types lists source types and fields. shared_field_groups maps a shared prefix to field suffixes; join prefix + '.' + suffix to form an exact field path. A type's field_groups lists which shared groups occur on that type. Field availability in the catalogue does not guarantee every object has a value. quantity_sources is verification provenance, not a second set of quantities.
 For ratio, percentage or difference, the top-level selection is the numerator/left side and comparison is the denominator/right side. Its aggregate tells how BOTH sides are aggregated (use count if property is null, sum otherwise); comparison.aggregate must match. Counts or measurements must have compatible dimensions. A percentage is 100 times numerator/denominator. Never invent a denominator or infer spatial joins from names.
 Previous selection IDs and a previous query are supplied only for follow-ups. Use them only when the wording refers to that selection, and respect the current region. A reviewed count is not an editable native room property.
 For ambiguous intent, answerable=false and clarification is one concise question offering concrete interpretations. For unsupported calculations, missing measurements, image-only questions or unresolved spatial relationships, answerable=false and clarification=null so other source tools can try. Otherwise clarification=null. explanation is one short plain-language description of what you selected and calculated.
@@ -161,6 +164,24 @@ def execute(plan, document):
         source = document.get('objects', [])
         selected = _select(plan, source)
         aggregate, prop = plan.get('aggregate'), plan.get('property')
+        if aggregate in TEXT_AGGREGATES:
+            if not selected or aggregate=='lookup' and len(selected)!=1:
+                return None
+            values=[_field(obj,prop) for obj in selected]
+            if aggregate=='values' and all(type(value) in (int,float) for value in values):
+                terms,unit=_terms(selected,prop,plan.get('output_unit'))
+                rows=[{'label':str(obj.get('label') or obj['id']),'value':round(value,6),
+                       'unit':_display_unit(unit),'object_ids':[str(obj['id'])]} for obj,value in zip(selected,terms)]
+                return {'value':None,'unit':None,'operation':'table','objects':selected,'operands':selected,
+                        'terms':terms,'rows':rows,'quantity_dimension':unit_spec(unit)[0]}
+            if plan.get('output_unit'):return None
+            if any(not isinstance(value,(str,bool)) or isinstance(value,str) and not value.strip() for value in values):
+                return None
+            text_values=list(dict.fromkeys(values)) if aggregate=='unique_values' else values
+            lines=[str(value).lower() if type(value) is bool else value for value in text_values]
+            if aggregate=='values':lines=[str(obj.get('label') or obj['id'])+': '+value for obj,value in zip(selected,lines)]
+            return {'value':None,'unit':None,'operation':'text','objects':selected,'operands':selected,
+                    'terms':[],'source_text':'\n'.join(lines),'text_values':text_values}
         if aggregate in ('group_count','group_sum','group_mean'):
             groups = {}
             for obj in selected:
@@ -249,8 +270,30 @@ def _planner_context(records, question, limit=64000):
     if len(encoded(context))>limit//2:
         for entry in types.values():entry.pop('sample_values',None)
     if len(encoded(context))>limit//2:
-        types={kind:{'records':entry['records'],'fields':[],'fields_omitted':True} for kind,entry in catalog.items()}
-        context['types']=types
+        # Pset schemas repeat across thousands of entities and many types.
+        # Share their paths without hiding every field when the catalogue grows.
+        groups={}
+        for entry in types.values():
+            fields=[];references=set()
+            for path in entry['fields']:
+                if path.startswith('properties.quantity_sources.'):
+                    continue
+                parts=path.split('.')
+                if len(parts)>3 and parts[1]=='property_sets':
+                    prefix='.'.join(parts[:3]);suffix='.'.join(parts[3:])
+                    groups.setdefault(prefix,set()).add(suffix);references.add(prefix)
+                else:fields.append(path)
+            entry['fields']=fields
+            if references:entry['field_groups']=sorted(references)
+        context['shared_field_groups']={prefix:sorted(fields) for prefix,fields in sorted(groups.items())}
+    if len(encoded(context))>limit//2:
+        # Preserve question-relevant fields within the hard prompt budget.
+        for entry in types.values():
+            entry['fields']=sorted(entry['fields'],key=lambda path:-len(tokens&set(normalized(path).split())))[:64]
+            entry['fields_omitted']=True
+        for prefix,fields in context.get('shared_field_groups',{}).items():
+            context['shared_field_groups'][prefix]=sorted(fields,key=lambda path:-len(tokens&set(normalized(path).split())))[:32]
+        context['field_catalogue_complete']=False
     ranked=sorted(records,key=lambda obj:-len(tokens & set(normalized(str(obj.get('label',''))+' '+encoded(obj['properties'])).split())))
     # Quantity provenance remains in the original document for verification.
     # Repeating it for hundreds of examples can otherwise consume the entire
@@ -298,19 +341,29 @@ def answer(question, document, request, cache=None, previous=None):
     found = execute(plan, document)
     if found is None:
         return None
+    if plan.get('aggregate') in TEXT_AGGREGATES:
+        from .llm import requested_quantity
+        expected=requested_quantity(question)
+        if expected and (found['operation']=='text' or found.get('quantity_dimension')!=expected):return None
     evidence = [{key:obj[key] for key in ('id','label','type','page','bbox','polygon','source_path','guid','properties') if obj.get(key) is not None} for obj in found['objects']]
     names = ', '.join(str(obj.get('properties', {}).get('room_number') or obj.get('label') or obj['id']) for obj in found['objects'][:3])
     detail = f", {names}" if plan['aggregate'] in ('min','max','value') and names else ''
     value, unit = found['value'], found['unit']
-    if found.get('rows'):
-        text = plan.get('explanation') or f"{len(found['rows'])} groups from the source records"
+    if found.get('operation')=='text':
+        text=found['source_text']
+        for item in evidence:
+            field_value=_field(item,plan['property'])
+            item.update(evidence_kind='native',source_verified=True,quoted_text=str(field_value),
+                        property_path=plan['property'])
+    elif found.get('rows'):
+        text = f"{len(found['rows'])} source quantities" if plan['aggregate']=='values' else plan.get('explanation') or f"{len(found['rows'])} groups from the source records"
     else:
         quantity = unit
         if unit == 'count':
             quantity = (plan.get('object_type') or 'object').removeprefix('Ifc').lower()
             if value != 1 and not quantity.endswith('s'): quantity += 's'
         text = f"{value:g} {quantity}{detail}"
-    return {'answer':text.rstrip('.')+'.','value':value,'unit':unit,'rows':found.get('rows',[]),
+    return {'answer':text if found['operation']=='text' else text.rstrip('.')+'.','value':value,'unit':unit,'rows':found.get('rows',[]),
             'operation':found['operation'],'method':'model_planned_native_query','status':'supported',
             'scope':'Selected native source scope','evidence':evidence,'warnings':[],
             'evidence_complete':True,'spatial_evidence_complete':bool(evidence) and all(obj.get('bbox') for obj in evidence),

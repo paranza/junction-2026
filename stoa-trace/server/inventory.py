@@ -13,7 +13,17 @@ from pathlib import Path
 from . import llm, rendering, store
 from .rendering import image_inputs, png_bytes
 
-REVISION = 'located-inventory-v6'
+REVISION = 'located-inventory-v7'
+
+FALLBACK_VISUAL_POLICY={'image_resolution':'ultra_high','thinking_level':'high','max_output_tokens':65536}
+
+
+def _fallback_configuration():
+    model=os.environ.get('STOA_INVENTORY_FALLBACK_MODEL','').strip()
+    if model not in {'','none','gemini-4-argon'}:
+        raise ValueError('STOA_INVENTORY_FALLBACK_MODEL must be empty, none or gemini-4-argon.')
+    if model in {'','none'} or llm.PROVIDER!='gemini' or model==llm.MODEL:return None
+    return {'model':model,'visual_policy':dict(FALLBACK_VISUAL_POLICY),'small_image_crops':True,'maximum_attempts':1}
 
 
 def _reading_count():
@@ -315,6 +325,7 @@ def config_signature():
     from . import detector
     return {'revision': REVISION, 'small_image_crops': bool(rendering.SMALL_IMAGE_CROPS),
             'reading_policy':_policy(),'symbol_reader':_symbol_reader(),'detector':detector.signature(),
+            'failure_fallback':_fallback_configuration(),
             **({'readings': READINGS} if READINGS != 1 else {})}
 
 
@@ -356,6 +367,14 @@ def _locate(result, images):
     return located, discarded
 
 
+def _inventory_content(images,page):
+    content=[{'type':'input_text','text':'Inspect this one drawing page and return the located category inventory. No reference answers or native counts are supplied.'}]
+    for index,image in enumerate(images):
+        content.extend([{'type':'input_text','text':f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
+                        {'type':'input_image','image_url':'data:image/png;base64,'+base64.b64encode(png_bytes(image['image'])).decode(),'detail':'high'}])
+    return content
+
+
 def page_inventory(document, path, page, focus_categories=None):
     system = _system(path)
     schema = SCHEMA
@@ -377,15 +396,14 @@ Every counted item needs its own box. Do not infer a count from a typical buildi
         images = image_inputs(path, [page])
         from . import detector
         specialist = detector.detect_image(images[0]['image'],document.get('document_id'),page) if detector.signature() else None
-        content = [{'type': 'input_text', 'text': 'Inspect this one drawing page and return the located category inventory. No reference answers or native counts are supplied.'}]
-        for index, image in enumerate(images):
-            content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
-                        {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(png_bytes(image['image'])).decode(), 'detail': 'high'}]
+        content = _inventory_content(images,page)
         before = llm.usage_snapshot()
         # Gemini's output budget includes its reasoning: 2,300 to 54,000 tokens per plan were measured.
         request = lambda: llm._request(content, system=system, schema=schema, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
         repeat_reason = None
         attempted = READINGS
+        errors=[]
+        fallback_used=None
         if READINGS > 1 and _policy() == 'repeat':
             # Every reading is the same request. The first that succeeds gives the count and the
             # others only flag a different count, so a failed repeat never fails the answer.
@@ -396,8 +414,7 @@ Every counted item needs its own box. Do not infer a count from a typical buildi
                     return error
             attempts = llm.run_in_parallel([attempt] * READINGS)
             results = [a for a in attempts if not isinstance(a, Exception)]
-            if not results:
-                raise attempts[0]
+            errors = [a for a in attempts if isinstance(a,Exception)]
         elif _policy() == 'adaptive' and READINGS > 1:
             # Count comes from the first successful response in both policies.
             # The second reading is a disagreement flag, not an automatic correction.
@@ -407,7 +424,7 @@ Every counted item needs its own box. Do not infer a count from a typical buildi
                 attempted = 1
                 repeat_reason = _repeat_reason(first,images,specialist)
             except llm.ModelError as error:
-                first_error = error
+                errors.append(error)
                 results = []
                 repeat_reason = 'first_reading_failed'
                 attempted = 1
@@ -417,11 +434,22 @@ Every counted item needs its own box. Do not infer a count from a typical buildi
                     try:
                         results.append(request())
                     except llm.ModelError as error:
-                        first_error = error
-                if not results:
-                    raise first_error
+                        errors.append(error)
         else:
-            results = [request()]
+            try:results = [request()]
+            except llm.ModelError as error:
+                errors.append(error)
+                results=[]
+        if not results:
+            fallback=_fallback_configuration()
+            if not fallback or not errors or not all(isinstance(error,llm.ModelError) and error.recoverable for error in errors):
+                raise errors[0]
+            images=image_inputs(path,[page],small_image_crops=True)
+            content=_inventory_content(images,page)
+            attempted+=1
+            results=[llm._request(content,system=system,schema=schema,max_tokens=65536,
+                                  model=fallback['model'],visual_policy=fallback['visual_policy'])]
+            fallback_used=fallback['model']
         result = results[0]
         objects = []
         located, discarded = _locate(result, images)
@@ -459,9 +487,9 @@ Every counted item needs its own box. Do not infer a count from a typical buildi
                              cached_input_tokens=sum((u.get('input_tokens_details') or {}).get('cached_tokens', 0) for u in usages))
         inventory = {'objects': objects, 'other_readings': other_readings, 'page': page, 'complete_scope_claimed': bool(result.get('complete')),
                      'discarded_candidates': discarded, 'uncertain_envelopes': uncertain, 'warnings': result.get('warnings', []),
-                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.MODEL,
+                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': result.get('_model',llm.MODEL),
                      'provider_signature': llm.provider_signature()}
-        inventory['reading_policy'] = {'policy':_policy(),'attempts':attempted,'successful':len(results),'repeat_reason':repeat_reason}
+        inventory['reading_policy'] = {'policy':_policy(),'attempts':attempted,'successful':len(results),'repeat_reason':repeat_reason,'failure_fallback_model':fallback_used}
         inventory['specialist'] = specialist
         if discarded:
             inventory['warnings'] = list(inventory['warnings']) + [f'{discarded} invalid candidate locations were discarded; the inventory needs review.']
@@ -518,11 +546,12 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
     costs = [i.get('cost_estimate_usd') for i in initial_usage]
     ingestion.update(cost_estimate_usd=sum(costs) if all(c is not None for c in costs) else None,
                      cost_basis='configured_rates' if all(c is not None for c in costs) and ingestion['model_calls'] else ('native' if not ingestion['model_calls'] else 'unconfigured'), cache_hit=False)
+    models=list(dict.fromkeys(inv.get('model',llm.MODEL) for inv in inventories))
     return {'answer': f'{value} located {named} candidates. Review the marked objects and add any misses.' if value is not None else 'The visual inventory could not establish a complete count.',
             'value': value, 'unit': 'count', 'operation': 'count', 'method': 'focused_visual_inventory' if focused else 'visual_inventory', 'status': 'needs_review' if value is not None else 'insufficient_evidence',
             'scope': 'Selected region' if region else (f'Page {page}' if scope == 'page' else 'All drawing pages'),
             'evidence': candidates, 'can_review': bool(candidates) or value is not None, 'calculation': f'Count of {len(candidates)} distinct located {named} candidates.',
-            'warnings': warnings, 'model': llm.MODEL, 'provider_signature': llm.provider_signature(),
+            'warnings': warnings, 'model':models[0] if len(models)==1 else '+'.join(models), 'provider_signature': llm.provider_signature(),
             'inventory_cache_hit': all(i['cache_hit'] for i in inventories),
             'ingestion_usage': ingestion, 'ingestion_by_page': initial_usage,
             'coverage': {'inspected_pages': pages, 'total_pages': page_count, 'complete_scope_claimed': complete},
