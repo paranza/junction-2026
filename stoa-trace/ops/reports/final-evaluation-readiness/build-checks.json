@@ -1,0 +1,24 @@
+{
+  "code_revision": "24b7a66596111bdb1fb95baf725898cbfc11f76b",
+  "backend_tests": {
+    "status": "passed",
+    "tests": 412
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "tests": 59
+  },
+  "frontend_build": {
+    "status": "passed"
+  },
+  "frontend_build_sha256": {
+    "frontend/dist/index.html": "ac63763c7e77ea257c6bdd6f7cbe7fae795dc838142b5b2a5ece28157e634d65",
+    "frontend/dist/assets/index-DJDJJ6la.js": "4916bde82b6109d05c84162432f1045c0a0ccffd86f33f46193540b8bfa2c0a4",
+    "frontend/dist/assets/index-BJdZkLss.css": "7c9e96310156641f17b0f50c1273264723a1eb994260d4a95faa52debe818231"
+  },
+  "log_sha256": {
+    "metria-engineering-backend-tests.log": "dda2870845c418df335c31d573f0603ea6305f87e0e62d42868afc536b4a348c",
+    "metria-engineering-frontend-tests.log": "4862c8a8c03893057866ab51243150484066e2a3a08c47699b6f8da5b9780645",
+    "metria-engineering-frontend-build.log": "59790976061110b481b8dce1dd4722a5a4237eeb05e395ca8408856277a8f4b0"
+  }
+}

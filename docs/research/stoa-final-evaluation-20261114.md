@@ -5,6 +5,16 @@ and the authenticated [challenge brief](https://hackjunction.app/participate/45/
 Times below are Europe/Helsinki. These are partner statements, not a scoring
 guarantee or a description of an automated hidden-test API.
 
+## Later scope update from the team
+
+The user reports that IFC files are excluded from final evaluation because they
+are considered too easy. This update comes from the user; the earlier Discord
+messages below did not establish that exclusion. Treat IFC as compatibility
+regression only. Prioritize PDF and image questions and report their results
+separately, without using easy structured-model answers to imply scan readiness.
+The ongoing frozen 7,066-case native gate still includes IFC to protect existing
+functionality; its overall score is not a final-evaluation estimate.
+
 ## Confirmed guidance
 
 | Source | What the partner said | Consequence for our work |
@@ -77,11 +87,57 @@ precedence. These are token estimates before credits, not invoice totals.
    and reinforcement selection. The current visual fallback can sum compatible
    printed quantities and has a conservative quoted-rectangle path, but is not
    a general dimension-chain or pipe-network solver.
-4. Add targeted inspection of piping symbols, tags and diameters. Do not claim
-   whole-network topology or pipe lengths from a few successful note readings.
+4. Exercise the same question-to-evidence path across object classes and tasks:
+   counts, dimensions, aggregates, comparisons, material attributes and selected
+   regions. Piping is one diagnostic category, not the development objective.
+   Test geometry and network reconstruction separately from reading labels.
 5. Use the full archive to select additional unfamiliar complex drawings. Check
    integrity, disk space and duplicates before extraction. Keep raw data, gold
    labels and credentials outside Git and inference prompts.
 
 The user directed current work toward this evaluation. Detector fine-tuning and
 competitor work are not the current priority; the rejected detector stays off.
+
+## Cross-drawing quantity recovery
+
+Application revision `24b7a66` adds engineering quote notation, fractional inch
+dimensions, common unit aliases and locale-aware printed numbers. Imperial
+comma groups and metric decimal commas have separate rules. Exact native quote
+matching, dimensional compatibility and numeric recomputation still apply.
+An explicit drawing-unit declaration in a question can support a bare visual
+dimension as a provisional reading. An output preference such as "answer in
+mm" cannot supply source units. The application does not mark this user input
+as independently verified source evidence.
+
+Four public development drawings passed original upload, document retrieval
+and preview checks. In an initial live Carbon run, three numeric source
+readings were correct but rejected by the application validators. A separate
+post-change run returned all three source-audited values correctly: an annotated
+diameter, slab thickness and a converted area summary. These checks used three
+additional actual model requests, with seven cumulative requests in the isolated
+runtime and its unchanged ten-attempt ceiling. Gold values were held by the
+evaluator and never sent in model prompts. Raw source images, source answers,
+signed download URLs and model responses remain private.
+
+These are debugged development cases, not an independent accuracy estimate.
+The whole-project pipe-length request still did not establish a numeric total.
+Source-resolution crops improve input access; they do not establish automatic
+geometry tracing, unseen drawing generalization or completeness of a network.
+
+The complete dataset ZIP is present: 9,768,952,082 compressed bytes,
+12,255,051,133 uncompressed bytes and 16,902 entries. Its directory has no absolute
+or parent-traversal paths. This is a directory inventory, not a full CRC audit.
+The question file has not been inspected or scored. Selective drawing extraction
+will preserve disk headroom and quarantine preview duplicates before evaluation.
+
+Fourteen additional files, two available groups from each of seven other source
+collections, have been extracted privately by deterministic filename hash. The
+selection excludes all preview group IDs and filenames, and excludes the entire
+Swiss and CubiCasa sources for this first expansion. No question labels were
+read. The selected members passed ZIP CRC checks and occupy 20.3 MB. This is
+input preparation, not a scored test or a completed semantic duplicate audit.
+All twelve PDF/image files passed document retrieval and first-page preview.
+Both IFC files passed native extraction but correctly reported that no linked
+2D preview is available. These two IFC checks are compatibility checks only,
+in line with the later team scope update. No model requests were made during
+this fourteen-file input check, and answer accuracy was not evaluated.

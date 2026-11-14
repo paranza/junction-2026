@@ -109,3 +109,14 @@ Extend the existing model-planned native executor with typed groups, comparisons
 ## 2026-11-14: Measure automatic answers and refuse incomplete model scope
 
 Evaluate Gemini-backed answers separately from native-only regression. The automatic path correctly answered 12 of 13 previously unanswered development PDF questions. It also supplied unsupported whole-model totals from one projected drawing whose IFC is absent. Add a generic projected-source scope guard before model fallback, while preserving native IFC and visible-plan requests. A four-crop reader did not improve the 22-question visual sample, so it is not integrated. See [full-path development results](evaluation/model-coverage-development.md).
+
+## 2026-11-14: Final preparation prioritizes unfamiliar PDF and image questions
+
+The user reports that final evaluation excludes IFC as too easy. Preserve IFC
+functionality through regression, but allocate new evaluation and development
+to PDF and image drawings, especially complex scans. Report those results
+separately from IFC and keep arbitrary question interpretation as the goal,
+rather than specializing the application for piping or another guessed task.
+Improve shared source inspection, quantity transcription, dimensional checks
+and calculation. This scope update does not establish that arbitrary geometry
+or network reconstruction is solved. See [source guidance and live checks](research/stoa-final-evaluation-20261114.md).
