@@ -90,7 +90,7 @@ class IndependentUploads(unittest.TestCase):
             response = self.client.post(route, json={**payload, 'calibration': calibration})
             self.assertEqual(response.status_code, 422, response.text)
 
-    def test_visual_audit_is_default_cached_and_explicitly_optional(self):
+    def test_visual_audit_requires_opt_in_and_caches_separately(self):
         doc_id, _ = self.measurement_source()
         initial = {'operation': 'count', 'value': 1, 'unit': 'count', 'method': 'vision',
                    'status': 'visual', 'answer': 'One candidate', 'warnings': [],
@@ -100,9 +100,9 @@ class IndependentUploads(unittest.TestCase):
         payload = {'document_id': doc_id, 'question': 'How many doors?', 'mode': 'auto'}
         with patch('server.inventory.answer_inventory', return_value=initial) as inventory, \
              patch('server.visual_audit.audit_visual_count', side_effect=audited) as audit:
-            first = self.client.post('/api/ask', json=payload).json()
-            repeated = self.client.post('/api/ask', json=payload).json()
-            unaudited = self.client.post('/api/ask', json={**payload, 'verify_visual': False}).json()
+            unaudited = self.client.post('/api/ask', json=payload).json()
+            first = self.client.post('/api/ask', json={**payload, 'verify_visual': True}).json()
+            repeated = self.client.post('/api/ask', json={**payload, 'verify_visual': True}).json()
         self.assertEqual(audit.call_count, 1)
         self.assertEqual(inventory.call_count, 2)
         self.assertEqual(first['count_audit']['status'], 'completed')

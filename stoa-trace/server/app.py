@@ -209,7 +209,7 @@ class AskRequest(BaseModel):
     region: list[float] | None = None
     mode: str = 'auto'
     cross_check: bool = False
-    verify_visual: bool = True
+    verify_visual: bool = False
     session_id: uuid.UUID | None = None
 
 
