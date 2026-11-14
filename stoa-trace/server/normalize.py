@@ -8,6 +8,8 @@ returned unchanged.
 from __future__ import annotations
 
 from functools import lru_cache
+from collections import Counter
+from decimal import Decimal, InvalidOperation
 import json
 from pathlib import Path
 import re
@@ -16,15 +18,47 @@ import unicodedata
 TABLE = Path(__file__).with_name("question_templates.json")
 
 
+def _quoted_spans(text):
+    """Yield quote spans without mistaking contractions or inch marks for labels."""
+    pairs = {'«': '»', '„': '“', '“': '”', '‘': '’', "'": "'", '"': '"'}
+    i = 0
+    while i < len(text):
+        opening = text[i]
+        closing = pairs.get(opening)
+        if not closing or (opening in {"'", '"', '‘'} and i and text[i - 1].isalnum()):
+            i += 1
+            continue
+        end = i + 1
+        while True:
+            end = text.find(closing, end)
+            if end < 0:
+                break
+            if opening != "'" or end + 1 == len(text) or not text[end + 1].isalnum():
+                break
+            end += 1  # The apostrophe in 'Cage d'escalier' is part of the label.
+        if end < 0:
+            i += 1
+            continue
+        yield i, end + 1, i + 1, end
+        i = end + 1
+
+
 def _clean(text):
-    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", text)).strip()
+    # Sentence spacing can change; source identifiers inside quotes must not.
+    pieces, last = [], 0
+    for start, end, _, _ in _quoted_spans(text):
+        pieces.append(re.sub(r"\s+", " ", unicodedata.normalize("NFC", text[last:start])))
+        pieces.append(text[start:end])
+        last = end
+    pieces.append(re.sub(r"\s+", " ", unicodedata.normalize("NFC", text[last:])))
+    return ''.join(pieces).strip()
 
 
 @lru_cache(maxsize=1)
 def _templates():
     data = json.loads(TABLE.read_text(encoding="utf-8"))
-    translated = [(re.compile(row["pattern"]), row["english"]) for row in data["translated"]]
-    english = [(re.compile(row["pattern"]), row["english"]) for row in data["english"]]
+    translated = [(re.compile(row["pattern"], re.DOTALL), row["english"]) for row in data["translated"]]
+    english = [(re.compile(row["pattern"], re.DOTALL), row["english"]) for row in data["english"]]
     return translated, english
 
 
@@ -50,3 +84,122 @@ def to_english(question: str) -> str:
         if match and any("'" in v for v in match.groupdict().values()):
             return _fill(fmt, match.groupdict())
     return question
+
+
+def _outside_labels(text):
+    labels, pieces, last = [], [], 0
+    for start, end, inner_start, inner_end in _quoted_spans(text):
+        label = text[inner_start:inner_end]
+        # French guillemet padding belongs to the quotation convention.
+        labels.append(label.strip() if text[start] == '«' else label)
+        pieces.append(text[last:start])
+        pieces.append(' ')
+        last = end
+    pieces.append(text[last:])
+    return Counter(labels), ''.join(pieces)
+
+
+def _fold(text):
+    return ''.join(c for c in unicodedata.normalize('NFKD', text.casefold())
+                   if not unicodedata.combining(c)).replace('’', "'")
+
+
+# These are spelling equivalents, not permission to convert a source quantity.
+_UNIT_PATTERNS = (
+    ('mm2', r'mm[²2]|mm\^2|square\s+millimet(?:re|er)s?'),
+    ('cm2', r'cm[²2]|cm\^2|square\s+centimet(?:re|er)s?'),
+    ('mm3', r'mm[³3]|mm\^3|cubic\s+millimet(?:re|er)s?'),
+    ('cm3', r'cm[³3]|cm\^3|cubic\s+centimet(?:re|er)s?'),
+    ('m2', r'm[²2]|m\^2|sqm|square\s+met(?:re|er)s?|metres?\s+carres?|metri\s+quadrati|quadratmeter\w*|neliometr\w*|ruutmeetr\w*|kvadratmeter\w*'),
+    ('m3', r'm[³3]|m\^3|cubic\s+met(?:re|er)s?|metres?\s+cubes?|metri\s+cubi|kubikmeter\w*|kuutiometr\w*|kuupmeetr\w*|kubikmeter\w*'),
+    ('ft2', r'ft[²2]|ft\^2|sq\.?\s*ft|square\s+(?:feet|foot)'),
+    ('ft3', r'ft[³3]|ft\^3|cubic\s+(?:feet|foot)'),
+    ('mm', r'mm|millimet(?:re|er)s?|millimetr\w*'),
+    ('cm', r'cm|centimet(?:re|er)s?|centimetr\w*|senttimetr\w*'),
+    ('m', r'm|met(?:re|er)s?|metr\w*|meetr\w*'),
+    ('ft', r'ft|feet|foot|pieds?'),
+    ('in', r'inches?|pouces?|zoll'),
+)
+_UNIT_RE = re.compile('(?<![A-Za-z])(?:' + '|'.join(
+    f'(?P<u{i}>{pattern})' for i, (_, pattern) in enumerate(_UNIT_PATTERNS)) + ')(?![A-Za-z0-9])', re.I)
+_NUMBER_RE = re.compile(r'(?<![\w.])[-+]?\d+(?:[.,]\d+)*(?:/\d+)?')
+_IDENTIFIER_RE = re.compile(r'(?<![\w.])(?:[^\W\d_]\w*(?:[.:-]\w+)*|\d+(?:[.:-]\w+)+)(?![\w.])')
+_CONTEXT_ID_RE = re.compile(r'\b(?:apartment|unit|room|space|floor|level|wohnung|raum|appartement|pièce|piece|appartamento|locale|asunto|huone|ruum|rum)\s+(\w+(?:[.:-]\w+)*)', re.I)
+
+
+def _immutable_tokens(text):
+    units = Counter()
+    def remove_unit(match):
+        units[_UNIT_PATTERNS[int(match.lastgroup[1:])][0]] += 1
+        return ' ' * len(match.group())
+    remaining = _UNIT_RE.sub(remove_unit, _fold(text))
+    # Parse IDs from the untouched source, even if Unicode case folding changes
+    # string length. Distinguish a unit symbol from an explicitly named Room M2.
+    identifiers = Counter(m.group() for m in _IDENTIFIER_RE.finditer(text)
+                          if any(c.isdigit() for c in m.group()) and any(c.isalpha() for c in m.group())
+                          and not _UNIT_RE.fullmatch(_fold(m.group())))
+    identifiers.update(value for value in _CONTEXT_ID_RE.findall(text)
+                       if (len(value) == 1 and value.isalpha()) or (any(c.isdigit() for c in value) and any(c.isalpha() for c in value)))
+    numbers = Counter()
+    for match in _NUMBER_RE.finditer(remaining):
+        token = match.group()
+        # A separator followed by three digits can be a decimal or thousands
+        # separator. Do not guess that a reformatted number is equivalent.
+        if re.fullmatch(r'[+-]?[1-9]\d{0,2}[.,]\d{3}', token):
+            numbers['ambiguous:' + token] += 1
+            continue
+        try:
+            numerator, _, denominator = token.replace(',', '.').partition('/')
+            number = Decimal(numerator) / Decimal(denominator) if denominator else Decimal(numerator)
+            numbers[str(number.normalize())] += 1
+        except (InvalidOperation, ZeroDivisionError):
+            numbers['literal:' + token] += 1
+    return identifiers, numbers, units
+
+
+_CONSTRAINTS = (
+    ('exclude', r"\b(?:do\s+not\s+(?:count|include)|not\s+(?:counting|including)|ne\s+(?:comptez|compter|inclu\w*)\s+pas|excluding|exclude|except|without|other\s+than|sans|hors|sauf|exclu\w*|ohne|ausgenommen|ausgeschlossen|esclus\w*|eccetto|senza|ilman|lukuun\s+ottamatta|pois\s+lukien|laskematta|valja\s+arvatud|arvestamata|ilma|uden|undtagen|eksklusiv\w*|sin|excepto|sem)\b"),
+    ('only', r'\b(?:only|solely|exclusively|seulement|uniquement|exclusivement|nur|ausschliesslich|lediglich|solo|soltanto|esclusivamente|vain|ainoastaan|pelkastaan|ainult|uksnes|kun|udelukkende|solamente|unicamente)\b'),
+    ('at_least', r'>=|≥|\b(?:at\s+least|minimum|mindestens|au\s+moins|almeno|vahintaan|vahemalt|mindst)\b'),
+    ('at_most', r'<=|≤|\b(?:at\s+most|maximum|hochstens|au\s+plus|al\s+massimo|enintaan|maksimaalselt|hojst)\b'),
+    ('greater', r'(?<![<>=])>(?!=)|\b(?:more\s+than|greater\s+than|wider\s+than|taller\s+than|larger\s+than|mehr\s+als|grosser\s+als|breiter\s+als|plus\s+de|superieur\w*\s+a|depass\w*|piu\s+di|yli|suurem\w*\s+kui|ule|mere\s+end)\b'),
+    ('less', r'(?<![<>=])<(?!=)|\b(?:less\s+than|smaller\s+than|narrower\s+than|shorter\s+than|weniger\s+als|kleiner\s+als|moins\s+de|inferieur\w*\s+a|meno\s+di|alle(?=\s+[-+]?\d)|vaiksem\w*\s+kui|mindre\s+end)\b'),
+    ('all', r'\b(?:all|every|entire|whole|total|combined|tous|toutes|tout|alle|allen|aller|alles|gesamt\w*|tutti|tutte|totale|kaikki|koko|koik\w*|samtlige|hele)\b'),
+    ('exact', r'(?<![<>=])=(?!=)|\b(?:exactly|genau|exactement|esattamente|tasan|tapselt|præcis)\b'),
+    ('net', r'\b(?:net|nett\w*|neto\w*)\b'),
+    ('gross', r'\b(?:gross|brutto\w*|brut[eoas]?)\b'),
+)
+_NEGATION = re.compile(r"\b(?:not|no|never|neither|don't|doesn't|pas|jamais|aucun\w*|nicht|kein\w*|niemals|non|nessun\w*|ei|eivat|ala|alkaa|mitte|ikke|ingen|nunca|ningun\w*)\b")
+
+
+def _constraint_signature(text):
+    remainder, found = _fold(text), set()
+    # German "Wie gross ist ...?" asks how big something is, not for a gross
+    # quantity. Actual German gross quantities use Brutto- compounds.
+    remainder = re.sub(r'\bwie\s+gross\b', 'how_big', remainder)
+    if re.search(r'\bne\b[^?!.\n]{0,180}\bque\b', remainder):
+        found.add('only')
+    for name, pattern in _CONSTRAINTS:
+        matcher = re.compile(pattern)
+        if matcher.search(remainder):
+            found.add(name)
+            remainder = matcher.sub(' ', remainder)
+    if _NEGATION.search(remainder):
+        found.add('negation')
+    return found
+
+
+def translation_preserves_constraints(original: str, translated: str) -> bool:
+    """Conservative lexical gate for an LLM translation, not a semantic proof.
+
+    Quoted labels and explicit identifiers must survive exactly. Numeric values,
+    spelling-equivalent units, and recognized exclusion/only/comparison/quantity
+    roles must agree. Unknown paraphrases may be refused; callers should retain
+    the original question rather than infer through an unsafe translation.
+    """
+    if not isinstance(original, str) or not isinstance(translated, str) or not original.strip() or not translated.strip():
+        return False
+    labels, source = _outside_labels(original)
+    translated_labels, target = _outside_labels(translated)
+    return (labels == translated_labels and _immutable_tokens(source) == _immutable_tokens(target)
+            and _constraint_signature(source) == _constraint_signature(target))
