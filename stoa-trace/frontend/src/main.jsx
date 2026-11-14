@@ -91,7 +91,7 @@ function DocumentIcon({ doc, size = 18 }) {
   return formatOf(doc) === 'IFC' ? <Box size={size} /> : ['PNG', 'JPG', 'JPEG', 'SVG', 'WEBP', 'TIFF', 'TIF', 'BMP', 'GIF'].includes(formatOf(doc)) ? <FileImage size={size} /> : <FileText size={size} />;
 }
 
-function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, overviewToken, imageVersion = 0 }) {
+function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, focusTarget, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, overviewToken, imageVersion = 0 }) {
   const viewportRef = useRef(null);
   const loadedImageRef = useRef(null);
   const dragRef = useRef(null);
@@ -186,12 +186,14 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
     const scale = Math.min(8, Math.min(viewSize.width * 0.65 / width, viewSize.height * 0.65 / height));
     applyTransform({ scale, x: viewSize.width / 2 - (box[0] + box[2]) / 2 * size.width * scale, y: viewSize.height / 2 - (box[1] + box[3]) / 2 * size.height * scale });
   }, [focusedBoxKey, size.width, size.height, viewSize.width, viewSize.height, applyTransform]);
-  const lastFocusToken = useRef(focusToken);
+  const lastFocusToken = useRef(0);
   useEffect(() => {
+    if (!focusToken) { lastFocusToken.current = 0; return; }
     if (focusToken === lastFocusToken.current || imageState !== 'ready' || loadedImageRef.current !== imageUrl
+        || String(focusTarget?.documentId) !== String(document?.id) || Number(focusTarget?.page || 1) !== page
         || !viewportRef.current?.clientWidth || !viewportRef.current?.clientHeight) return;
     lastFocusToken.current = focusToken; setShowEvidence(true); focusEvidence();
-  }, [focusToken, imageState, imageUrl, focusEvidence]);
+  }, [focusToken, imageState, imageUrl, focusEvidence, focusTarget?.documentId, focusTarget?.page, document?.id, page]);
   const activeRegion = draftRegion || region;
   const spatialEvidenceCount = evidence.filter(item => evidenceBBox(item) || item.polygon?.length).length;
   return <div className="drawing-workspace">
@@ -344,6 +346,7 @@ function App() {
   const evidence = useMemo(() => reviewEvidence(answer, manualAdditions).map((item, index) => ({ ...item, _key: evidenceKey(item, index), _number: index + 1 })), [answer, manualAdditions]);
   const canvasEvidence = answer?.source_changed ? [] : [...evidence, ...(comparisonEvidence ? [comparisonEvidence] : []), ...(pendingManual ? [{ id: 'manual-preview', _key: 'manual-preview', _number: '+', label: manualLabel || 'Missing object', document_id: pendingManual.document_id, page: pendingManual.page, bbox: pendingManual.bbox, manual: true }] : [])].filter(item => String(item.document_id ?? answerDocumentId) === String(selectedId) && Number(item.page || 1) === page && evidenceBBox(item)).map(item => ({ ...item, _excluded: excluded.includes(item._key) }));
   const selectedEvidenceItem = evidence.find(item => item._key === selectedEvidence);
+  const focusEvidenceItem = selectedEvidenceItem || (comparisonEvidence?._key === selectedEvidence ? comparisonEvidence : null);
   const pageCount = Number(detail?.page_count || detail?.pages?.length || 1);
   const warnings = arrayOf(answer?.warnings);
   const resultStatus = getStatus(answer);
@@ -420,7 +423,7 @@ function App() {
   const selectDocument = useCallback((id, keepAnswer = false, requestedPage = 1) => {
     initialConversationRestore.current = true;
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
-    if (!keepAnswer) { setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
+    if (!keepAnswer) { setFocusToken(0); setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
   }, [cancelAsk, cancelHistory, cancelManual]);
   const selectEvidence = useCallback(item => {
     if (answerRef.current?.source_changed) return;
@@ -445,7 +448,7 @@ function App() {
       const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
       if (controller.signal.aborted || activeAskRef.current?.sequence !== sequence || contextRef.current !== context) return;
       activeAskRef.current = null; setAsking(false);
-      setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
+      setFocusToken(0); setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
       const primaryEvidence = allEvidence(result).find(item => evidenceBBox(item)) || allEvidence(result)[0];
       setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null);
       // Open the relevant source page, while retaining a whole-page view.
@@ -458,7 +461,7 @@ function App() {
   const acceptMeasuredAnswer = useCallback(result => {
     if (String(result.document_id) !== String(selectedId)) return;
     cancelAsk(); cancelHistory(); cancelManual();
-    setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion('');
+    setFocusToken(0); setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion('');
     setAnswerDocumentName(documentName(result.document)); loadReviewDraft(result); setAskError(''); setAskErrorUsage(undefined); setAnswerOpen(true);
     const primary = arrayOf(result.evidence)[0];
     setSelectedEvidence(primary ? evidenceKey(primary, 0) : null);
@@ -552,7 +555,7 @@ function App() {
       const primaryEvidence = result.source_changed ? null : allEvidence(result).find(source => !source.excluded && evidenceBBox(source)) || allEvidence(result)[0];
       const documentId = result.document_id || item.documentId;
       selectDocument(primaryEvidence?.document_id || documentId, true, primaryEvidence?.page || result.provenance?.page);
-      setQuestion(''); setPendingQuestion(null); setAnswerQuestion(result.question || item.question); setAnswerDocumentName(result.document?.name || item.documentName); setAnswer(result); setAnswerDocumentId(documentId); loadReviewDraft(result);
+      setFocusToken(0); setQuestion(''); setPendingQuestion(null); setAnswerQuestion(result.question || item.question); setAnswerDocumentName(result.document?.name || item.documentName); setAnswer(result); setAnswerDocumentId(documentId); loadReviewDraft(result);
       setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null); setAnswerOpen(true);
       setHistory(items => mergeHistory(items, [historyItem(result, item)]));
 
@@ -604,7 +607,7 @@ function App() {
         <div className="library-footer"><input ref={fileInputRef} type="file" tabIndex={-1} multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><BoardButton variant="secondary" className="upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</BoardButton>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
       </aside>
       <main className="main-drawing" aria-label="Selected drawing">
-        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} overviewToken={answer?.id} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><h2>Open a drawing</h2><p>Choose a project file or upload a plan.<br />Ask a quantity question and inspect its source.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
+        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} focusTarget={focusEvidenceItem ? { documentId: focusEvidenceItem.document_id || answerDocumentId, page: focusEvidenceItem.page || 1 } : null} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} overviewToken={answer?.id} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><h2>Open a drawing</h2><p>Choose a project file or upload a plan.<br />Ask a quantity question and inspect its source.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
       </main>
       <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Ask Trace and inspect answers">
         <div className="answer-panel-heading"><div><h1>Conversation</h1><p>Ask, inspect, then verify.</p></div><BoardButton variant="ghost" size="small" className="conversation-library-button" onClick={() => { initialConversationRestore.current = true; setLibraryOpen(true); }}><FolderOpen size={16} /> Change drawing</BoardButton></div>
@@ -668,10 +671,9 @@ function App() {
         <form className="question-form" onSubmit={event => ask(event, crossCheck)}>
           <div className="composer-context"><FileText size={14} /><span title={documentName(selectedDocument)}>{selectedDocument ? documentName(selectedDocument) : 'Choose a drawing to start'}</span>{selectedDocument && <small>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole drawing'}</small>}</div>
           <label className="sr-only" htmlFor="question-input">What do you need to know?</label>
-          <div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask a question about this drawing…" value={question} onChange={event => { initialConversationRestore.current = true; setQuestion(event.target.value); }} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); ask(event, crossCheck); } }} rows={2} /><div className="composer-actions"><IconButton label="Upload drawings" onClick={() => fileInputRef.current?.click()} disabled={uploading}><Plus size={18} /></IconButton><span>Enter to send · Shift + Enter for a new line</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={18} className="spin" /> : <ArrowUp size={18} />}</button></div></div>
+          <div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask a question about this drawing…" value={question} onChange={event => { initialConversationRestore.current = true; setQuestion(event.target.value); }} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); ask(event, crossCheck); } }} rows={1} /><div className="composer-actions"><IconButton label="Upload drawings" onClick={() => fileInputRef.current?.click()} disabled={uploading}><Plus size={18} /></IconButton><span>Enter to send · Shift + Enter for a new line</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={18} className="spin" /> : <ArrowUp size={18} />}</button></div></div>
           <details className="analysis-options"><summary>Analysis options{region ? ' · selected area' : crossCheck || verifyVisual ? ' · custom' : ''}<ChevronDown size={14} /></summary><div className="analysis-options-body"><label className="query-options"><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>May use a model request; scopes must match.</small></span></label><label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>One extra model pass. May change or withhold the count.</small></span></label></div></details>
         </form>
-        <footer className="answer-panel-footer"><ShieldCheck size={14} /><span>Inspect sources before making site decisions.</span></footer>
       </aside>
     </div>
   </div>;
