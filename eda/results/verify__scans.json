@@ -1,0 +1,137 @@
+{
+ "slice": "Independent skeptic for slice \"scans\" (europeana 61 JPG, finna 96 JPG, habs 92 JPG, wikimedia 125 JPG + 7 SVG). Started 01:22:17 EET; finished at about 01:40 EET. All of my code, CSVs and images are in eda/scans/verify/. Scripts: v01_meta.py (my own JPEG marker parser), v02_pixels.py (pixel metrics on all 374 JPGs), v03_svg.py, v04_checks.py, v05_sheets.py, v06_scalebar.py, v07_vt0165.py. Main outputs: v01_meta.csv and v02_pixels.csv. I did not re-run any of the analyst's scripts as evidence.",
+ "verdicts": [
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My own JPEG marker parser (v01_meta.py, no PIL) ran on all 374 JPGs.\n- Long side, median/min/max: europeana 1200/700/3000, finna 3000/3000/3000, habs 3000/3000/3000, wikimedia 1200/125/2500.\n- Files at a cap: finna 96/96 and habs 92/92 at exactly 3000; europeana 14 at 3000; wikimedia 27 at 2500.\n- Small files: wikimedia 13 under 500 px and 33 under 800; europeana 10 under 800.\n- JFIF density units = 0 (aspect ratio 1:1 only) in 374/374. EXIF, XMP and ICC are absent in 374/374.\n- The luminance quantisation table matches the IJG q85 table exactly for 302 files, and q95 for 52 wikimedia files.\n- 10 wikimedia files are single-channel grey.\n- Not found by the analyst: each LICENSE.md documents the downscaling ('downscaled to at most 3,000 px and saved as JPEG'). habs adds 'Full-resolution masters are linked from each file's source page', and finna adds 'Originals are linked from each record page'.",
+   "corrected_claim": "Same claim. Add that the downscaling is documented, and that HABS and finna originals are linked from their source pages. The question for Stoa should therefore be whether the evaluation may use those originals, not whether they exist."
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own column-profile edge finder (v06_scalebar.py, v07_vt0165.py).\nSheet al1276_sheet_00001:\n- Feet-bar verticals at x = 1787, 1955 and 2124 give 16.85 px/ft.\n- The metre bar gives 55.22 px/m, which is 16.83 px/ft.\n- The 39'-0 5/8\" dimension line (row 587) runs from x 470 to 1128 (658 px). That is 39.05 ft with the feet bar (0.0% error) and 39.09 ft with the metre bar (+0.1%).\n- The chain 7'-4 3/4\" + 25'-6 1/8\" (32.906 ft) spans 555 px, which is 32.94 ft (+0.1%).\nSecond sheet, randomly chosen with seed 7 (habs vt0165_sheet_00003, CAD):\n- Feet-bar ticks for 0, 8, 16 and 32 ft at x = 2450, 2491.5, 2533.5 and 2617 give 5.219 px/ft.\n- Dimension ticks at 390, 1340 and 1624. 950 px = 182.03 ft against the written 182'-1 3/4\" (-0.06%). 284 px = 54.42 ft against 54'-5\" (+0.0%).\n- The metre bar on the same sheet gives 5.18 px/ft, which puts both dimensions 0.7% high.",
+   "corrected_claim": "Scale-bar calibration reproduced 4/4 written dimensions on 2 HABS CAD sheets: within 0.1% using the feet bar and within 0.7% using the metre bar. All are inside the 2% tolerance. Precision is limited when the bar is short: the vt0165 bar is 167 px for 32 ft, so 1 px is 0.6%. Hand-drafted, historical and photographed sheets are still untested."
+  },
+  {
+   "finding_id": "F3",
+   "verdict": "corrected",
+   "independent_evidence": "Measured on all 374 files (v02_pixels.py).\nNoise part: confirmed.\n- Haar-HH MAD sigma, median: europeana 0.74, finna 0.74, habs 0.00, wikimedia 0.00.\n- Standard deviation of flat 8x8 paper blocks, median: 1.73, 1.67, 0 and 0.\n- Spearman correlation with the analyst's metrics: 0.83 (noise sigma) and 0.78 (residual).\n- Faint files (range under 0.25): exactly 4/18/1/2, as the analyst reported.\nSmall-text-at-native part: refuted.\n- My text-height proxy counts character-like components with at least 2 horizontal neighbours of similar height.\n- It finds a median text height under 8 px in only europeana 8% (n=39), finna 5% (n=87), habs 1% (n=90) and wikimedia 7% (n=57). The analyst reported 47% and 49% for europeana and wikimedia.\n- Of 253 files that both proxies measured, the analyst's proxy said under 8 px for 54 files and mine for 12. All 12 of mine are inside the analyst's 54.\nBy eye at native resolution:\n- wikimedia 37529264: the analyst's proxy says 4 px. The title is about 26 px, the legend about 20 px and the scale numerals about 10 px.\n- habs sd0400_sheet_00002: the analyst's proxy says 5 px with 608 'words'. The sheet is a stippled site plan; the cabin labels have a cap height of about 7 px and are legible.\n- The analyst's proxy counts stipple and hatching as text.",
+   "corrected_claim": "Paper noise is low, so denoising is not the priority (confirmed). However, at native resolution the text on about 92 to 99% of scans that contain text is 8 px or taller. Small text becomes a problem mainly after a page is downscaled for a model, and in the 43 files under 800 px (wikimedia 33, europeana 10)."
+  },
+  {
+   "finding_id": "F4",
+   "verdict": "corrected",
+   "independent_evidence": "Measured. I used my own adaptive binarisation and opening on all 374 files.\n- Ridge stroke width is 2 px or less in 89% of europeana, 92% of finna, 96% of habs and 65% of wikimedia files.\n- A 3x3 opening keeps under 50% of the ink in 54%, 76%, 73% and 25% of files respectively.\n- The 2x2 opening that the analyst actually used (04_denoise.py) keeps a median 80 to 91% of the ink. It drops below 50% in only 1 to 8% of files.\nText-like component counts on the analyst's 5 files (original, then 2x2 opening, then 3x3 opening):\n- europeana 0940415: 252, 10, 1 (confirms the analyst's result).\n- finna 160499796228700: 80, 84, 45.\n- wikimedia 23820334: 55, 39, 35.\n- europeana 1373: 22, 24, 0.\n- finna 168569566239300: 50, 81, 1.\nOn 6 other files chosen at random (seed 11):\n- The 2x2 opening kept almost all components.\n- The 3x3 opening removed at least 90% of components in 4/6 files.\n- Global Otsu kept most components, except on the engraving (252 to 117) and the halftone (55 to 16).",
+   "corrected_claim": "A 3x3 opening destroys text and thin lines on most scans, because strokes are 1 to 2 px wide. A 2x2 opening is mostly harmless except on fine engravings. Global binarisation hurts mainly halftones and engravings. The product decision is unchanged: keep the original pixels as the evidence layer and use any cleanup only as a display or OCR aid."
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "unverifiable",
+   "independent_evidence": "No generative model is installed, so I could not run one. I viewed the analyst's crop by eye at native resolution, zoomed 2x (wikimedia 23820334, x1517 y1212, 560x340).\n- About 10 of 12 legend entries are readable with German vocabulary priors: Corridor, Salon, Bureau, Büffet, Zimmer, Portier, Damen-Salon, Restaurant, Lesezimmer, Zimmer.\n- Entries a. and k. stay ambiguous.\n- The 'Massstab 1:100' note under the title is too small to read with confidence.",
+   "corrected_claim": "Plausible but untested. The legend is partly legible (about 10/12 entries), so the risk sits in a few ambiguous glyphs. That is exactly where a restorer would produce confident but invented letters. Cite only the original pixels."
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "corrected",
+   "independent_evidence": "Measured with my proxy after fitting the long side to 1568 px. Share of files with median text under 8 px:\n- habs 71% (n=90), finna 41% (n=87), europeana 26% (n=39), wikimedia 21% (n=57).\n- With a stricter filter (at least 50 text components), each share moves by 3 points or less.\n- The analyst reported 82%, 64%, 53% and 58%.\nBy eye: the sd0400 cabin labels are about 7 px at native and would be about 3.7 px after the fit, which is illegible.",
+   "corrected_claim": "Native-resolution tiling is needed for most HABS sheets (about 70 to 80%) and for a large minority of finna sheets. For europeana and wikimedia, about three quarters of files keep median text of 8 px or more after the fit. A zoom loop should therefore be triggered per page, not applied to every page."
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "corrected",
+   "independent_evidence": "Polarity, measured and checked by eye:\n- My rule (mode of the central paper area) flags 13 files. The analyst's rule (median at or below the Otsu threshold) flags 27. The two rules agree on 10.\n- I viewed all 30 files flagged by either rule (polarity_disagreements.jpg, inverted_agreed.jpg).\n- Only 7 are real light-on-dark drawings: europeana 1373 (2 files), europeana 543, 3 finna blueprints and wikimedia 89211056.\n- The analyst's other flags include street and people photos (1274, 98288130), a photo of a display board (198), framed sheets with dark mats (2058401, 756), a dark scan surround (10501), 3D renders (15625628, 53253274), grey-background digital plans (3561257, 7156155, 69827227, 957475) and ordinary light paper sheets (5 files).\nColour, checked by eye:\n- My hue-spread rule finds 27 multi-hue files, which misses single-colour coding.\n- I viewed a seeded sample (seed 5) of 15 files that the analyst calls colour and I call tinted. About 7/15 carry meaningful colour (red or blue coded walls or fills, coloured renderings, a sign photo). About 7/15 are only yellowed paper.\n- Near-duplicate pair wikimedia 70630004 and 70630005: the plan is identical and only the colour coding differs.",
+   "corrected_claim": "About 50 (±10) of 374 files have meaningful colour, not 85. About 7 are inverted blueprints, not 27. Keeping RGB is confirmed, and the 70630004/5 pair supports it even more strongly. Do not auto-invert with the median-versus-Otsu rule: it would invert about 17 ordinary images. Detect blueprints by dark, uniform, blue paper instead."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own ElementTree parse (v03_svg.py).\n- 0 image elements and 0 'data:image' strings in 7/7 files.\n- Text elements: 49321150 has 18 text and 32 tspan elements, holding a 12-item German legend split across tspans. 54047827 has 7 (a 4-item legend). 67713768 has 15 (place names plus 7 legend classes). The other 4 files have none.\n- The twin JPG's aspect ratio matches within 0.3% (worst case 24274934: 0.9403 vs 0.9375).\n- Grey correlation between the PyMuPDF render and the twin: 0.297 for 100075564 (1 style element, 225 class attributes) and 0.684 for 67713768 (15 patterns, 46 url() fills). The rest are 0.914 to 1.000.\n- By eye: the render turns both temples of 100075564 into black blocks, hiding every column, and blacks out the Wald and Sumpf areas of 67713768.",
+   "corrected_claim": "Same claim, except the other renders correlate 0.91 to 1.00, not 0.96 to 1.00. Text parsing must handle tspans. 3 of the 7 SVGs have no viewBox, so mapping to the JPG uses width and height. A column-count question would fail on the MuPDF render of 100075564."
+  },
+  {
+   "finding_id": "F13",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured from the files on disk and questions.jsonl.\n- 913 files and 773 distinct drawings (file stems).\n- 381 scan files (374 JPG + 7 SVG) and 374 scan stems, with 0 questions on any scan stem.\n- The 7,990 questions are cubicasa5k 4270, swiss_dwellings 2358, ifc_models 1049, ifc_bench 249 and opening_design 64.",
+   "corrected_claim": "Same claim. The 'Missed' section below gives evidence that the hidden questions probably skip scans too."
+  },
+  {
+   "finding_id": "F14",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured.\n- At 01:22 EET, ls -lO showed placeholder ('dataless') files: europeana 37/62, finna 50/97, habs 1/93, wikimedia 7/133. The counts move over time.\n- Reading one placeholder sequentially took 32.0 s.\n- Reading all 94 placeholders with 24 parallel readers took 13 s, with 0 failures.",
+   "corrected_claim": "Same claim. One sequential read of an iCloud placeholder stalls for about 32 s. Prefetch the files in parallel or copy the dataset to a non-iCloud folder before any timed evaluation."
+  },
+  {
+   "finding_id": "F12",
+   "verdict": "corrected",
+   "independent_evidence": "By eye on a random sample (seed 99, n=30):\n- 8/30 are multi-view sheets (plan with elevation or section, or two floor plans on one sheet).\n- The analyst's title regex flags 7/30, but only 3 of those 7 are multi-view by eye, and it finds only 3 of the 8.",
+   "corrected_claim": "Multi-view sheets are common (about 27% by eye, n=30). The title-regex tags are unreliable per file (3 of 7 flags correct, 3 of 8 sheets found). Segment views from pixels, not from titles."
+  },
+  {
+   "finding_id": "F8",
+   "verdict": "corrected",
+   "independent_evidence": "By eye on a random sample (seed 99, n=30): 0/30 non-drawings, against the analyst's 3/24. Pooled across both samples: 3/54 (5.6%). Separately, the files flagged by the colour and polarity rules include at least 9 non-drawings or non-orthographic images: photos 1274, 198, 98288130, 55044731 and 14891677; 3D renders 15625628, 53253274 and 49631603; book cover 401.",
+   "corrected_claim": "Non-drawings exist at roughly 3 to 6%, lower than 3/24 suggests. They include 3D renders and perspective photos, which the analyst did not list. The page-type check must also detect 3D and perspective images, not only text pages and blanks. I did not re-check the presence of scale bars or dimensions."
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "Lengths from scale bar (scans)",
+   "analyst_result": "1/1 HABS dimension within 0.2% (al1276, 39.05 ft)",
+   "independent_result": "4/4 written dimensions on 2 HABS CAD sheets: within 0.1% with the feet bar and within 0.7% with the metre bar. al1276: 39'-0 5/8\" and the 32.906 ft chain. vt0165 (random pick, seed 7): 182'-1 3/4\" and 54'-5\".",
+   "notes": "There is no ground truth for unwritten distances; these checks only show that the raster preserves CAD geometry. The vt0165 bar is only 167 px for 32 ft (1 px = 0.6%), and its two bars disagree by 0.7%. Calibrate from the longest written dimension in the same view where possible. Hand-drafted, historical and photographed sheets are untested."
+  },
+  {
+   "question_family": "Title, metadata and label text legibility at native resolution",
+   "analyst_result": "9/11 crops legible, 2 marginal (by eye)",
+   "independent_result": "4/5 different files legible by eye at native resolution: al1276 dimension strings, vt0165 dimensions and scale-bar labels (7 to 10 px), sd0400 cabin labels (about 7 px cap height), and 37529264 title, legend and numerals. 1/5 marginal: the 23820334 halftone legend, about 10/12 entries readable with language priors.",
+   "notes": "Judged by eye only; no OCR engine is installed and no ground truth exists. My result agrees with the analyst's overall picture but not with their claim that text is under 8 px on half the europeana and wikimedia files."
+  },
+  {
+   "question_family": "Legend and keyed-label lookup from SVG XML",
+   "analyst_result": "3/7 SVGs have vector text; 49321150 has a 12-item legend",
+   "independent_result": "3/7 confirmed (49321150, 54047827, 67713768). The legend text is split across tspans. PyMuPDF renders 2/7 wrongly (correlation with the twin 0.297 and 0.684); one of them hides every temple column.",
+   "notes": "Read text and geometry from the XML. Show the JPG twin as the visual. There is no ground truth for answers."
+  },
+  {
+   "question_family": "Content sample (drawing or not, multi-view)",
+   "analyst_result": "Seed 2026, n=24: 3/24 non-drawings; scale information on 17/24",
+   "independent_result": "Seed 99, n=30: 0/30 non-drawings and 8/30 multi-view sheets. Scale bars and dimensions were not assessed at thumbnail size.",
+   "notes": "The pooled non-drawing rate is 3/54. Photos and 3D renders exist (at least 9 files found through the heuristic flags)."
+  },
+  {
+   "question_family": "Symbol counts and areas",
+   "analyst_result": "Not tested",
+   "independent_result": "Not tested. Related evidence: wikimedia 3561257 and 7156155 are near-identical temple diagrams (dHash distance 2) with 4 and 6 columns.",
+   "notes": "Counts must be exact, and visually similar templates can have different counts. Never reuse answers across similar-looking drawings."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "The preview's question coverage matches the README's 'roughly 40%' only because scans have 0 questions. This suggests the hidden question set also concentrates on non-scan sources.",
+   "evidence": "Measured from questions.jsonl and the files on disk. 320/773 drawings (41.4%) have at least one question. That is 320/399 non-scan drawings (80.2%) and 0/374 scan drawings. The README says about 120,000 questions cover roughly 40% of about 14,000 drawings.",
+   "implication": "Inferred, not confirmed. Scan-specific QA (counting or measuring on historic scans) is probably not scored. Spend effort on cubicasa5k, swiss_dwellings and the IFC sources. For scans, keep text reading with an abstain path. Confirm with Stoa."
+  },
+  {
+   "claim": "The downscaling, and where to find the originals, are documented in the dataset itself.",
+   "evidence": "Every scan LICENSE.md says 'downscaled to at most 3,000 px and saved as JPEG'. habs: 'Full-resolution masters are linked from each file's source page'. finna: 'Originals are linked from each record page'. wikimedia: 'SVG files are unchanged', yet the measured maximum long side is 2500 px, not 3000.",
+   "implication": "Drop the question about whether originals exist. Ask instead whether the evaluation may use them, or must use only the dataset files. Any tool that fetches originals must keep the per-file credit."
+  },
+  {
+   "claim": "Near-duplicate drawings can have different answers.",
+   "evidence": "A dHash comparison (64 bits, distance 4 or less) over all 374 JPGs found 2 pairs, which I checked by eye (near_dups.jpg). wikimedia 3561257 (200 px) and 7156155 (2048 px) are the same temple template with 4 and 6 columns. 70630004 and 70630005 show the same church plan with different parts coloured red or orange (construction phases).",
+   "implication": "Never cache or transfer answers between visually similar drawings, and never convert to grey before reasoning. Colour coding and small symbol differences change counts and phase answers."
+  },
+  {
+   "claim": "Short scale bars limit calibration precision more than the analyst's single test suggests.",
+   "evidence": "On habs vt0165_sheet_00003, the feet bar is 167 px for 32 ft (5.22 px/ft), so 1 px is 0.6%. The metre bar on the same sheet implies 5.18 px/ft, 0.7% different. The written 182 ft dimension spans 950 px, where 1 px is 0.1%.",
+   "implication": "Calibrate from the longest written dimension in the same view, and use the bar as a cross-check. Area answers double the calibration error: 0.7% per side becomes about 1.4%, close to the 2% tolerance. Show both calibrations as evidence."
+  },
+  {
+   "claim": "3D renders and perspective photos exist among the scans, and the analyst's polarity rule picks them up as false blueprints.",
+   "evidence": "By eye on the flagged contact sheets: 3D renders wikimedia 15625628, 53253274 and 49631603; photos europeana 1274 (street) and 198 (display board), wikimedia 98288130 (people with a model), and site-sign photos 55044731 and 14891677; a book cover, europeana 401. Of the analyst's 27 'inverted' flags, 17 are not light-on-dark drawings.",
+   "implication": "The page-type gate must reject or flag 3D and perspective images before any metric answer. Do not auto-invert using the median-versus-Otsu rule."
+  }
+ ],
+ "overall_reliability": "Mostly reliable on the facts that drive architecture.\n- Reproduced exactly or closely: F1 (resolution caps, no DPI, JPEG q85/q95), F2 (scale-bar calibration, now 4/4 dimensions on 2 sheets), F10 (SVG content and the bad MuPDF renders), F13 (scan share and 0 questions), F14 (iCloud placeholders) and the low-noise half of F3.\n- Overstated, because rough pixel rules were reported as counts:\n  - Inverted polarity: 27 reported, about 7 real blueprints.\n  - Meaningful colour: 85 reported, about 50.\n  - Text under 8 px at native: 47 to 49% reported for europeana and wikimedia, 5 to 8% in my measurement. The analyst's text proxy counts stipple and hatching as text.\n  - 'Opening destroys text': true for 3x3 kernels and fine engravings, mostly false for the 2x2 kernel the analyst actually used.\n- The product implications mostly survive: keep the original pixels and RGB, tile HABS at native resolution, calibrate from bars or written dimensions, read SVG XML, and add a page-type gate and an abstain path.\n- Implications that need adjusting: no auto-invert by that rule, tiling triggered per page, and calibration from the longest written dimension.\n- Biggest new point: the preview's 41% question coverage suggests the scored questions avoid scans, so scan work should be minimal until Stoa confirms.\nNot checked: skew (F11), languages (F9), the analyst's scale-bar and dimension counts in the seed-2026 sample, hand-drafted or photographed calibration, and any area or count ground truth. All my legibility, colour and polarity judgements are by eye, because no OCR engine is installed."
+}

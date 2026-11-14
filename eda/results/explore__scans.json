@@ -1,0 +1,325 @@
+{
+ "slice": "Scans without questions: data/europeana (61 JPG), data/finna (96 JPG), data/habs (92 JPG), data/wikimedia (125 JPG + 7 SVG). Work dir: eda/scans/",
+ "summary": "I resumed from the earlier run and re-ran quality metrics on the 44 files that failed during the outage: 42 iCloud timeouts and 2 failed decodes, 0 failures on re-run. All 374 JPGs now have metrics. I then viewed about 70 images and 11 crops at native resolution, and tested classical cleanup on 5 noisy scans plus 1 faint one.\n\nMain conclusion: these scans do not need generative denoising. Measured paper noise is low (median residual 0.5 to 2.6 grey levels). The real problems are elsewhere:\n- The images are downscaled with no physical scale. Finna and HABS are capped at exactly 3000 px, Wikimedia at 2500 px, and Europeana and Wikimedia have a median long side of 1200 px. None of the 374 JPGs has a DPI tag.\n- Small text: at native resolution, about half of the Europeana and Wikimedia files that contain text have a median text height under 8 px.\n- Faint pencil (finna), halftone reproductions, colour-coded information, and pages that are not drawings at all.\n\nClassical cleanup results:\n- Morphological opening and global binarisation destroyed thin lines and cursive text. On one engraving, opening removed every word-like group (82 to 0).\n- Background flattening, blueprint inversion and CLAHE are safe as display aids.\n- No method made the illegible halftone legend readable. That is exactly the case where a diffusion model would have to invent letters.\n\nProduct implications:\n- Answer from original pixels at native resolution, read in tiles. When a page is fitted to 1568 px, small notes and fractional dimensions become unreliable.\n- Keep colour, detect inverted polarity, check whether the page is a drawing at all, and abstain when text is illegible.\n- Calibrate lengths only from graphic scale bars or written dimensions. A written ratio like 1:100 is useless without a DPI. On one HABS sheet, scale-bar calibration reproduced a written 39'-0 5/8\" dimension to within 0.2%.\n- For SVGs, read text and geometry from the XML and show the JPG twin. PyMuPDF renders 2 of the 7 SVGs wrongly.\n\nScans are 42% of preview files and have 0 questions, so whether the hidden set asks about them is the key open question for Stoa.",
+ "key_stats": [
+  {
+   "metric": "Files analysed (JPG metrics complete)",
+   "value": "374/374 (europeana 61, finna 96, habs 92, wikimedia 125) + 7 SVG; re-run fixed 44 outage failures, 0 remaining"
+  },
+  {
+   "metric": "Long side (median / min / max px)",
+   "value": "europeana 1200/700/3000; finna 3000/3000/3000; habs 3000/3000/3000; wikimedia 1200/125/2500"
+  },
+  {
+   "metric": "Megapixels (median)",
+   "value": "europeana 1.14, finna 6.42, habs 6.00, wikimedia 1.05"
+  },
+  {
+   "metric": "Files capped at a fixed long side",
+   "value": "finna 96/96 and habs 92/92 at exactly 3000 px; europeana 14/61 at 3000; wikimedia 27/125 at exactly 2500 (max)"
+  },
+  {
+   "metric": "Very small files",
+   "value": "wikimedia 13 with long side < 500 px (smallest 125x90); europeana 10 and wikimedia 33 under 800 px"
+  },
+  {
+   "metric": "DPI metadata present",
+   "value": "0/374"
+  },
+  {
+   "metric": "JPEG quality estimate",
+   "value": "q85 for all europeana, finna, habs and 73/125 wikimedia; q95 for 52 wikimedia (re-encoded derivatives)"
+  },
+  {
+   "metric": "Aspect ratio (median long/short)",
+   "value": "europeana 1.40, finna 1.40, habs 1.50, wikimedia 1.29"
+  },
+  {
+   "metric": "File size (median)",
+   "value": "europeana 0.17 MB, finna 0.73 MB, habs 0.62 MB, wikimedia 0.18 MB"
+  },
+  {
+   "metric": "Colour class",
+   "value": "true colour 85/374 (finna 32, wikimedia 39, europeana 14, habs 0); tinted mono 118; RGB but grey 161 (all habs); 8-bit grey 10 (wikimedia)"
+  },
+  {
+   "metric": "Inverted polarity (light lines on dark)",
+   "value": "27/374 (europeana 10, finna 4, wikimedia 13, habs 0)"
+  },
+  {
+   "metric": "Paper noise, residual std on flat paper (median grey levels)",
+   "value": "habs 0.53, wikimedia 1.09, finna 2.03, europeana 2.63"
+  },
+  {
+   "metric": "Immerkaer noise sigma (median)",
+   "value": "habs 0.06, wikimedia 0.21, finna 0.43, europeana 0.50"
+  },
+  {
+   "metric": "Speckle 1-6 px blobs per MP (median)",
+   "value": "habs 91, finna 342, wikimedia 435, europeana 1832 (europeana mostly engraving hatching, not sensor noise)"
+  },
+  {
+   "metric": "Sharpness, Laplacian variance at 1500 px (median)",
+   "value": "europeana 768, finna 1100, wikimedia 1510, habs 5740"
+  },
+  {
+   "metric": "Skew |deg| >= 0.5 / >= 1 / >= 2",
+   "value": "44 / 15 / 7 of 374 (wikimedia 26 / 12 / 5); Hough and projection estimates agree within 0.3 deg for 86.5% (n=362)"
+  },
+  {
+   "metric": "Background unevenness (median (p95-p5)/median)",
+   "value": "habs 0.00, finna 0.06, europeana 0.16, wikimedia 0.17"
+  },
+  {
+   "metric": "Faint scans (range contrast < 0.25)",
+   "value": "finna 18/96, europeana 4/61, habs 1/92, wikimedia 2/125 (the 2 wikimedia are sparse digital line art, false positives)"
+  },
+  {
+   "metric": "Median text height < 8 px at native resolution (files with detected text)",
+   "value": "europeana 47% (n=36), wikimedia 49% (n=57), finna 16% (n=81), habs 3% (n=92)"
+  },
+  {
+   "metric": "Median text height < 8 px after fitting page to 1568 px",
+   "value": "habs 82%, finna 64%, wikimedia 58%, europeana 53%"
+  },
+  {
+   "metric": "Seeded sample (seed 2026, 6 per source, n=24) by eye",
+   "value": "non-drawings 3/24; scale bar or written ratio 17/24 (habs 6/6, finna 5/6, europeana 4/6, wikimedia 2/6); written dimensions 7/24; labels or keyed legend 11/24"
+  },
+  {
+   "metric": "Native-resolution legibility checks (by eye)",
+   "value": "9/11 crops legible, 2 marginal (halftone legend; 512 px page body text)"
+  },
+  {
+   "metric": "HABS scale-bar calibration check",
+   "value": "al1276: 16.85 px/ft from feet bar; 658 px dimension line = 39.05 ft vs written 39'-0 5/8\" (39.05 ft), error < 0.2% (n=1)"
+  },
+  {
+   "metric": "SVGs",
+   "value": "7/7 have a same-name JPG twin (aspect within 0.3%); 0 embedded rasters; vector text in 3/7; PyMuPDF render misleading for 2/7 (grey correlation with twin 0.32 and 0.70 vs 0.96 to 1.00)"
+  },
+  {
+   "metric": "Share of preview that is scans",
+   "value": "381/913 files (41.7%), 374/773 distinct drawings, 0 questions"
+  },
+  {
+   "metric": "iCloud placeholder files at start",
+   "value": "europeana 47/62, finna 54/97, habs 1/93, wikimedia 49/133 folder entries were 'dataless'"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "The scans are downscaled, re-encoded derivatives with no physical scale metadata. A written ratio such as 1:100 or 1/20 therefore cannot convert pixels to metres.",
+   "evidence": "metrics.csv, all 374 JPGs: finna 96/96 and habs 92/92 have a long side of exactly 3000 px; wikimedia max 2500 (27 at exactly 2500); 0/374 carry a DPI tag; the JPEG quantisation tables match IJG q85 for 302 files and q95 for 52 wikimedia files.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Lengths and areas must come from a graphic scale bar or from written dimensions, never from the nominal ratio. Ask Stoa whether full-resolution originals exist. The product should report which calibration it used."
+  },
+  {
+   "id": "F2",
+   "claim": "Calibrating from a scale bar works on clean HABS sheets at dataset resolution and reproduced a written dimension to within 0.2%.",
+   "evidence": "08_scalebar.py on habs/al1276_sheet_00001.jpg: feet-bar edges at x=1787, 1955 and 2124 px give 10 ft = 168 to 169 px (16.85 px/ft). The overall dimension line runs 470 to 1128 px (658 px) = 39.05 ft against the written 39'-0 5/8\" = 39.05 ft (11.90 m). n=1.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Pixel measurement is viable for HABS lengths within the 2% tolerance. For areas, 2% needs about 1% per side, which is about 2 px on a 13 ft room. Prefer written dimensions when present. Show the scale bar and the measured segment as evidence."
+  },
+  {
+   "id": "F3",
+   "claim": "Noise is not the bottleneck. Measured paper noise is low, and the real failure modes are low resolution, small text, faint pencil, halftone screens and non-drawing pages.",
+   "evidence": "Median residual std on flat paper: 0.53 to 2.63 grey levels; noise sigma 0.06 to 0.50. Median text height under 8 px at native resolution for 47% of europeana and 49% of wikimedia files with text. 18/96 finna files have range contrast under 0.25. Viewed about 70 images (24 earlier random, 24 seeded random, 12 worst and 8 best by composite score) plus 11 native crops.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Generative denoising targets the wrong problem. Effort should go into native-resolution tiling, polarity and colour handling, scale detection, and abstaining when text is illegible."
+  },
+  {
+   "id": "F4",
+   "claim": "Classical cleanup is safe only as a display aid. Binarisation, and especially morphological opening, destroy thin engraved lines, cursive text and fine dimension digits.",
+   "evidence": "04_denoise.py on 5 noisy scans (denoise_proxies.csv, denoise/*_panel.png). Opening cut word-like groups from 82 to 0 on europeana 0940415, 38 to 18 on finna 139877 and 10 to 3 on wikimedia 23820334, and visibly fragmented the cursive Swedish heading. Sauvola cut groups in 4/5 files. NLM cut speckle by 34 to 86% but blurred faint strokes. Deskew took 0.2 to 0.6 deg down to 0.0. Background flattening plus inversion made the Croatian blueprint clean without changing strokes. CLAHE helped the faintest finna title block, while flatten plus stretch amplified paper texture.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Keep the original pixels as the evidence layer. Offer flatten, invert and CLAHE as optional views or as OCR input. Never binarise and open globally before reading."
+  },
+  {
+   "id": "F5",
+   "claim": "Generative (diffusion) restoration carries a real hallucination risk for verifiable answers: on the marginal cases any restorer would have to invent glyphs.",
+   "evidence": "On the halftone hotel legend (wikimedia 23820334) and the 512 px Builder page (europeana 9200579_rj2e4afq), letters and scale-bar numerals are 4 to 6 px and ambiguous at native resolution, and no classical method resolved them. A generative model was not run because none is installed.",
+   "kind": "inferred",
+   "confidence": "high",
+   "implication": "Do not answer from, or cite, generated pixels. If restoration is ever shown, put it next to the original and label it. When the original crop is illegible, abstain or give low confidence."
+  },
+  {
+   "id": "F6",
+   "claim": "Reading a whole page at typical VLM input size loses small notes and fractional dimensions, so native-resolution tiling is required.",
+   "evidence": "After fitting pages to 1568 px, median text height falls below 8 px for 82% of habs, 64% of finna, 58% of wikimedia and 53% of europeana files with detected text. Viewed at 1568 px (11_vlm_res.py), habs ct0720 general notes and al1276 fractional dimensions (5/8 vs 3/8) became unreliable, while room names stayed legible. n=2 by eye.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Use a tile or zoom loop at native resolution for numbers and notes, and cite the native crop. This also produces the 'where in the drawing' evidence the engineer needs."
+  },
+  {
+   "id": "F7",
+   "claim": "Colour and polarity carry meaning and must be preserved.",
+   "evidence": "85/374 files are true colour (finna 32, wikimedia 39, europeana 14). Red, yellow and green pencil annotations on the Croatian blueprint (europeana 1373) and red-coloured walls on finna permit drawings disappear in greyscale. 27/374 files are flagged as inverted polarity (blueprints and negatives).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Keep RGB through the pipeline. Detect polarity and invert for reading. Never convert to greyscale before the model reasons about the page."
+  },
+  {
+   "id": "F8",
+   "claim": "Content is heterogeneous: some files are not drawings, HABS is the most answerable source, and Europeana and Wikimedia rarely carry dimensions.",
+   "evidence": "view_annotations_seed2026.csv (n=24, seed 2026, by eye). 3/24 are not drawings: a europeana journal text page, a europeana blank verso with an inventory number, and a wikimedia photo of a site sign. Scale information appears in habs 6/6, finna 5/6, europeana 4/6 and wikimedia 2/6. Written dimensions appear in habs 5/6, finna 2/6 and 0/12 for the other two sources. finna 6/6 are hand-drawn, habs 3/6 CAD and 3/6 hand-drafted, and wikimedia mixes book prints, halftones, born-digital renders and photos.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Add a page-type check (drawing or not, which views) and a cannot-answer path. Expect measurement questions to be feasible mainly on HABS and some finna sheets."
+  },
+  {
+   "id": "F9",
+   "claim": "Text on the scans is multilingual and mixes historical scripts and units.",
+   "evidence": "Observed in viewed images: English (HABS); Swedish and Finnish, often bilingual or cursive (finna, e.g. SOVRUM, Skarning C-D, PAA PIIRUSTUS / KORTTELI / TONTTI title blocks); German, Polish, Dutch, Spanish, Czech, Croatian with German, Danish, French and Latin. Units include feet and inches with fractions plus metres on HABS, and metres and ratios elsewhere.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Use multilingual OCR or VLM with unit parsing for ft-in fractions. Do not hard-code English room vocabularies. The preview questions are already in EN, FI, DA and ET."
+  },
+  {
+   "id": "F10",
+   "claim": "The SVGs are pure vector files. Three of the seven contain machine-readable text, and their JPG twins are the reliable visual.",
+   "evidence": "05_svg.py (svg_summary.csv, svg_text.csv): 0 image elements in all 7. Vector text is present in 49321150 (18 text elements, including a 12-item numbered German legend), 54047827 (7) and 67713768 (15); the other 4 have no text elements. Twin aspect ratios match within 0.3%. PyMuPDF renders the CSS-class fills of 100075564 and the pattern fills of 67713768 as black blocks (grey correlation with the twin 0.32 and 0.70, vs 0.96 to 1.00 for the rest).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer legend and label questions from the SVG XML, which is exact and has coordinates that map to the JPG by viewBox scaling. Display the JPG twin. Do not rely on MuPDF's SVG rendering."
+  },
+  {
+   "id": "F11",
+   "claim": "Skew is small and irrelevant to measurement tolerance. Perspective in photographed sheets is the larger geometric risk.",
+   "evidence": "|skew| >= 1 deg in 15/374 files and >= 2 deg in 7 (mostly wikimedia). A 1 deg skew changes lengths by 0.015% (1 - cos). Viewed photos with keystone distortion: europeana 756, wikimedia 134695497.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Deskew only to help text-line grouping. Flag perspective photos and refuse metric answers on them unless rectified with a known reference."
+  },
+  {
+   "id": "F12",
+   "claim": "Multi-view sheets are common, which makes 'on this floor plan' questions ambiguous.",
+   "evidence": "62/381 catalogue titles name two or more view types (crude regex; habs 24, europeana 18, finna 11, wikimedia 9). Viewed sheets include habs al1194 (6 floor plans on one sheet) and finna sheets with plan, section and elevation together.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Segment views and answer per view. The citation must name and outline the view used."
+  },
+  {
+   "id": "F13",
+   "claim": "Scans are a large part of the preview but have no questions, so their role in the hidden evaluation is unknown.",
+   "evidence": "inventory.csv: scans are 381/913 files (41.7%) and 374/773 distinct drawings, with 0 questions. Question-bearing sources are cubicasa5k, swiss_dwellings, ifc_models, opening_design and ifc_bench.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Ask Stoa. Until then, handle text and metadata questions and abstain gracefully elsewhere, rather than spending heavily on scan-specific counting."
+  },
+  {
+   "id": "F14",
+   "claim": "The local dataset copy lives on iCloud Desktop as on-demand placeholders, which caused spurious read failures.",
+   "evidence": "At the start of this run, ls -lO showed 'dataless' entries: europeana 47/62, finna 54/97, habs 1/93, wikimedia 49/133. The earlier metrics run had 42 TimeoutErrors and 2 decode errors on files whose bytes are valid JPEG. Re-run after the network returned: 0/44 failures.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Copy the dataset to a local non-iCloud folder before any batch evaluation. Otherwise accuracy numbers can be distorted by I/O failures."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "Title and metadata text (building name, place, date, architect or delineator, scale ratio, sheet number, drawing type)",
+   "n_questions": 0,
+   "best_source_format": "JPG at native resolution (title block), cross-checked with the catalogue title in LICENSE.md",
+   "method": "Find the title block or caption, read it with tiled OCR or VLM at native resolution, and cite that crop. Use catalogue metadata only if Stoa allows it.",
+   "tested": "By eye on 11 native crops: 9 legible (HABS notes, room labels and dimensions; finna title blocks and room labels; Croatian blueprint dimensions; Polish cursive labels; Dutch legend; Danish typeset caption) and 2 marginal (halftone legend, 512 px page). No ground truth exists for scans.",
+   "notes": "Text is free-form in scoring. Languages include SV, FI, DE, PL, NL, ES, CS, HR, DA, FR, LA and EN. Faint finna pencil needs CLAHE for display but was readable."
+  },
+  {
+   "question_family": "Legend and keyed-label lookup ('what is room 5', 'how many legend items')",
+   "n_questions": 0,
+   "best_source_format": "SVG XML text when present (3/7 SVGs), otherwise a JPG legend crop",
+   "method": "Parse SVG text elements and their positions. For rasters, crop the legend, read it, and match the keys to labels on the plan.",
+   "tested": "SVG text extracted from 7/7 files: 3 have text (49321150: 12-item numbered legend plus the numerals on the plan). In the seeded sample, 11/24 scans have room labels or keyed legends.",
+   "notes": "Keys are often letters or numbers that point to a legend, so the answer needs two-hop reading. Legends may sit in a separate area of the sheet."
+  },
+  {
+   "question_family": "Symbol counts (doors, windows, columns, rooms, stairs, legend entries)",
+   "n_questions": 0,
+   "best_source_format": "JPG at native resolution; SVG circles and paths for vector plans",
+   "method": "Segment views first, then run detection or VLM on tiles. Report which view was counted and overlay the counted items.",
+   "tested": "Not tested; no ground truth exists for scans.",
+   "notes": "Hard because symbol conventions are historical and vary by country, hatching and engraving texture create false positives, multi-view sheets are common, and counts must be exact."
+  },
+  {
+   "question_family": "Lengths (overall dimensions, spans, room sides)",
+   "n_questions": 0,
+   "best_source_format": "JPG at native resolution with a graphic scale bar, or written dimension strings",
+   "method": "Detect the scale bar and calibrate px per unit, then measure. Prefer written dimensions. Parse ft-in fractions and metric values.",
+   "tested": "1/1 HABS dimension reproduced within 0.2% from the scale bar (al1276, 39.05 ft).",
+   "notes": "No DPI in 374/374 files, so nominal ratios are unusable. Scale info was visible in 17/24 sampled scans but written dimensions in only 7/24, almost all HABS or finna."
+  },
+  {
+   "question_family": "Areas (room net area, footprint)",
+   "n_questions": 0,
+   "best_source_format": "Written room dimensions (e.g. HABS 'KITCHEN 17'-9\" x 7'-6\"') or a measured polygon times scale squared",
+   "method": "Multiply written dimensions when present. Otherwise segment the room, measure it with scale-bar calibration, and show the polygon as evidence.",
+   "tested": "Not tested beyond the length check.",
+   "notes": "The 2% area tolerance means about 1% per side. The wall-face convention (net vs gross) for scans is unknown. Imperial-to-metric conversion is needed."
+  }
+ ],
+ "risks": [
+  "No ground truth exists for these sources, so every question family above is a hypothesis. Nothing here measures answer accuracy on scans.",
+  "Legibility and content judgements (the 11 crops and 24+24 sampled thumbnails) are by eye, not by a reproducible OCR metric, because no OCR engine is installed. Thumbnails of about 600 px can miss small scale bars and dimensions, so the counts may be underestimates.",
+  "The earlier run's random sample of 24 (view_sample_random.csv) has no recorded seed. Only the new 24-image sample (seed 2026, view_sample_seed2026.csv) is reproducible.",
+  "The text-height proxy detects only horizontal text and was validated on synthetic pages only (02_selfcheck.py). The 'colour', 'inverted' and 'faint' flags are threshold heuristics and were not checked file by file. For example, the 2 wikimedia 'faint' hits are sparse line art.",
+  "The scale-bar calibration check is a single HABS sheet. Historical scans with hand-drawn bars, old units or paper shrinkage were not tested, and area-from-pixels was not tested at all.",
+  "Generative denoising was not run because no model is installed. The hallucination risk is inferred from failure cases where glyphs are ambiguous.",
+  "Catalogue-title tagging (titles_tagged.csv) uses crude multilingual regexes. The multi-view and non-drawing counts derived from it are approximate.",
+  "The dataset sits on iCloud Desktop with on-demand files. Any batch run can hit timeouts again if the network drops. A 27 MB cache of 42 scan files was copied into the work dir/cache for viewing only.",
+  "PyMuPDF is the only SVG renderer available and renders 2/7 SVGs incorrectly. No cairosvg, resvg or librsvg was available to cross-check."
+ ],
+ "questions_for_stoa": [
+  "Will the hidden evaluation include questions on the scan sources (europeana, finna, habs, wikimedia), which have 0 questions in the preview? If yes, which families: text and metadata, counts, or measurements?",
+  "Are full-resolution originals of the scans available? The preview copies are capped at 3000 px (finna, habs) or 2500 px (wikimedia) and carry no DPI.",
+  "For lengths and areas on scans, is the expected method the graphic scale bar, the written dimensions, or something else? Which wall-face convention defines room area?",
+  "On multi-view sheets (for example several floor plans or plan plus section on one sheet), does 'this floor plan' mean one specific view or the whole sheet?",
+  "Can catalogue metadata (titles in LICENSE.md) be used as evidence for text answers, or must every answer be visible in the drawing?",
+  "What answer is expected when a file is not a drawing (journal text page, blank verso, photo of a sign) or when the needed text is illegible?",
+  "For free-form text answers, should the answer be in the drawing's language, in English, or in the question's language?"
+ ],
+ "artifacts": [
+  "eda/scans/metrics.csv",
+  "eda/scans/metrics_enriched.csv",
+  "eda/scans/summary_by_source.csv",
+  "eda/scans/flags_worst.csv",
+  "eda/scans/fig_resolution.png",
+  "eda/scans/fig_quality.png",
+  "eda/scans/denoise_proxies.csv",
+  "eda/scans/denoise/0940415__nn5Vdgp_panel.png",
+  "eda/scans/denoise/hka.139881104940300_168569566239300_panel.png",
+  "eda/scans/denoise/23820334_panel.png",
+  "eda/scans/denoise/1373_https___ekultura_hr_purl_url_4UTLLA7T2TB2DEO24EL2AR5J67EY7IWG_panel.png",
+  "eda/scans/denoise/hka.139877703731200_160499796228700_panel.png",
+  "eda/scans/denoise/hka.144784947553900_168743797776100_faint_panel.png",
+  "eda/scans/svg_summary.csv",
+  "eda/scans/svg_text.csv",
+  "eda/scans/view/pair_100075564_svg__100075564.jpg",
+  "eda/scans/view/pair_67713768_svg__67713768.jpg",
+  "eda/scans/view_annotations_seed2026.csv",
+  "eda/scans/view_sample_seed2026.csv",
+  "eda/scans/view/sheet_worst12.jpg",
+  "eda/scans/view/sheet_best8.jpg",
+  "eda/scans/view/sheet_seed2026_europeana.jpg",
+  "eda/scans/view/sheet_seed2026_finna.jpg",
+  "eda/scans/view/sheet_seed2026_habs.jpg",
+  "eda/scans/view/sheet_seed2026_wikimedia.jpg",
+  "eda/scans/view/al1276_sheet_00001_crop_380_540_820x520_s1.png",
+  "eda/scans/view/al1276_sheet_00001_crop_1560_2150_680x130_s2.png",
+  "eda/scans/view/ct0720_sheet_00001_at1568.png",
+  "eda/scans/view/al1276_sheet_00001_at1568.png",
+  "eda/scans/titles_tagged.csv",
+  "eda/scans/02_metrics.py",
+  "eda/scans/04_denoise.py",
+  "eda/scans/05_svg.py",
+  "eda/scans/08_scalebar.py",
+  "eda/scans/09_rerun_failed.py",
+  "eda/scans/10_faint.py",
+  "eda/scans/11_vlm_res.py"
+ ]
+}

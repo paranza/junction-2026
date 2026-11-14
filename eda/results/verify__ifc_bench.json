@@ -1,0 +1,233 @@
+{
+ "slice": "ifc_bench (independent skeptic re-check of the analyst report; 5 IFC models, 249 IFC-Bench v2 text questions). Own code and outputs in eda/ifc_bench/verify/ (vlib.py, v_profile.py/.json, v_spaces.py/.csv, v_totals.py, v_types.py/.csv, v_geom.py, v_geomtime.py, v_repro.py, v_repro_results.csv, v_sample.json)",
+ "verdicts": [
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured (v_profile.py): ac20 IFC4 ARCHICAD-64 20.0.0 (2017-01-11); digital_hub IFC4 Revit 2019 DEU (exported 2023-10-27); duplex IFC2X3 Revit Architecture 2011; fantasy IFC4 Revit 2024 DEU; hitos IFC2X3 ArchiCAD 11.0 (2006-03-31), LENGTHUNIT MILLI METRE, unit scale 0.001, storey elevations 17300 to 40300. Warm load times in fresh processes 0.02 s (duplex) to 1.15 s (hitos, 1,100,318 entities); one cold in-process load of duplex took 12.6 s (file cache effect). Caveat the analyst missed: hitos ArchiCAD complex property ROOM HEIGHT is stored in metres (14.48) inside a millimetre model, while OverallWidth and layer thicknesses are in mm, so the scale must be applied to typed length attributes and quantities only, not to every numeric property.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured (v_spaces.py): room areas come from BaseQuantities.NetFloorArea (ac20), Qto_SpaceBaseQuantities.NetFloorArea (dh), PSet_Revit_Dimensions.Area (duplex), PSet_Room.Area (fantasy), unnamed qset NetFootprintArea (hitos). Exterior flags: ac20 ArchiCADProperties.Ebene Außenwände 54 / Innenwände 67; hitos presentation layers A23_Yttervegger 257 + A231-Yttervegger - detaljer 10 = 267 (A232_Yttervegg 3d-visualisering, 30 walls, is excluded, so the rule is the string 'Yttervegger'); dh IsExternal 100/78; fantasy 75/148. Small nuances: duplex does carry an IfcElementQuantity 'GSA Space Areas' (GSA BIM Area equals Revit Area), and in digital_hub every space has GrossFloorArea equal to NetFloorArea (64/64).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F3",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: space 05.061 'Personalrom/møterom' on storey 3.etg directly contains (IfcRelContainedInSpatialStructure) Cab Wall 1D 10 x3, Cab Base 1D 10 x2, Cab Base-MultiDrawer 10 x1, Refrigerator 10 x1, matching Q225. Names are German (ac20, dh, fantasy types), Norwegian (hitos) and English (duplex, fantasy room LongNames); references keep labels verbatim (all 37 type lists match original labels).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F4",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own regexes over all 249 answers: 61 answers contain absence wording (48 without hedge, 13 with an estimate or hedge) versus the analyst's 47 + 15 = 62; 26 of the 61 are duplex. Only 45 answers start with a literal 'Total X: n' line, 159 start with a 'label:' line (analyst 152), so the 'header line' count depends on the definition. Percentages: 314 of 324 have 1 decimal.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "confirmed",
+   "independent_evidence": "Fresh stratified sample, seed 2026, 3 per analyst category, excluding the analyst's 39 (v_sample.json, v_repro.py, v_repro_results.csv): 39 questions, 28 of them never checked by the analyst. Result: 32 reproduced, plus 2 negatives that match stored data but are derivable (Q220, Q145) and 1 estimate within 2% (Q143) = 35/39; Q97 model facts only = 36/39; 1 partial (Q136 'two vapour barriers'); 1 reference contradicted (Q195); 1 reference contestable (Q115). On the 28 unchecked questions: 25/28 reproduced in some form. 9 of the 35 reproductions are negative answers, and about 7 needed a non-obvious convention or geometry. My handlers were also written after reading the references, so the same oracle bias applies.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "confirmed",
+   "independent_evidence": "Own parser and own 9 label candidates over the same 37 type lists (v_types.py, v_types.csv): totals 36/37, labels plus counts exact with the best per-question source 36/37, fixed rule 'type.Name if typed else element.Name' exactly 25/37 (same 12 misses: dh doors, windows, coverings, railings, floor slabs; hitos doors, windows, railings, stairs, furniture; ac20 railings, furniture). The next best single rule ('Name minus :id') gives 24/37. In dh, doors, windows, coverings and railings match only the family part before ':', walls, columns, beams and slabs match full type names. Q77 matches (14) only if 'floor slab' means family 'Geschossdecke'; PredefinedType FLOOR gives 17.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "confirmed",
+   "independent_evidence": "Not re-run question by question, but the rate replicates on my fresh sample (35/39 reproduced, about 20% needing a convention). Caveat: 'reproduced' includes negative answers that are contestable. Example: Q219 ('load-bearing classification not available', counted as reproduced) although hitos layer 'A223_Bæresystem betongvegger' holds exactly the 146 'Betongvegg 200/250' walls, all with material 'Betong bærende' (load-bearing concrete).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F8",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: hitos Q218 per-type thickness sets match 39/39 when 'Empty Fill' layers are excluded and 34/39 with all layers (AV50T 406 to 385 mm, 408 to 387 mm; 143 walls carry an Empty Fill layer). Window widths excluding 'Vindusfelt'/'Del av VF' (58 windows, up to 19,548 mm) give top 2030 DV09T, range 490 to 2030, mean 1764.9, matching Q211. dh: beams 10.76 + columns 18.52 + 18 non-LANDING slabs 1612.18 = 1641.47 m³ over 94 elements, of which only 1032.93 m³ of slabs have a concrete material. Keyword beton|metall|stahl over the 36 dh materials returns exactly the 6 listed; beams, columns and load-bearing elements actually use only 'Ortbeton - bewehrt'. hitos stairs match only with the '-digit' suffix stripped. Attribution nit: the 'Wange:Metall 10 x 260' (8 IfcMember) to 'Stair Stringer' relabel is digital_hub Q95, not hitos.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F9",
+   "verdict": "corrected",
+   "independent_evidence": "Measured: hitos Q223 '277 ceiling slabs' is reproduced exactly: IfcSlab whose Name contains 'himling' (case-insensitive, 202) or starts with 'Dekke' (54 structural decks) or 'Tak' (21, of which 20 are 'Taktekking_papp' ROOF slabs on layer A26_Yttertak). These are exactly the 23 names the reference lists. By layer, ceilings are 205 (A255_HImling 203, A257_Lydhimling 2). dh Q64 3.22/3.90/3.65 equals the Height of the first IfcSpace on each storey, all stairwells (Treppenhaus West - UG 3.22, West - EG 3.90, Ost - OG 3.65). One rule explains all three, so the 'floor-to-floor for two levels, modal for one' reading is not needed. Confirmed: ac20 0 IfcCovering and 21 ROOF slabs 'Aluminium 131198'; ac20 FinishCeilingHeight = Height = ClearHeight = 2.70 on 82/82 spaces; duplex A203 extrusion depth 2.581 (Revit Unbounded Height and Limit Offset 2.6); hitos ROOM HEIGHT 14.48 (Glassgata).",
+   "corrected_claim": "'Ceiling' conventions vary, but the hitos 277 is reproducible: it is a Norwegian name-keyword filter (himling, Dekke*, Tak*) that wrongly includes 54 structural decks and 20 roofing-felt slabs (layer-based ceilings: 205). The digital_hub per-level 'ceiling heights' are most simply the height of the first space listed on each storey (a stairwell), which is an iteration artifact rather than a mixed definition."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured (v_totals.py): ac20 sum of space GrossFloorArea 2266.66, NetFloorArea 1939.38, IfcBuilding BaseQuantities.GrossFloorArea 2727.04 (equal to the sum of storey GrossFloorArea), ground-floor slab Decke-001 GrossArea 537.0; dh sum 2842.12; fantasy 1613.73; hitos 8491.34 including 5 'Bruttoareal' zone spaces totalling 3529.69 (rooms only 4961.65); largest hitos space 70.002 'Bruttoareal uetg' 1624.2 versus room 03.002 467.7. Nuance: in dh the space GrossFloorArea equals NetFloorArea, so '2842.1 gross' is also the space-gross sum. The looseness is calling a sum of space areas the building gross floor area.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F11",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: digital_hub has 0 IfcDistributionElement, 0 IfcSystem and 0 IfcDistributionPort. Its 150 IfcBuildingElementProxy objects are site items (45 markings, 26 parking stalls, 26 bollards, 22 trees, 13 EV chargers, 5 bike stands, etc.). fantasy has 115 IfcFlowTerminal and hitos 69, all sanitary. The references themselves mention 'MEP files' (Q104, Q107) and 'the models' (Q109, Q110), and every file is a '_arc' discipline model from a per-project folder (LICENSE.md). Inferred: Q111's 1,207,377.1 m over 914 segments is about 1,321 m per segment, consistent with mm read as m.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F12",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: 5 fantasy doors carry Pset_DoorCommon.FireRating 'EI 30' (for example 1TmgNGSQ5B5uLPoToTxf3l). The reference's own Q180 lists the type '...ML - 885X2135 - EI 30: 5 door(s)'. dh 14 beams typed 'STB Träger - rechteckig:STB 250 x 500' with Qto_BeamBaseQuantities.Length 5.35 to 6.75 m (Q88). ac20 columns have material 'Stahlbeton 2747937872' (Q41 says Steel). Q121 checked through IfcRelSpaceBoundary rather than bounding boxes: A203 is bounded by Interior Partition 92mm, Interior Plumbing 152mm, Exterior Brick on Block and the CMU party wall, all with LoadBearing False.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F13",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: duplex house A has 10 spaces A101 to A105 and A201 to A205; Q152 omits A105 'Stair'. Q157 uses 'Finish Floor - Ceramic Tile' slab areas (A204 6.34, A104 3.16, total 9.50) while Q161 uses room areas (A204 5.42, A104 4.00, B104 4.00, B204 5.44). hitos Q227 'ground floor (u.etg)' lists 12 WC spaces on u.etg (there are 6 on 1.etg), while Q202 calls 1.etg the ground level.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F14",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: 7 duplex footings sum to 16.528 m³ (Q144) and their geometry spans z -1.55 to -1.25 m (Q122's 300 mm is the thickness). For Q149, the one-side Revit Area of interior walls times 2 is 353.8 m², and I found no method giving 398. More hedges wrap exact data than the analyst lists: Q119 '~66 sqm' equals the sum of window W x H, 65.94; Q194 'not available... manual measurement 690.7' equals the mesh volume of FLOOR + BASESLAB slabs, 690.65.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F15",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: questions with a cross-model paraphrase at token Jaccard >= 0.5 number 96 (stopwords removed) to 133 (raw tokens); duplex has 3 to 6 of 51. The analyst's 100 is inside that range, but the exact number depends on tokenization. The public card scale (22 projects, 51 models, about 1,026 QA) was not re-fetched. LICENSE.md confirms IFC-Bench v2 provenance with per-project folders.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F16",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured exactly: 2 answers contain a GlobalId (Q116 only echoes the GUID given in the question; Q158 answers with one); 6 name an IFC class or pset (Q73, Q150, Q191, Q202, Q241, Q245); 904 'sq m' (+19 'sqm', mostly duplex), 737 'mm'; 314 of 324 percentages have 1 decimal.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F17",
+   "verdict": "corrected",
+   "independent_evidence": "Timing roughly confirmed with my own run over all products with geometry, excluding openings and annotations, on 8 threads: duplex 0.7 s, ac20 2.3 s, dh 11.3 s, hitos 11.1 s, fantasy 28.6 s. But the tested element-in-room cases do not need bounding boxes. fantasy furniture 112/112 and terminals 55/115 are contained directly in IfcSpace. hitos terminals 60/69 and furniture 23/23 are contained in IfcSpace. IfcRelSpaceBoundary exists in ac20 (1000), duplex (265) and hitos (8969). ac20 furniture carries ArchiCAD 'Raumnummer'/'Raumname'. Q177, Q225 and Q244 reproduce from containment alone, and Q121 from space boundaries.",
+   "corrected_claim": "Pre-tessellation for highlights is right (up to about 30 s per model), but room-level questions should first use explicit IFC relations (IfcSpace containment, IfcRelSpaceBoundary, vendor room properties), which are exact, and fall back to geometry only when those are missing."
+  },
+  {
+   "finding_id": "F18",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured, and larger than stated: in duplex, 7,664 of 10,216 string property values (75%) equal their property name (for example FireRating = 'Fire Rating', ExpectedLife = 'ExpectedLife', WarrantyStartDate = 'WarrantyStartDate'). dh has 10, fantasy 0, hitos 0. ArchiCAD ac20 uses angle-bracket placeholders '<Wandmaterial>' and '<Deckenmaterial>' (164 values), so the rule must also cover non-Revit forms.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F19",
+   "verdict": "confirmed",
+   "independent_evidence": "Spot-checked: Q97 element ratios reproduce exactly from counts (14 beams, 62 columns, 23 slabs: 14.1/62.6/23.2%), while the 'Good' efficiency rating, Q107 voltages and Q141 EPDM lifespan are general knowledge with no model source.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F20",
+   "verdict": "unverifiable",
+   "independent_evidence": "README only says 'text answers are free-form'. No scoring method can be measured from the data. The recommended format is reasonable but remains an inference.",
+   "corrected_claim": ""
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "Element inventory by type with counts and percentages",
+   "analyst_result": "40/40 checked reproduced; totals 36/37; fixed default label rule exact 25/37",
+   "independent_result": "Own sweep of the same 37 lists: totals 36/37 (37/37 if 'floor slab' = family 'Geschossdecke'); exact labels+counts 36/37 with the best per-question source; fixed rule 25/37. Fresh sample: Q190, Q193 reproduced (Q193 thickness read from type names); Q115 reference contestable: duplex has RefLatitude/RefLongitude (Chicago) and TrueNorth (0,1,0), and 5 windows sit on the +Y facade.",
+   "notes": "Label source is model- and class-specific (dh family names for doors/windows/railings/coverings, full type names elsewhere). Show both names."
+  },
+  {
+   "question_family": "Spaces and areas",
+   "analyst_result": "31/31 checked reproduced",
+   "independent_result": "18/18 per-level lists reproduced pair by pair. The two hitos rooms at 4.05 m² are shown as 4.0, which matches Python float formatting. Level totals are sum-then-round. ac20, hitos and fantasy totals confirmed. Fresh sample Q159, Q166, Q179: 3/3.",
+   "notes": "The hitos 'largest room' and totals in the key include Bruttoareal zones. Report both the rooms-only and the all-spaces figure."
+  },
+  {
+   "question_family": "Levels and heights",
+   "analyst_result": "6/6 checked reproduced",
+   "independent_result": "Q9, Q80, Q231 reproduced (3/3; Q231's 5th place is a tie at 4.00 m between 70.001 and 99.02.002). Q64 is reproduced by a single rule: the height of the first space on each storey.",
+   "notes": "hitos reports 5 'levels' although 7 IfcBuildingStorey exist (fundamentetasje has 4 elements, takplan 0). hitos ROOM HEIGHT is in metres."
+  },
+  {
+   "question_family": "Element dimensions",
+   "analyst_result": "4/5 checked (Q74 partial)",
+   "independent_result": "Q13 and Q125 reproduced. Q56 reproduced only with geometry: 637.33 m² is the 2D bounding box of the 26 'Parkplatz' stalls, and 26 = stall count. Q74 confirmed partial: no single width source gives avg 1.00 / max 1.64 / min 0.80 / n 62 (Lichter Durchgang 0.981/1.6/0.8; Rohbaubreite 1.069/1.635/0.87).",
+   "notes": "Several reference dimensions come from geometry, not properties."
+  },
+  {
+   "question_family": "Materials",
+   "analyst_result": "3/3 sampled reproduced; hitos ceiling count 277 not reproduced",
+   "independent_result": "Q21 (needs stripping the numeric ArchiCAD suffix from 'Kalksandstein 2816491304'), Q67 and Q223 reproduced: 3/3. 277 is reproduced exactly by the name filter himling|^Dekke|^Tak. 22 of 23 per-type compositions match exactly; Dekke-01 is within 2%.",
+   "notes": "The 277 includes 54 structural decks and 20 roofing-felt slabs. A layer-based ceiling count gives 205."
+  },
+  {
+   "question_family": "Lengths and volumes",
+   "analyst_result": "3/3 in harness; ac20 643.8/522.2 matched",
+   "independent_result": "ac20 643.8/522.2 and dh 1416.18/508.91 m confirmed. Q229 reproduced (285 FLOOR slabs, 2191.96 m³, range 0.05 to 197.46). Q194 reproduced from mesh volume (690.65 vs 690.7). Q220 'not available' is true for stored quantities, but 846/849 hitos walls have Axis polylines, and the exterior walls sum to about 1398.0 m.",
+   "notes": "Without geometry a system can match the key's negatives but miss its geometry-derived numbers. With geometry it can match both."
+  },
+  {
+   "question_family": "Structural interpretation",
+   "analyst_result": "5/7 checked (Q88 contradicted; Q95 label translated)",
+   "independent_result": "Q88 contradiction and Q95 relabel confirmed. Fresh sample: Q39 and Q40 reproduced; Q97 ratios reproduce but the rating is unverifiable. Q219's negative is contestable: layer A223_Bæresystem betongvegger = the 146 'Betongvegg' walls, all with material 'Betong bærende'.",
+   "notes": "The key uses layer names for exterior walls but not for load-bearing walls, so its conventions are inconsistent."
+  },
+  {
+   "question_family": "MEP presence and inventories",
+   "analyst_result": "11/17 checked (10/10 negatives); 6 dh answers not derivable",
+   "independent_result": "digital_hub: 0 IfcDistributionElement, 0 IfcSystem, 0 ports, no MEP-like proxies (confirmed). Fresh sample: Q192 counts reproduced (115 terminals, 5 types, 23 per storey), but its system grouping is invented because the model has 0 IfcSystem. Q31 and Q248 negatives reproduced. 3/3.",
+   "notes": "Answers can group terminals by type. Any 'system' grouping should be labelled as inferred."
+  },
+  {
+   "question_family": "Fire safety and accessibility",
+   "analyst_result": "9/11 checked (Q195 reference wrong; Q131 estimate)",
+   "independent_result": "Q195 contradicted: 5 doors have 'EI 30'. Q196 and Q235 negatives reproduced. dh 'Feuerwiderstandsklasse' is empty on all 64 doors and 47 windows, so Q82/Q83 hold. duplex fire fields are placeholders.",
+   "notes": "Treat empty values and values equal to the property name as missing."
+  },
+  {
+   "question_family": "Performance and lifecycle",
+   "analyst_result": "3/3 sampled reproduced",
+   "independent_result": "Q142 and Q128 negatives reproduced (warranty fields are placeholders; no live-load property). Q136 is partial: the roof has 'Roofing - Barrier' and 'Roofing - EPDM Membrane' layers and none labelled vapour barrier, so 'two vapour barriers' is an interpretation. 2/3 + 1 partial.",
+   "notes": "State which layer names were read as barriers."
+  },
+  {
+   "question_family": "Quantity takeoff estimates",
+   "analyst_result": "4/5 checked (Q149 not reproducible)",
+   "independent_result": "Q144 exact (16.528). Q143 '~275' matches 272.0 m² from 'Exterior - Brick on Block' walls only, within 2%; all IsExternal walls would give 410.8 because they include party and foundation walls. Q145 negative, but room perimeters sum to 310.2 m. Extra: Q119 '~66' = sum of W x H, 65.94. Q149 '~398' not found (interior walls, 2 sides: 353.8).",
+   "notes": "Several 'estimates' are exact model sums. Give the number with its basis."
+  },
+  {
+   "question_family": "Element lookups",
+   "analyst_result": "4/5 checked (Q121 partial)",
+   "independent_result": "Q244, Q116 and Q177 reproduced from IfcRelContainedInSpatialStructure or by_guid, with no geometry. Q121 via IfcRelSpaceBoundary: 4 wall types bound A203, all LoadBearing False, so the key's 'likely load-bearing brick wall' is contradicted. 3/3.",
+   "notes": "Use relations before bounding boxes."
+  },
+  {
+   "question_family": "Metadata",
+   "analyst_result": "3/3 sampled reproduced",
+   "independent_result": "Q163, Q50 and Q0 reproduced 3/3 (header FILE_DESCRIPTION, IfcProject, IfcSite RefLatitude, IfcBuilding Name).",
+   "notes": "Building 'usage' is inferred from names ('Buerogebaeude', 'Bürogebäude'); no OccupancyType is set."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "Several reference answers are computed from geometry, not stored properties, including in fantasy where the analyst implies the key just says 'not available'.",
+   "evidence": "fantasy Q189 footprint 518.97 = plan area of the 'Bodenplatte:STB 50cm' base slab mesh (518.97). fantasy Q194 '690.7 manual measurement' = mesh volume of FLOOR + BASESLAB slabs (431.16 + 259.48 = 690.65). dh Q56 parking lot 637.33 = 2D bounding box of the 26 'Parkplatz' stalls (their own union area is only 14.0). duplex Q119 '~66' = sum of window W x H, 65.94. Q73 uses a 6.0 x 3.0 m bounding box for the curtain wall (v_geom.py, v_repro.py).",
+   "implication": "The product needs an ingest-time geometry layer (ifcopenshell.geom + shapely: footprints, mesh volumes, bounding boxes, axis lengths) to match the key and to generalize to models without quantity sets. Each answer should name the geometric method used."
+  },
+  {
+   "claim": "Room-level questions can be answered exactly from explicit IFC relations; bounding-box containment is unnecessary for the tested cases.",
+   "evidence": "IfcSpace containment: fantasy furniture 112/112, terminals 55/115; hitos terminals 60/69, furniture 23/23. IfcRelSpaceBoundary: ac20 1000, duplex 265, hitos 8969. ac20 furniture has ArchiCAD 'Raumnummer'/'Raumname'. Q177, Q225 and Q244 reproduce from containment; Q121 from boundaries.",
+   "implication": "Build a relation-first resolver (containment, space boundaries, vendor room properties) and fall back to geometry only when relations are missing. Relations also give exact GlobalIds for the 'show where' highlight."
+  },
+  {
+   "claim": "Some 'not available' references are contestable because the data can be derived, and these were counted as reproduced.",
+   "evidence": "hitos Q219: layer 'A223_Bæresystem betongvegger' = exactly the 146 'Betongvegg 200/250' walls, material 'Betong bærende' (load-bearing concrete), while the key used layer names for exterior walls (Q213). hitos Q220: 846/849 walls have Axis polylines; exterior walls sum to about 1398.0 m. duplex Q115: IfcSite RefLatitude/RefLongitude (Chicago) and TrueNorth (0,1,0) exist; 5 windows lie on the +Y facade. fantasy Q188 'not available' although the same key computes fantasy volumes from geometry.",
+   "implication": "Answer with the derived value and its basis, plus one line saying it is not stored as a property ('no stored length; computed from wall axes: 1398 m'). That keeps the answer verifiable and gives a key-fact judge a match either way."
+  },
+  {
+   "claim": "Some reference values look like artifacts of the generating script rather than definitions, so tuning toward them would overfit.",
+   "evidence": "dh Q64 per-level 'ceiling heights' 3.22/3.90/3.65 equal the height of the first IfcSpace on each storey (all stairwells). hitos 277 'ceiling slabs' is a Norwegian name-keyword filter that pulls in 54 structural decks and 20 roofing-felt slabs; ceiling layers give 205. hitos 'Total Building Levels: 5' counts only storeys with spaces (7 IfcBuildingStorey). hitos 4.05 m² is shown as 4.0 (Python float formatting).",
+   "implication": "Use defensible definitions, but surface the alternative raw figures in one line ('by name: 277; by ceiling layer: 205'; 'storeys: 7, with rooms: 5') so the reference number is visible without presenting an artifact as fact."
+  },
+  {
+   "claim": "Units are not uniform inside a single model: the IFC unit scale applies to typed lengths, not to vendor properties.",
+   "evidence": "hitos length unit is mm (scale 0.001; storey elevations 20300 = 20.3 m; OverallWidth 3500 = 3.5 m; layer thickness in mm), but the ArchiCAD complex property ROOM HEIGHT is stored in metres (14.48). Blanket scaling would give 0.01448 m. Areas and volumes in the unnamed qsets are in m² and m³.",
+   "implication": "Convert per IFC measure type (IfcLengthMeasure attributes, quantity types) and sanity-check magnitudes against storey heights before answering. Add a unit test per model."
+  }
+ ],
+ "overall_reliability": "The analyst report is largely trustworthy. Every high-confidence numeric claim I re-measured with my own code reproduced exactly: schemas and units, all 18 per-level space lists, the 25/37 and 36/37 label-rule rates, the hidden filters (Empty Fill, Vindusfelt, the 1641.47 m³ concrete composition, the keyword material filter), the area totals and Bruttoareal double count, the absence of MEP elements in digital_hub, the 'EI 30' contradiction, the duplex inconsistencies, and the answer-format counts. A fresh stratified sample (seed 2026; 39 questions, 28 never checked by the analyst) reproduced 35/39, similar to the analyst's 31/39, so the headline 'about 90% reachable deterministically' holds. The same caveat applies to both runs: handlers were written after reading the keys, and about a quarter of the 'reproductions' are negative answers. Biggest errors: (1) F9 says the hitos 277 ceiling count was not reproduced, but it is exactly a name-keyword filter (himling, Dekke*, Tak*) that wrongly includes structural decks and roofing felt; (2) F9's mixed-definition reading of digital_hub ceiling heights is better explained by the first space per storey; (3) F17 relies on bounding boxes although exact IfcSpace containment and space boundaries exist; (4) the report underplays geometry-derived references (fantasy footprint and slab volume, the dh parking area) and counts some contestable 'not available' keys as reproduced (hitos load-bearing via layer A223, wall length via axes, duplex north via TrueNorth). Minor: the 'Stair Stringer' relabel is digital_hub, not hitos; duplex does have a GSA quantity set; dh space gross equals net. Not checked: the public IFC-Bench card figures (no web access used) and the analyst's other 100 checked questions one by one."
+}

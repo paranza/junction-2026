@@ -1,0 +1,179 @@
+{
+ "slice": "cubicasa5k (independent skeptic check of the analyst report; 241 PNGs, 4,270 count questions). My own scripts and outputs are in eda/cubicasa5k/verify/ (v01-v10 scripts; blind_all_scored.csv, blind_counts3_scored.csv, wide.csv, views/). The blind counts used 12 images the analyst never touched, drawn with seeds 2026, 2027 and 2028, plus 2 grids for prevalence checks (seed 31: 12 images; seed 5: 8 images). Started 01:24:48 and finished about 01:42.",
+ "verdicts": [
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "v01_questions.py and v02_templates.py (my own keyword intent mapper): 4,270 rows on 241 paths. All rows are type=count and unit=count, and every answer is a Python int. There are 24 distinct strings (12 intents x EN/FI), 2,135 EN/FI pairs with 0 disagreements and 0 duplicate (path, question) rows. None of the 24 strings appears in any other source in questions.jsonl.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "v03_props.py reproduces the numbers exactly: long side min 240, p10 538, median 876, p90 1715, max 4500. 39 images are under 600 px, 156 under 1000 px and 15 at 2000 px or more. Modes are RGB 210, RGBA 30, L 1, and 0 files have DPI metadata. In blind practice, high_quality_architectural-11866 (232x530) has window codes I could not read even at 8x, and its GT windows (5) did not match my count (3).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F4",
+   "verdict": "confirmed",
+   "independent_evidence": "v02_templates.py: the question-weighted always-mode baseline is 0.5593 over 4,270 questions. Per template: windows 0.141 (mode 4), doors 0.136, bedrooms 0.279, sinks 0.556, saunas 0.552, balconies 0.574, wc_rooms 0.607, toilets 0.633, shower_bath 0.727, floors 0.805, bathrooms 0.883, kitchens 0.950. The answer distributions match the analyst's key_stats.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "confirmed",
+   "independent_evidence": "I counted every asked template blind on 10 new images (seeds 2026 and 2027; 8 architectural, 1 high_quality, 1 colorful) and wrote each count to CSV before looking up GT. Result: 74/87 exact, or 79/87 when one alternative noted beforehand is accepted. A question-weighted projection from my per-template rates gives 85.3%. Per template, first guess: floors 10/10, toilets 10/10, bedrooms 7/7, kitchens 6/6, saunas 5/5, wc_rooms 5/5, bathrooms 4/4, balconies 3/3, shower_bath 8/10, sinks 7/10, windows 6/10, doors 3/7. Two extra high_quality window checks (seed 2028) were both correct, so windows total 8/12. Caveat: like the analyst, I knew the suspected conventions before counting.",
+   "corrected_claim": "The ~85% overall figure holds. However, doors were the weakest family in my independent sample (3/7 first guess, 5/7 with the alternative), weaker than windows (8/12). Plan for both doors and windows as the main error sources, not windows alone."
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "corrected",
+   "independent_evidence": "blind_all_scored.csv. On architectural sheets, GT equalled the opening or size-code count in 6 of 8 images: 7607, 6467, 11257, 10142, 2105, and hand-drawn 20093. In every image where pane and opening counts differed, the pane count was wrong. 7607: 3 coded windows vs about 5 sashes, GT 3. 6467: 3 openings with mullions = 6 panes, GT 3. 2105: 4 composite codes (F12+3x16, F3+12x16, F3+15x16, F3x16) = 7 panes, GT 4. In the opposite direction, 1169 has 4 printed codes (248x149, 133x149, 133x149, 248x149) but GT 3, which looks like two windows separated only by a mullion being merged. Counts above the opening count appeared only in 11866 (codes illegible, GT 5 vs 3 openings) and in non-architectural plans: 3692 GT 25 vs my 21-23, colorful-11397 GT 13 vs 12 openings or 15 panes.",
+   "corrected_claim": "Window GT is noisy around the opening count, in both directions. Pane-splitting is not a safe default. On architectural sheets (78% of images) the default should be one window per window symbol or size code (openings), because the pane default failed every time it differed from the opening count in my sample. Keep the pane count as a secondary hypothesis, mainly for colorful and high_quality plans. Show both counts as boxes so an engineer can switch between them."
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "confirmed",
+   "independent_evidence": "In my blind architectural images with legible window size codes, the code count matched GT in 3 of 4: 7607 (3 codes, GT 3), 11257 (11 codes, GT 11), 2105 (4 codes, GT 4). It failed in 1169 (4 codes, GT 3). Combined with the analyst's sample this is 9/11. Codes were legible in only 4 of my 8 architectural images; 11866 has codes, but they are unreadable at native size.",
+   "corrected_claim": "The rule holds about 80% of the time where codes exist and are legible, and legible codes appear on only about half of architectural sheets. Use the rule as primary evidence when available, and expect occasional merges of adjacent coded windows."
+  },
+  {
+   "finding_id": "F8",
+   "verdict": "confirmed",
+   "independent_evidence": "Three blind images carry a legible apartment code, and all three matched bedrooms = n-1 and saunas = 1 for '+S'. 11866: 2H+K+S+KHH gave GT bedrooms 1 and saunas 1. 7607: 2H+K+S (unit 16) gave 1 and 1. 6467: 2H+K+S gave 1 and 1.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F9",
+   "verdict": "confirmed",
+   "independent_evidence": "GT counted only the target unit in all 3 clear multi-unit cases among my blind images. 11866: pink-highlighted unit A3, with the neighbours' WCs drawn on both sides; GT toilets 1. 7607: units 15 and 16, each with a PARVEKE; GT balconies 1 and windows 3, which matches unit 16's codes. 10142: units 26 and 27 on a plumbing sheet; GT windows 5 and sinks 2, which matches unit 26 only. In 2105, however, GT doors 9 includes the outside door of a technical room (LJH 7.5 m2, not part of the 2H+KK+S+PARM unit) and its cabinet doors.",
+   "corrected_claim": "Neighbouring apartments are excluded. Non-apartment rooms drawn on the same sheet (technical or storage rooms) can still be included, at least for doors."
+  },
+  {
+   "finding_id": "F12",
+   "verdict": "confirmed",
+   "independent_evidence": "In my 10 blind images, main room labels are rotated 90 degrees in 3 (6467, 10142, 2105). Two images are entirely mirrored: 1169 horizontally (OH reads as HO, MH as HM, codes reversed) and colorful-11397 flipped vertically. In the seed-31 grid of 12, colorful-13685 and high_quality-5080 are also mirrored (HO, HM, KPH reversed). Overall, 4 of 22 seeded images show a whole-image mirror.",
+   "corrected_claim": "Rotation and mirroring are common. Mirroring usually affects the whole raster, so one global flip decision per image (try the 8 rotation and flip variants once and pick the one where the most label-dictionary words read correctly) fixes all text on that sheet."
+  },
+  {
+   "finding_id": "F13",
+   "verdict": "refuted",
+   "independent_evidence": "v07_floors_cv.py and v07b_floors_cv_grid2.py (my own method): dark-pixel mask at 1000 px long side, morphological close, then count components whose bounding box is at least r x the largest. Parameters were tuned by 2-fold cross-validation (seed 99) over a 75-setting grid. Held-out result: 216/241 = 89.6%, against 194/241 = 80.5% for always answering 1. In-sample best is 223/241 with 2-floor recall 33/43; the analyst reported 202/241 in-sample with recall 21/43. Blind visual floors were 10/10.",
+   "corrected_claim": "A cheap classical blob count on held-out data is a useful cross-check: about 90% vs 80.5% for the prior. The vision model should stay primary (a box per plan as evidence). Use the CV count to flag disagreements, not just as a weak hint."
+  },
+  {
+   "finding_id": "F11",
+   "verdict": "confirmed",
+   "independent_evidence": "Double-bowl kitchen sinks were counted once in 3/3 blind images (7607, 1169 and 6467; GT sinks 2 = basin + kitchen). A utility sink in KHH counts: 11866 GT sinks 3 matched my alternative that included the KHH sink. Hand showers count: 3692 GT shower_bath 3 = 2 shower heads in PSH + a bidet hand shower in the upstairs WC (my alternative).",
+   "corrected_claim": "Count drawn symbols, including utility sinks and hand or bidet showers. A double-bowl kitchen sink is 1."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "unverifiable",
+   "independent_evidence": "I had no SVG access either. One related observation: 3692 has an unlabelled room with double doors on the upper floor, and GT bedrooms is 4, which equals the number of MH labels. So unlabelled rooms are not always counted, which differs from the analyst's 13107 example.",
+   "corrected_claim": "The answers are consistent with annotator-derived room types, but the annotation source is still unproven. Unlabelled rooms are counted in some images and not in others."
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "windows",
+   "analyst_result": "Blind 4/10 first guess (8/10 with alternative); code rule 6/7",
+   "independent_result": "Blind 8/12 first guess (8/12 with alternative): architectural 6/8, high_quality 2/3, colorful 0/1. Code rule 3/4. Opening convention matched 6/8 architectural; pane convention matched 0 of the 3 images where it differed.",
+   "notes": "Different seeds (2026, 2027, 2028). The convention conclusion changes: default to openings or codes, not panes."
+  },
+  {
+   "question_family": "doors",
+   "analyst_result": "Blind 4/5; non-blind 16/16",
+   "independent_result": "Blind 3/7 first guess, 5/7 with alternative. Misses: 1169 GT 6 vs 5, 11257 GT 14 vs 13 printed door codes, 10142 GT 7 vs 6, 2105 GT 9 = whole sheet including cabinet doors, a sliding door and a technical-room door.",
+   "notes": "The non-blind 16/16 is not evidence of reproducibility. Doors look harder than reported, and the GT seems to include every drawn door leaf, cabinet doors included."
+  },
+  {
+   "question_family": "floors",
+   "analyst_result": "Manual + blind 29/29; CV 202/241 in-sample",
+   "independent_result": "Blind 10/10. My CV 216/241 held out (2-fold), 223/241 in-sample.",
+   "notes": "Visual counting confirmed. The claim that CV barely beats the prior is refuted."
+  },
+  {
+   "question_family": "toilets",
+   "analyst_result": "Blind 6/7",
+   "independent_result": "Blind 10/10",
+   "notes": "Confirmed, including target-unit exclusion on multi-unit sheets (11866)."
+  },
+  {
+   "question_family": "sinks",
+   "analyst_result": "Blind 6/7",
+   "independent_result": "Blind 7/10 first guess, 9/10 with alternative",
+   "notes": "Errors came from uncertain symbols: a utility sink counted (11866), no basin in PH (11257), 1 extra sink in 3692. Double bowl = 1 confirmed 3/3."
+  },
+  {
+   "question_family": "shower_bath",
+   "analyst_result": "Blind 6/6",
+   "independent_result": "Blind 8/10 first guess, 9/10 with alternative",
+   "notes": "Hand-drawn 20093 GT 2 vs my 1. 3692 counts a bidet hand shower in a WC."
+  },
+  {
+   "question_family": "saunas",
+   "analyst_result": "Blind 6/6",
+   "independent_result": "Blind 5/5",
+   "notes": "Confirmed. The +S code matched 3/3."
+  },
+  {
+   "question_family": "kitchens",
+   "analyst_result": "Blind 5/5",
+   "independent_result": "Blind 6/6",
+   "notes": "Confirmed. The prior is 95%."
+  },
+  {
+   "question_family": "bedrooms",
+   "analyst_result": "Blind 5/6; code rule 7/8",
+   "independent_result": "Blind 7/7; code rule 3/3",
+   "notes": "Confirmed. 3692's unlabelled room was not counted."
+  },
+  {
+   "question_family": "wc_rooms",
+   "analyst_result": "Blind 2/3",
+   "independent_result": "Blind 5/5",
+   "notes": "Confirmed."
+  },
+  {
+   "question_family": "bathrooms",
+   "analyst_result": "Blind 3/3",
+   "independent_result": "Blind 4/4",
+   "notes": "Confirmed."
+  },
+  {
+   "question_family": "balconies",
+   "analyst_result": "Blind 2/2",
+   "independent_result": "Blind 3/3",
+   "notes": "Confirmed. 7607 excludes the neighbour unit's PARVEKE. A TERASSI counts 0 (20093)."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "Whole images are mirrored, not just individual labels. About 1 in 5 sheets has every text element reversed.",
+   "evidence": "4 of 22 seeded images (my 10 blind images plus the seed-31 grid of 12): 1169 horizontal mirror, colorful-11397 vertical flip, colorful-13685, high_quality-5080 (views/high_quality_architectural-1169_full.png, views/colorful-11397_full.png, views/unit_grid.png).",
+   "implication": "Add one global orientation step per image before any label, code or OCR reading. Run the counting itself on the original raster so evidence boxes map back to the file the engineer sees."
+  },
+  {
+   "claim": "Door GT appears to count every drawn door leaf, including cabinet or wardrobe doors, sliding doors and doors of non-apartment rooms on the same sheet. Doors are as error-prone as windows.",
+   "evidence": "2105 GT 9 = US23, S07, M09, O10, UO10, sliding T09, a technical room's outside door VU09, and SÄ08 cabinet doors (one single, one double counted once). The apartment itself has only about 6 doors. Other misses: 11257 GT 14 vs 13 printed door codes, 1169 GT 6 vs 5, 10142 GT 7 vs 6. Blind doors 3/7.",
+   "implication": "The door detector should count every leaf symbol (swing arc or sliding leaf), cabinet doors included, and show each as a box. Do not filter to the 'apartment' for doors without evidence. Budget door accuracy work on the same level as windows (352 questions)."
+  },
+  {
+   "claim": "Multi-unit sheets are common: roughly 3 in 10 images show more than one apartment, and GT excluded the neighbours in every clear case.",
+   "evidence": "Multi-unit in my 10 blind images: 11866, 7607, 10142 (2105 has a technical room). In the seed-31 grid of 12: 6642, 12688, 6001, probably 18. That is 6-7 of 22 (27-32%). GT matched target-unit-only counts in 3/3 blind cases.",
+   "implication": "Unit selection is a core pipeline step affecting every template, not an edge case. Cues to try: highlighted outline (pink or yellow), central complete unit, apartment number with nH+K code. Draw the chosen unit outline in the evidence view."
+  },
+  {
+   "claim": "Window convention is style-dependent. Architectural sheets match opening or size-code counts. Counts above the opening count (pane-like) appeared only in colorful and high_quality plans, plus one illegible tiny scan.",
+   "evidence": "Architectural: 6/8 exact on openings or codes, with panes wrong in 7607, 6467 and 2105. Non-architectural: 3692 GT 25 vs my 21-23, colorful-11397 GT 13 vs 12 openings. Clean high_quality plans without drawn mullions were 2/2 (1506 GT 3, 12235 GT 4).",
+   "implication": "Choose the window counting rule by detected style. Report the opening count by default on architectural sheets, and show the pane count as an alternative in the evidence panel for colorful and high_quality plans."
+  },
+  {
+   "claim": "Room-type templates are asked as a block, and are absent on 63/241 images (26%) even when room labels are clearly printed.",
+   "evidence": "v06_consistency.py: saunas, kitchens and bedrooms are asked together on 178 images, none of the six room-type templates on 63. Images without them have more windows (mean 11.1 vs 8.0). The seed-5 grid of 8 such images shows legible room labels on at least 4 (1241, 9198, 3915, 7098; views/noroom_grid.png).",
+   "implication": "Hidden questions may ask room-type templates on sheets that look like these, which are larger and often multi-floor. Do not treat a question's absence in the preview as a sign that a sheet lacks labels. Test room-type intents on these 63 images too, not only on images where they were asked."
+  }
+ ],
+ "overall_reliability": "High for descriptive statistics: every count, distribution, baseline and consistency check I recomputed independently matched exactly (F1, F2, F4, the GT consistency stats, corr windows~doors 0.758). Medium for conventions. Visual counting reproduces about 85% (74/87 blind on 10 new images, against the analyst's 56/64), and the apartment-code, window-code, target-unit and double-sink rules held. Three material corrections. (1) The recommended window default (count panes between mullions) is contradicted on architectural sheets; default to openings or size codes. (2) Simple classical CV for floors reaches about 90% on held-out data, not 'barely above the prior'. (3) Doors are a bigger error source than reported (blind 3/7), and the GT seems to include cabinet and technical-room doors. Not done: SVG annotations are still unavailable, so the annotation-source hypothesis is unproven; no OCR or vision model was tested; and samples are small (12 blind images for counts, 22 for prevalence estimates), so per-template rates carry wide uncertainty. My blind counts were not convention-blind, because I had read the analyst report first."
+}

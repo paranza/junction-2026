@@ -1,0 +1,381 @@
+{
+ "slice": "questions (whole questions.jsonl, all sources)",
+ "summary": "The preview has 7,990 question lines on 320 files from 5 sources. 53% come from cubicasa5k PNGs, 30% from swiss_dwellings PDFs, 13% from ifc_models, 3% from ifc_bench and 1% from opening_design. Counts are 76% of the set and areas 20%. No question targets a DXF, DWG, SVG or JPG file, and the scan sources (europeana, finna, habs, wikimedia) have none. Almost half the lines (3,838, or 48%) are exact translations. Each sits right after its English twin, with the same path, the same answer and the same quoted labels. That leaves 4,152 unique English questions, in 7 languages overall (en, fi, de, fr, it, et, da). The template sources are highly regular: 44 English templates (12 for cubicasa5k, 12 for swiss_dwellings, 20 for ifc_models) generate 92% of the English questions. The long tail is IFC-Bench (249 paraphrased free-text report questions) and 64 hand-written opening_design questions about schedule sheets. I reproduced every testable ifc_models answer from the IFC (513/513) with simple, documented rules. This includes 99 questions asked on single-floor PDFs that can only be answered from the source model. On swiss PDFs the text layer alone gives every room-label count (405/405, exact match only), but areas are printed for only 35% of rooms, so area questions mostly need geometry. Zero is a common correct count (8.4% overall, up to 61% in some cubicasa room families). A naive guess of the most common value per family already scores 47% on counts, so per-family evaluation against that baseline is essential. About 32% of English questions name a room, label, apartment, storey or sheet that must be found first. Every named entity I tested appears verbatim in the drawing text layer, which makes bounding-box evidence feasible for the PDF and IFC sources. The preview scaled by file count (about 122,500 questions) and its drawing coverage (41%) both match the README, which suggests the hidden set mostly reuses these families with new slot values. It cannot tell us about scan questions, other formats, new templates or how text answers are scored.",
+ "key_stats": [
+  {
+   "metric": "Question lines / distinct files / distinct question strings",
+   "value": "7,990 / 320 / 1,770"
+  },
+  {
+   "metric": "Lines by source",
+   "value": "cubicasa5k 4,270 (53.4%); swiss_dwellings 2,358 (29.5%); ifc_models 1,049 (13.1%); ifc_bench 249 (3.1%); opening_design 64 (0.8%)"
+  },
+  {
+   "metric": "Lines by file format",
+   "value": "PNG 4,270; PDF 2,644; IFC 1,076; none on DXF, DWG, SVG or JPG"
+  },
+  {
+   "metric": "Lines by type",
+   "value": "count 6,076 (76.0%); area 1,599 (20.0%); text 265 (3.3%); volume 34; length 16; type 'other' absent"
+  },
+  {
+   "metric": "Lines by unit",
+   "value": "count 6,076; m2 1,590; ft2 9; m 16; m3 34; none (text) 265"
+  },
+  {
+   "metric": "Files with questions by source",
+   "value": "cubicasa5k 241/241; swiss_dwellings 65 drawings (PDF only, 65 DXF and 65 PNG twins unasked); ifc_models 6/10 files; ifc_bench 5/5; opening_design 3/81"
+  },
+  {
+   "metric": "Questions per file (all languages)",
+   "value": "median 20, mean 25.0, min 1, max 486; cubicasa5k 8-24 (median 20); swiss 28-42 (36); ifc_bench 35-64 (51); opening_design 3-41; ifc_models 1-486"
+  },
+  {
+   "metric": "Drawing-level coverage in preview",
+   "value": "320 of 773 drawings (41.4%) have questions; README says about 40%"
+  },
+  {
+   "metric": "Languages (lines)",
+   "value": "en 4,152; fi 2,135; de 422; fr 395; it 374; et 315; da 197"
+  },
+  {
+   "metric": "Translation twins",
+   "value": "3,838 non-English lines, all directly after an English twin with the same path and answer; quoted slots identical 3,838/3,838; 92.4% of English questions have a twin (100% cubicasa5k and swiss, 524/525 ifc_models, 0% ifc_bench and opening_design)"
+  },
+  {
+   "metric": "Templates",
+   "value": "439 language-specific, 346 English-only, 86 cross-language families; top-20 templates cover 57.9% of all lines and 82.9% of English lines; top-20 families cover 86.2%"
+  },
+  {
+   "metric": "Template-generated share",
+   "value": "44 English templates (cubicasa5k 12, swiss 12, ifc_models 20) produce 3,839 of 4,152 English questions (92.4%)"
+  },
+  {
+   "metric": "Zero count answers",
+   "value": "258 of 3,058 English count answers (8.4%); WC rooms 61%, balconies 57%, saunas 44%, bedrooms 17%"
+  },
+  {
+   "metric": "Most-common-value baseline",
+   "value": "47.0% exact on English counts (in-sample, optimistic); 5.5% within 2% on quantities using the per-family median"
+  },
+  {
+   "metric": "Small-area pressure",
+   "value": "13.0% of 795 English m2 answers are under 5 m2 (2% tolerance under 0.1 m2); minimum 1.51 m2 (tolerance 0.03 m2); 33% under 10 m2"
+  },
+  {
+   "metric": "Grounding scope (English, n=4,152)",
+   "value": "whole drawing 62.7%; one room by id or name 12.8%; all rooms with a quoted label 11.3%; IFC-Bench building report 5.1%; one IFC storey 3.1%; one apartment 2.7%; schedule table 1.5%; whole IFC model 0.5%; other 0.4%"
+  },
+  {
+   "metric": "ifc_models answers reproduced from IFC",
+   "value": "513/513 testable English questions (100%), incl. 99/99 asked on rendered PDFs; 12 untestable (AC20-FZK-Haus.ifc not in preview)"
+  },
+  {
+   "metric": "swiss label counts from PDF text layer",
+   "value": "exact label match 405/405; substring match 359/405; case-insensitive substring 303/405"
+  },
+  {
+   "metric": "swiss rooms with a printed area",
+   "value": "550 of 1,601 numbered rooms (34.4%); 46 of 130 asked rooms; all rooms printed in 10 of 65 files"
+  },
+  {
+   "metric": "Duplicates and contradictions",
+   "value": "0 repeated (path, question) pairs; 0 conflicting answers; 0 questions asked on two formats of one drawing"
+  },
+  {
+   "metric": "ifc_bench text answers",
+   "value": "median 197 chars, 69% multi-line, max 3,977 chars, 20 over 1,000 chars; 42/249 (16.9%) only say the data is absent or answer 'No'; 7 more state absence and then estimate"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "Counting dominates the question set. Most of it is counting symbols and rooms on raster PNG floor plans and vector PDFs. No question in the preview targets DXF, DWG, SVG or JPG files.",
+   "evidence": "analyze.py (output in analyze_out.txt). By type: count 6,076 (76.0%), area 1,599 (20.0%), text 265, volume 34, length 16. By format: PNG 4,270, PDF 2,644, IFC 1,076. cubicasa5k is 100% counts; swiss is 68% counts and 32% areas; ifc_models is 81% areas. See chart1_questions_by_source_type.png.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Put engineering effort first into an accurate, verifiable count pipeline for PNG and PDF and an exact area pipeline. IFC questions are fewer but fully solvable. The hidden set may still ask about sibling formats (see questions for Stoa)."
+  },
+  {
+   "id": "F2",
+   "claim": "48% of lines are translations of an English twin. Each translation sits on the next line, with the same path, answer, type, unit and quoted slots, and a fixed template mapping per language.",
+   "evidence": "analyze.py: 3,838/3,838 non-English lines follow an English line with the same path and answer. Quoted slots are identical in 3,838/3,838. Each of the 93 (English template, language) combinations maps to exactly one local template. Twin rate is 92.4% of English questions: 100% cubicasa5k and swiss, 524/525 ifc_models, 0% ifc_bench and opening_design.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Parse any language into (family, slots) and answer once per (drawing, family, slots). This guarantees identical answers across languages. Translations double-weight the template families in any line-level score."
+  },
+  {
+   "id": "F3",
+   "claim": "Each file has exactly one non-English language, and it is the drawing's own language. Quoted labels stay in the drawing's language even in the English question.",
+   "evidence": "0 of 311 files have more than one non-English language. swiss twin language equals the PDF title-block language in 65/65 files (de 22, fr 22, it 21). cubicasa5k uses fi; ifc_models uses et (Esplanades), da (Molio) and de (FZK-Haus). English questions quote 'Cucina', 'KORIDOR (119)' and 'Depot (Rum nr. S09)' untranslated. Quote styles seen: '...', «...», « ... », „...“.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The question parser must handle several languages and quote styles and must never translate labels. The README's 'about 30 languages' describes drawings. Hidden question languages probably follow drawing languages, so expect more than the 7 seen here."
+  },
+  {
+   "id": "F4",
+   "claim": "A small set of templates covers most questions. The long tail is IFC-Bench paraphrases and hand-written opening_design questions.",
+   "evidence": "templates.csv (439 rows) and families.csv (86 rows). The top-20 templates cover 57.9% of lines and 82.9% of English lines. The top-20 families cover 86.2%. 44 English templates produce 92.4% of English questions. ifc_bench has 245 distinct strings in 32 intents (my keyword grouping), 22 of which recur on at least 4 of 5 models. opening_design has 64 unique strings. See chart2_template_coverage.png.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use deterministic per-family solvers for the generated families and a general tool-using path for the tail. To avoid overfitting, key the solvers on intent plus slot extraction, never on exact strings."
+  },
+  {
+   "id": "F5",
+   "claim": "Every testable ifc_models answer reproduces exactly from the IFC with a few explicit rules: room naming, area source, top-level-only stair counting and quantity-set sums.",
+   "evidence": "ifc_models_check.py (output in ifc_models_check.csv): 513/513 English questions correct (counts exact, quantities within 2%). Rules: a room is 'LongName (Name)' on the IfcBuildingStorey it is aggregated to. Net floor area is BaseQuantities.NetFloorArea when present (Molio, 117 rooms), otherwise the footprint area of the space geometry (Esplanades, 285 rooms). Storey totals are sums of unrounded room areas. Stairs count top-level IfcStair only: Molio has 579 IfcStair entities but the answer is 15. Walls are IfcWall including subtypes. Wall length is the sum of Qto Length converted from mm to m; volume uses NetVolume and side area uses NetSideArea. Clinic sanitary fixtures are IfcFlowTerminal (119).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Implement IFC answers with ifcopenshell and these rules. The evidence is the list of matched element names or GUIDs, plus the highlighted space on the rendered plan. Exporters vary, so log which rule was used (Qto or geometry, top-level or not)."
+  },
+  {
+   "id": "F6",
+   "claim": "Questions asked on an IFC-rendered floor-plan PDF often need the source IFC. 40 of 41 whole-model counts are asked on a single-storey PDF, and room areas are not printed on those PDFs.",
+   "evidence": "analyze.py and ifc_models_check.py. For example, the 4.korrus PDF asks 'How many doors are there in the model ...' (answer 211, the whole building). The PDFs contain 0 'm²' tokens. 99/99 testable PDF-asked English questions reproduce from the IFC. Each storey's questions are attached to one file only: Esplanades asks 4.korrus on the PDF and 1, 2, 3 and 5.korrus on the IFC; Molio asks Kælder on the PDF and the other storeys on the IFC. 12 lines on the FZK-Haus PDF are untestable because AC20-FZK-Haus.ifc is not in the preview.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Resolve source and sibling files by the naming convention (<model>_plan-NN-<level>.pdf to <model>.ifc, and same stem with another extension). Without this, these questions are unanswerable from the PDF alone."
+  },
+  {
+   "id": "F7",
+   "claim": "swiss label-count questions can be answered exactly from the PDF text layer, but only with whole-label matching.",
+   "evidence": "swiss_textlayer_check.py plus a follow-up run. Exact whole-line match reproduces 405/405 label counts. Substring match gets 359/405 and case-insensitive substring 303/405. Typical traps are 'Zimmer' inside 'Schlafzimmer', 'Wohnen' inside 'Wohnen/Essen', and legend words. Room ids are found 130/130, with the adjacent label equal to the quoted label 130/130. The apartment count equals the number of 'Whg./App. X' labels 65/65.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use exact token matching on the text layer and return the matched bounding boxes as evidence. This covers about 12% of all lines (label counts and apartment counts) with near-certain accuracy on PDFs. On PNG or DXF twins the same logic needs OCR or DXF text entities."
+  },
+  {
+   "id": "F8",
+   "claim": "Most swiss areas are not printed, so area questions need geometry. Where areas are printed, the ground-truth rules are confirmed.",
+   "evidence": "swiss_textlayer_check.py: 550 of 1,601 numbered rooms (34.4%) carry a printed 'xx.xx m²'. That covers 46 of 130 asked rooms, and every numbered room is printed in only 10 of 65 files. On printed data: room areas 46/46 within 2%, label-area sums 23/23, floor totals 10/10. Floor total = sum of all numbered rooms minus outdoor labels (Balkon, Balcon, Balcone, Loggia, Terrasse). Ground truth uses unrounded geometry: sums differ from printed values by 0.01 to 0.04 m².",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Build area computation from vector polygons (PDF paths or the DXF sibling) at the drawing scale. Use printed values only as a shortcut or cross-check. Apartment areas (224 lines) also need room-to-apartment membership from geometry."
+  },
+  {
+   "id": "F9",
+   "claim": "Zero is a frequent correct count in some families. In others the question is only asked when the item exists.",
+   "evidence": "analyze.py and chart4_count_answers_by_family.png. 258 of 3,058 English count answers (8.4%) are 0: cubicasa WC rooms 61%, balconies 57%, saunas 44%, bedrooms 17%. Never 0: swiss bathtubs (asked on 56/65 files, min 1), showers (21/65, min 1), label counts (min 1), cubicasa doors (asked on 176/241 files, min 2). No area, length or volume answer is 0.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The system must be able to answer 0 confidently, with evidence of absence (for example 'no sauna label or symbol found'). Do not treat the presence of a question as evidence that the item exists."
+  },
+  {
+   "id": "F10",
+   "claim": "Simple priors already score well on several count families, so overall accuracy can hide guessing.",
+   "evidence": "baseline_mode_per_family_en.csv. Answering the in-sample most common value per family is exactly right for 47.0% of 3,058 English counts: kitchens 95% (answer 1), bathrooms 88%, storeys 80%, showers plus bathtubs 73%. A per-family median baseline for areas, lengths and volumes is within 2% only 5.5% of the time.",
+   "kind": "inferred",
+   "confidence": "high",
+   "implication": "Report accuracy per family against this baseline. Require per-instance evidence (highlighted symbols or labels) so a verifier can tell a real detection from a prior."
+  },
+  {
+   "id": "F11",
+   "claim": "Answer formats are stable. The unit is stated in every metric quantity question but not in the 9 ft² questions.",
+   "evidence": "analyze.py. Counts are integers. m² answers have at most 2 decimals, except storey wall side area with 3 (5 of 8). Lengths and volumes mostly have 3 decimals. The 9 ft² answers (opening_design A-801) are integers copied from the schedule ('SF'), and their questions do not mention a unit. Text answers keep feet-inch strings ('5'-10 3/8\"'). IFC-Bench writes 'sq m' and 'cu m'.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer in the unit the question states. Otherwise use the drawing's native unit and always attach the unit. Do not convert US schedules to metric."
+  },
+  {
+   "id": "F12",
+   "claim": "The 2% tolerance is tight for small rooms.",
+   "evidence": "chart5_area_answers_tolerance.png: 13.0% of 795 English m² answers are under 5 m², where 2% is under 0.1 m². The minimum is 1.51 m² (tolerance 0.03 m²), and 33% are under 10 m².",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Pixel-based area estimates on raster images will often miss on small rooms. Prefer IFC quantities or vector polygons, and be explicit about the boundary convention (net inner faces)."
+  },
+  {
+   "id": "F13",
+   "claim": "About 32% of English questions must first locate a named room, label set, apartment, storey or sheet. Every named entity tested is present verbatim in the drawing text.",
+   "evidence": "chart3_grounding_scope.png (English n=4,152): whole drawing 62.7%, one room by id or name 12.8%, label set 11.3%, IFC-Bench report 5.1%, IFC storey 3.1%, apartment 2.7%, schedule table 1.5%, whole model 0.5%. Verbatim checks: swiss room ids 130/130, IFC-plan room names 74/74, storey names 74/74. opening_design door ids (121.A, 128.B, 107.A, 115.A) and '29690' appear in the A-801 text layer.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "For named entities, use the text-layer bounding box as the 'where it came from' evidence. For whole-drawing counts, the evidence must be per-instance marks. That is harder and needs its own UI."
+  },
+  {
+   "id": "F14",
+   "claim": "Two thirds of English questions carry their own counting rule or scope definition.",
+   "evidence": "analyze follow-up regex: 2,755 of 4,152 English questions (66.4%) contain one. Examples: 'a double-bowl sink counts as one', 'open doorways without a door leaf do not count', 'excluding balconies, loggias, terraces..., shafts and voids', 'not counting separate WC rooms', '(spaces)'.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "These clauses are the ground-truth rules. Map each one to an explicit solver rule and show the applied rule next to the answer. Hidden variants may add rules not seen here."
+  },
+  {
+   "id": "F15",
+   "claim": "IFC-Bench answers are long free-text reports, and about 1 in 6 correctly says the information is not in the model.",
+   "evidence": "analyze.py: 249 text answers, median 197 chars, 69% multi-line, 20 over 1,000 chars, max 3,977. 17 'How many' questions are typed text. 42/249 answers only state absence or say 'No' ('No beam elements found in the model', 'This information is not available in the BIM model'). 7 more state absence and then give an estimate. 17/249 questions are interpretive (estimate, assessment, compliance, warranty, load path).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The system needs a calibrated 'not in the model' answer backed by evidence (the query that came back empty) instead of guessing. Accuracy on this family depends on an unknown text-scoring method."
+  },
+  {
+   "id": "F16",
+   "claim": "opening_design questions are sheet-specific schedule reads with mixed answer formats.",
+   "evidence": "analyze.py and a pymupdf token check. 64 unique questions on 3 sheets: A-801 41, A700 20, A-701 3. 61 concern schedule tables (counts with filters, row lookups, area sums, argmax, one derived calculation: 379 ESDH3066 units). 3 count fixtures in an enlarged plan. Text answers combine codes and descriptions ('B3 (aluminium sliding door)') or values ('3 rooms, 4541 SF'). The PDFs have text layers (about 3,400 to 9,800 chars). The 3 paths contain spaces and '&'.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Vector-PDF table extraction with row and column provenance is the right tool. Handle odd paths. Expect new sheet types in the hidden set, since nothing here is templated."
+  },
+  {
+   "id": "F17",
+   "claim": "The ground truth is internally consistent: no duplicate or contradictory answers, and no question repeated across formats of one drawing.",
+   "evidence": "analyze.py: 0 repeated (path, question) pairs and 0 conflicting answers. Twins agree on type and unit 3,838/3,838. 152 question strings recur across files only because templates are reused. Cross-question check on 36 swiss files where every apartment is asked: sum of apartment areas never exceeds the floor total (ratio 0.37 to 1.00, median 0.90).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Disagreements in evaluation will come from the system, not label noise. Add self-consistency checks between related families (rooms vs storey totals, apartments vs floor totals)."
+  },
+  {
+   "id": "F18",
+   "claim": "The preview looks like a proportional sample of the full set, in which the scan sources may also have no questions.",
+   "evidence": "7,990 x (14,000/913) is about 122,500, close to the README's ~120,000. 320 of 773 preview drawings (41.4%) have questions, close to the README's ~40%. The 4 scan sources hold 374 of 773 preview drawings (48%) and 0 questions.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Prioritize the 5 sources that have questions, and keep a generic vision fallback for scans. Ask Stoa whether scans are scored, because this changes the build plan."
+  },
+  {
+   "id": "F19",
+   "claim": "The generated families should generalize, with new slot values. The preview cannot predict new templates, scan questions or other formats.",
+   "evidence": "Template strings are identical across all files of a source (for example the windows question on 241/241 cubicasa files). Slot values vary: 32 distinct swiss labels, 402 IFC room names, 13 IFC storeys, apartment letters A to H. 22 of 32 IFC-Bench intents recur on at least 4 of 5 models. opening_design covers only 3 of 81 drawings.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Test robustness with held-out drawings, unseen labels and levels, and paraphrased or translated questions. Treat opening_design and scan questions as open-ended."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "cubicasa5k symbol counts (windows, doors, toilets, sinks, showers plus bathtubs)",
+   "n_questions": 2246,
+   "best_source_format": "PNG (only format; low resolution, often 500-1000 px)",
+   "method": "Vision symbol detection and counting with per-instance boxes, applying the in-question rules (door leaf required, double sink counts as one)",
+   "tested": "not tested: no vision model or OCR in this slice; only the most-common-value baseline was measured (windows 14%, sinks 56%, toilets 63% exact)",
+   "notes": "1,123 English plus 1,123 Finnish twins. Doors are asked on 176/241 files only (never 0)."
+  },
+  {
+   "question_family": "cubicasa5k room-type counts (sauna, kitchen, bedroom, WC room, bathroom, balcony) and storeys",
+   "n_questions": 2024,
+   "best_source_format": "PNG",
+   "method": "Read Finnish room labels (MH, KH, PH, SAUNA, WC, PARVEKE, '1. kerros') with a vision model or OCR, then count by label rules",
+   "tested": "not tested: no OCR. Baseline only: kitchens 95%, bathrooms 88%, storeys 80% exact by answering the mode",
+   "notes": "Zero-heavy (WC rooms 61%, balconies 57%, saunas 44% zeros). The example image viewed is rotated 180 degrees, so text may be upside down."
+  },
+  {
+   "question_family": "swiss label counts ('How many rooms labelled X')",
+   "n_questions": 810,
+   "best_source_format": "PDF text layer (DXF text entities likely also work, not tested)",
+   "method": "Exact whole-label match on text-layer lines, with bounding boxes returned as evidence",
+   "tested": "405/405 English exact (all files); substring matching drops to 359/405",
+   "notes": "Labels always present (min 1). 32 distinct labels across de, fr and it."
+  },
+  {
+   "question_family": "swiss apartment count",
+   "n_questions": 130,
+   "best_source_format": "PDF text layer",
+   "method": "Count 'Whg./App. <letter>' labels",
+   "tested": "65/65 English exact",
+   "notes": "Commercial units ('Gewerbe 1') must not be counted."
+  },
+  {
+   "question_family": "swiss room area by id",
+   "n_questions": 260,
+   "best_source_format": "PDF vector geometry or DXF polygons; text layer when an area is printed",
+   "method": "Find the room id in text, then read the printed area or compute the polygon area at the drawing scale",
+   "tested": "46/46 within 2% where the area is printed; 84/130 untested (no printed area)",
+   "notes": "Only 34.4% of numbered rooms carry a printed area."
+  },
+  {
+   "question_family": "swiss aggregated areas (label sums, floor total, apartment totals)",
+   "n_questions": 484,
+   "best_source_format": "PDF or DXF geometry",
+   "method": "Sum room areas: by exact label; numbered rooms minus outdoor labels for floor totals; apartment membership from geometry",
+   "tested": "label sums 23/23 and floor totals 10/10 within 2% on fully printed files; apartments (224 lines) untested",
+   "notes": "Ground truth sums unrounded geometry. Sums of printed values differ by 0.01 to 0.04 m²."
+  },
+  {
+   "question_family": "swiss symbol counts (doors, windows, toilets, washbasins, bathtubs, showers)",
+   "n_questions": 674,
+   "best_source_format": "PDF vector symbols (the legend lists WC, Lavabo, Badewanne, Dusche, Türe, Fenster) or DXF blocks",
+   "method": "Detect symbols by vector pattern or block name; vision as fallback",
+   "tested": "not tested in this slice",
+   "notes": "Doors include interior and entrance doors. Bathtubs and showers are only asked when at least one exists."
+  },
+  {
+   "question_family": "ifc_models counts, room, storey and model quantities",
+   "n_questions": 1049,
+   "best_source_format": "IFC (also for questions asked on the rendered PDF)",
+   "method": "ifcopenshell: name 'LongName (Name)' plus storey; NetFloorArea Qto, else footprint area; top-level IfcStair; Qto Length, NetVolume, NetSideArea sums",
+   "tested": "513/513 English correct (counts exact, quantities within 2%); 12 untestable because the FZK-Haus IFC is missing from the preview",
+   "notes": "40 of 41 whole-model counts are asked on single-storey PDFs."
+  },
+  {
+   "question_family": "ifc_bench free-text reports (IFC-Bench v2)",
+   "n_questions": 249,
+   "best_source_format": "IFC",
+   "method": "Structured IFC queries plus an LLM write-up citing elements. Say 'not available' with evidence when a query is empty",
+   "tested": "not tested: scoring for free text is unknown",
+   "notes": "16.9% of answers only state absence. 17 interpretive questions. Answers run up to 3,977 chars."
+  },
+  {
+   "question_family": "opening_design schedule questions",
+   "n_questions": 61,
+   "best_source_format": "PDF text layer (vector schedules)",
+   "method": "Table extraction with row and column provenance, then filter, count, sum or look up",
+   "tested": "not tested: tokens such as 121.A, 128.B, 29690 and ESDH3066 confirmed present in the text layer",
+   "notes": "9 area answers in ft² with no unit in the question. Feet-inch strings and composite text answers."
+  },
+  {
+   "question_family": "opening_design enlarged-plan fixture counts",
+   "n_questions": 3,
+   "best_source_format": "PDF vector or vision",
+   "method": "Locate detail 6A or 6B by its label, then count fixtures inside it",
+   "tested": "not tested",
+   "notes": "Needs crop-level grounding of a sheet detail."
+  }
+ ],
+ "risks": [
+  "No questions exist for europeana, finna, habs or wikimedia in the preview, so nothing here validates performance on scans. These scans would also need OCR or vision, and no OCR engine is installed in this environment.",
+  "The IFC-Bench intent families (32) and the grounding labels come from my keyword rules, so counts per intent are approximate. Everything else (templates, twins, counts) is exact.",
+  "Language detection is a heuristic. It is cross-checked by the twin structure and by reading samples, but the hidden set may contain languages it does not cover.",
+  "The IFC rules come from only 3 models (2 ArchiCAD-style IFC2X3 exports and 1 MEP model). Other exporters may lack quantity sets or nest elements differently.",
+  "The swiss text-layer results apply to PDFs only. If hidden questions target the PNG or DXF twins, the same answers need OCR or DXF parsing.",
+  "The most-common-value baselines are computed in-sample, so they overstate what a prior-only system would score on new drawings.",
+  "12 FZK-Haus questions are unanswerable from preview files because the source IFC is missing; the full set may have the same gap.",
+  "With 2% tolerance on areas as small as 1.51 m², small geometry convention errors (wall face vs centreline) flip answers to wrong.",
+  "How free-text answers are scored is unknown. This affects ifc_bench (249) and opening_design text answers (16).",
+  "The 15x hidden set may contain templates, paraphrases or counting rules that do not appear in this preview."
+ ],
+ "questions_for_stoa": [
+  "At evaluation time, does the system receive only path and question, or also the type and unit fields? Nine ft² area questions do not state a unit.",
+  "How are free-form text answers scored (LLM judge, keyword match, human)? Is there partial credit for multi-part IFC-Bench reports or composite answers like '3 rooms, 4541 SF'?",
+  "Does the hidden set contain questions about europeana, finna, habs or wikimedia scans? If so, what kinds of questions, in which languages, and how was their ground truth made?",
+  "Can a hidden question be asked on another format of the same drawing (swiss DXF or PNG, the SVG twin of an IFC plan, opening_design DWG)? May the system read sibling and source files, such as the IFC behind a rendered PDF?",
+  "Is AC20-FZK-Haus.ifc in the full dataset? Whole-model questions on its PDF need it.",
+  "Are hidden questions drawn from the same templates as the preview, or are they paraphrased or new?",
+  "Is the 2% tolerance relative to the ground-truth value in the ground-truth unit? Are unit-converted answers (m² vs ft²) accepted?",
+  "Is scoring per question line, so that each translation twin counts separately, or per unique question?",
+  "Are numeric questions ever unanswerable in the hidden set? The preview has none: every count is an integer and every area is positive."
+ ],
+ "artifacts": [
+  "eda/questions/qlib.py",
+  "eda/questions/families.py",
+  "eda/questions/analyze.py",
+  "eda/questions/analyze_out.txt",
+  "eda/questions/templates.csv",
+  "eda/questions/families.csv",
+  "eda/questions/questions_annotated.csv",
+  "eda/questions/questions_per_file.csv",
+  "eda/questions/numeric_answers_by_family_en.csv",
+  "eda/questions/baseline_mode_per_family_en.csv",
+  "eda/questions/swiss_textlayer_check.py",
+  "eda/questions/swiss_textlayer_check.csv",
+  "eda/questions/ifc_models_check.py",
+  "eda/questions/ifc_models_check.csv",
+  "eda/questions/charts.py",
+  "eda/questions/chart1_questions_by_source_type.png",
+  "eda/questions/chart2_template_coverage.png",
+  "eda/questions/chart3_grounding_scope.png",
+  "eda/questions/chart4_count_answers_by_family.png",
+  "eda/questions/chart5_area_answers_tolerance.png",
+  "eda/questions/cubicasa_example_storeys.jpg",
+  "eda/questions/ifc_bench_dump.txt"
+ ]
+}

@@ -1,0 +1,393 @@
+{
+ "slice": "ifc_bench (data/ifc_bench: 5 IFC models, 249 free-form text questions from IFC-Bench v2)",
+ "summary": "The ifc_bench slice has 5 IFC building models (2 IFC2X3, 3 IFC4, 1.7 to 64.1 MB). Each loads in at most 1.3 s with ifcopenshell 0.9. There are 249 questions, all type \"text\" with unit null, taken from IFC-Bench v2. Questions are in English, but element and room names are German, Norwegian or English. Each model stores the same facts in a different place: standard Qto sets, ArchiCAD or Revit vendor property sets, or nowhere at all (the fantasy model has zero quantity sets). I sorted the questions into 13 categories. Most reference answers are structured lists (145) or short facts (35); 47 say the information is not in the model, 15 hedge and then give an estimate, and 7 are interpretive prose. With deterministic ifcopenshell queries I reproduced 31 of a 39-question stratified seed-0 sample exactly, and 126 of the 139 questions I checked overall. Those 139 include every \"types with quantities\" question (37) and every \"spaces on a level\" question (18) across all models. The catch is convention: 24 of the 126 match only after applying a rule the reference used silently. Examples are exterior walls taken from ArchiCAD layer names, a 21 mm \"Empty Fill\" layer dropped from thickness, curtain-wall panels left out of window widths, roof slabs counted as ceilings, and floor-to-floor heights mixed with room heights. A single fixed labeling rule matches type lists exactly in only 25 of 37 cases, even though totals match in 36 of 37. The references also contain measurable errors. Six digital_hub MEP answers use data that is absent from the provided file. Five fantasy doors carry 'EI 30' fire ratings although the reference says none exist. hitos totals and its \"largest room\" include gross-area zone objects, and a few labels are mistranslated. Scoring is most likely an LLM judge or a key-fact comparison against the reference (inferred). The safest format mirrors the reference's shape (total, original-language labels verbatim, counts, 1-decimal percentages, \"sq m\"), then adds one \"basis\" line (property, filter, storey) and a GlobalId evidence block. For the product: build a deterministic IFC query layer with property fallbacks and a \"definition used\" line. Use the LLM only to map the question to a query and to local terms. Never present an estimate as a model fact.",
+ "key_stats": [
+  {
+   "metric": "IFC models / schemas",
+   "value": "5 models: duplex and hitos IFC2X3; ac20, digital_hub, fantasy IFC4"
+  },
+  {
+   "metric": "File size / load time (ifcopenshell 0.9)",
+   "value": "1.7 to 64.1 MB; 0.05 s (duplex) to 1.29 s (hitos, 1,100,318 entities)"
+  },
+  {
+   "metric": "Questions",
+   "value": "249, all type=text, unit=null; digital_hub 64, duplex 51, hitos 51, ac20 48, fantasy 35"
+  },
+  {
+   "metric": "Categories (13)",
+   "value": "inventory_counts 52, spaces_areas 47, mep 25, structural_interpretation 20, materials 18, element_dimensions 15, fire_safety_access 15, performance_lifecycle 12, takeoff_estimate 11, lengths_volumes 9, levels_heights 9, element_lookup 8, metadata 8"
+  },
+  {
+   "metric": "Answer styles",
+   "value": "factual_list 145, factual_short 35, not_available 47, not_available_plus_estimate 15, interpretive 7"
+  },
+  {
+   "metric": "Answer length (chars)",
+   "value": "median 197, p90 726, max 3977"
+  },
+  {
+   "metric": "Hedge / negative phrases",
+   "value": "'most probably' 1, 'likely' 3, 'estimat' 12, 'not (directly) available' 40, 'No ... found' 17; duplex has 25 of the 62 negative-style answers"
+  },
+  {
+   "metric": "Seed-0 stratified sample (3 per category)",
+   "value": "31/39 fully reproduced; 33/39 if model-derived facts only; 2 partial, 3 not reproduced, 1 unverifiable"
+  },
+  {
+   "metric": "All checks combined",
+   "value": "139/249 questions checked; 126 reproduced; 24 of those needed a non-obvious convention; 6 not derivable from provided file; 2 references contradicted by model data"
+  },
+  {
+   "metric": "Type-with-quantity lists (all models)",
+   "value": "totals 36/37; labels+counts exact 36/37 with per-question label source; 25/37 with one fixed rule"
+  },
+  {
+   "metric": "Spaces-per-level lists (all models)",
+   "value": "18/18 room counts, per-room areas and level totals reproduced"
+  },
+  {
+   "metric": "Negative answers verified",
+   "value": "fire rating absent 7/8 (Q195 wrong), MEP absent 10/10, load-bearing 3/3"
+  },
+  {
+   "metric": "Cross-model paraphrase overlap",
+   "value": "100/249 questions have a Jaccard>=0.5 paraphrase in another model; duplex only 3/51"
+  },
+  {
+   "metric": "Evidence in references",
+   "value": "2/249 cite a GlobalId, 6/249 name an IFC class or pset"
+  },
+  {
+   "metric": "Units and rounding in references",
+   "value": "'sq m' 904 tokens, 'mm' 737; area decimals follow stored precision (1 dp ac20/dh/hitos, 2 dp fantasy/duplex); percentages 1 dp (314/324)"
+  },
+  {
+   "metric": "Geometry tessellation (8 threads, key classes)",
+   "value": "duplex 0.9 s, ac20 3.8 s, digital_hub 7.6 s, hitos 12.5 s, fantasy 29.8 s"
+  },
+  {
+   "metric": "IFC-Bench v2 scale (public dataset card)",
+   "value": "22 projects, 51 IFC models, about 1,026 QA pairs; preview holds 5 models and 249 questions"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "The five models differ in schema, authoring tool and units: ArchiCAD 11 (2006, IFC2X3, millimetre), ArchiCAD 20 (2017, IFC4), Revit 2011 (IFC2X3), Revit 2019 and Revit 2024 (IFC4). Loading is cheap, but hitos stores elevations in mm (17300 means 17.3 m).",
+   "evidence": "profile_ifc.py -> profile.json, model_profile.csv (header FILE_NAME, IfcApplication, IfcUnitAssignment, ifcopenshell.util.unit.calculate_unit_scale: hitos 0.001, others 1.0; load times 0.05 to 1.29 s).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Parse each IFC once at ingest and cache it. Always apply the length-unit scale, as the hitos elevation answers (20.3 m) require."
+  },
+  {
+   "id": "F2",
+   "claim": "The same fact lives in a different place in each model. Room area comes from BaseQuantities.NetFloorArea (ac20), Qto_SpaceBaseQuantities.NetFloorArea (digital_hub), PSet_Revit_Dimensions.Area (duplex, no Qto), PSet_Room.Area (fantasy, zero quantity sets) or an unnamed qset NetFootprintArea (hitos). Exterior walls come from Pset_WallCommon.IsExternal in 3 models; in ac20 (ArchiCADProperties.Ebene = 'Außenwände') and hitos (LAYERNAME contains 'Yttervegger', 257+10 = 267) they come from ArchiCAD layer names.",
+   "evidence": "sweep.py (AREA map, ext_flag) reproduces all 18 per-level space lists and all 8 exterior/interior wall-type questions (18,19,61,62,183,184,213,214); ac20 exterior/interior lengths 643.8/522.2 m from BaseQuantities.Length grouped by Ebene (inline exploration); psets.csv lists all psets/qsets.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Build a property resolver with ordered fallbacks: standard Pset/Qto, then vendor qsets/psets, then layer names, then geometry. Print the property path used in every answer so an engineer can check it in seconds."
+  },
+  {
+   "id": "F3",
+   "claim": "Names in the models are German (ac20, digital_hub, fantasy types), Norwegian (hitos) or English (duplex, fantasy rooms); the questions are English. References keep the original labels verbatim ('Kalksandstein 2816491304 300', 'Betongvegg 200') and map English terms to local names: 'staff room on the third floor' resolves to the space 'Personalrom/møterom' on storey '3.etg'.",
+   "evidence": "profile.json non_ascii chars (ü/ä/ß in ac20/dh/fantasy, ø/å/æ in hitos); reproduce.py handler 225 (furniture in 05.061 Personalrom/møterom: Cab Wall 1D 10 x3, Cab Base 1D 10 x2, Cab Base-MultiDrawer 10 x1, Refrigerator 10 x1, exact).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use an LLM to map English terms to local room, type and storey names. Output original labels verbatim, optionally with an English gloss in parentheses; a translated label alone can fail a key-fact match."
+  },
+  {
+   "id": "F4",
+   "claim": "Reference answers are mostly structured: 145 lists and 35 short facts. 47 answers say the information is absent, 15 hedge and then estimate, and 7 are interpretive prose. 152 answers start with a header line such as 'Total Doors: 77'; type lists give count and a 1-decimal percentage per type.",
+   "evidence": "classify.py -> questions_classified.csv, category_stats.csv, category_by_answer_style.csv (regex rules for list, negative and hedge phrases; manually reviewed category assignment of all 249).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Mirror the structure: a total line, then '- <original label>: n (p%)' lines. Keep percentages to 1 decimal and recompute them from counts so they sum consistently."
+  },
+  {
+   "id": "F5",
+   "claim": "Seed-0 stratified sample (3 questions per category, 39 total): 31 reproduced exactly; 2 more reproduce on all model-derived facts (Q103, Q141), with added prose that is not in the model; 2 partial (Q74 door widths, Q121 wall load-bearing wording); 3 not reproduced (Q95 label translated, Q88 reference says data absent but it exists, Q149 unexplained painting estimate); 1 unverifiable (Q131 egress distance estimate).",
+   "evidence": "reproduce.py (random.Random(0).sample per category; counts must match exactly, numbers at displayed precision or within 2%) -> repro_results.csv / repro_results.json. Per category, fully reproduced: inventory 3/3, spaces 3/3, levels 3/3, lengths 3/3, materials 3/3, metadata 3/3, mep 2/3, performance 2/3, dimensions 2/3, lookup 2/3, fire 2/3, takeoff 2/3, structural 1/3.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Deterministic IFC queries can produce most reference facts, but handlers were written after reading the references. Treat these rates as an upper bound for a blind system."
+  },
+  {
+   "id": "F6",
+   "claim": "Counting is easy; choosing the label is not. Across all 37 'types with quantities' questions, totals match 36/37. Labels plus counts match 36/37 when the label source is picked per question from 8 candidates, but only 25/37 with one fixed rule (type name if typed, else element name). Within one model the reference used family names ('TU DF 1 - Rahmenstock flächenbündig') for doors and windows but full type names for walls.",
+   "evidence": "sweep.py -> sweep_results.csv (columns exact_label_match, default_rule_exact, best_label_source). Misses of the fixed rule: digital_hub doors/windows/coverings/railings/floor slabs, hitos doors/windows/railings/stairs/furniture, ac20 railings/furniture.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Show both the type name and the element or family name when they differ, for example 'TU DF 1 - Rahmenstock flächenbündig (type ...:ML - 1010 x 2135): 44'. The reference label then appears in the answer whichever source the reference used."
+  },
+  {
+   "id": "F7",
+   "claim": "Overall, 139 of 249 questions were checked (sample + all-instance sweeps + negative checks + duplex checks). 126 reproduce; 24 of those needed a non-obvious convention. Of the rest, 6 are not derivable from the provided file, 2 references are contradicted by the model, 3 are partial, 1 is not reproduced and 1 is unverifiable.",
+   "evidence": "tally.py -> coverage.csv, coverage_by_category.csv (column non_obvious_convention lists the rule per question).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "About 90% of checked questions are reachable deterministically. About 1 in 5 reproduced answers depends on a definitional choice, so always state the definition used."
+  },
+  {
+   "id": "F8",
+   "claim": "Several references apply hidden filters or relabels. hitos wall thickness drops the 21 mm 'Empty Fill' layer (406 mm becomes 385 mm). hitos window widths exclude 'Vindusfelt' and 'Del av VF' curtain-wall panels (up to 19,548 mm wide). The digital_hub 'structural concrete volume' sums beams 10.76 + columns 18.52 + 18 non-LANDING slabs 1612.18 m³, including insulation 'WD 200 hart', screed 'FB 150' and 'Sohle 1 mm'; only 1032.93 m³ of that slab volume has a concrete material. digital_hub 'structural materials' is a keyword filter on all material names (beton|metall|stahl), not the materials of structural elements. hitos stairs are grouped after stripping a '-digit' suffix, and 'Wange:Metall 10 x 260' is relabelled 'Stair Stringer'.",
+   "evidence": "reproduce.py handlers 218, 211, 93, 87, 95 (diagnostic checks show the alternative values); sweep.py label 'element.Name minus -digit suffix' for Q228.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The reference generator was probably scripted queries plus an LLM write-up. Exact agreement on such items needs the same filters. A product should apply sensible filters, name them, and show the unfiltered number in one line."
+  },
+  {
+   "id": "F9",
+   "claim": "'Ceiling' and 'ceiling height' mean different things across answers. ac20 has 0 IfcCovering, so the reference counts 21 ROOF slabs (material 'Aluminium 131198') as 'potential ceilings'. digital_hub and duplex use IfcCovering (38 'Deckensystem'; 13 CEILING). hitos claims 277 'ceiling slabs' and lists structural decks ('Dekke-01') under ceilings; by layer the model has 205 ceiling slabs (A255_HImling 203, A257_Lydhimling 2) and 73 structural decks, and 277 was not reproduced. Ceiling height is FinishCeilingHeight 2.70 m (ac20), the IfcSpace solid extrusion depth 2.581 m (duplex A203; Revit limit 2.6), floor-to-floor elevation difference for digital_hub B01/E00 (3.22, 3.90) but the modal space height for the top storey E01 (3.65), and ArchiCAD ROOM HEIGHT for hitos (14.48 m).",
+   "evidence": "reproduce.py handlers 29, 36, 64, 113; inline exploration of hitos slab LAYERNAME counts and ROOM HEIGHT.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Resolve 'ceiling' explicitly: say which entities were counted (IfcCovering CEILING, else slabs) and which height definition was used (clear room height vs storey height)."
+  },
+  {
+   "id": "F10",
+   "claim": "'Gross', 'net' and 'total' area labels are used loosely, and two hitos answers double-count. digital_hub 'Total Gross Floor Area 2842.1' is the sum of space NetFloorArea. fantasy 'total gross area 1613.73' is the sum of room areas. ac20 gives three different totals: 2266.7 (sum of space GrossFloorArea, Q2), 1939.4 net (Q27) and 2727.0 (IfcBuilding BaseQuantities.GrossFloorArea); its footprint 537 is the GrossArea of the ground-floor slab. hitos 'net floor area' 8491.3 includes 3529.7 m² of 'Bruttoareal' gross-area zone spaces (rooms only: 4961.7), and its 'largest room' is the zone 'Bruttoareal uetg' 1624.2 m² instead of room 03.002 (467.7 m²).",
+   "evidence": "extra_checks.py -> extra_checks.csv (families 'area totals', 'largest room'); sweep.py per-level totals.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Report the area definition and the source quantity. When IfcSpace objects are zones (names like 'Bruttoareal'), exclude them from room answers but mention them in one line; this keeps the reference's number visible and the answer correct."
+  },
+  {
+   "id": "F11",
+   "claim": "The digital_hub_arc.ifc file has 0 IfcDistributionElement (no pipes, terminals or equipment), yet six references (Q98, Q99, Q100, Q104, Q106, Q111) report 4112 MEP components, 63 radiators, 914 pipe segments and 1,207,377.1 m of heating pipe. Q101 to Q103 for the same building report 0 components per level. The IFC-Bench card shows projects with several discipline files, so the MEP numbers probably came from MEP models that are not in this dataset.",
+   "evidence": "extra_checks.py and inline count of IfcDistributionElement per model (dh 0, ac20 0, duplex 0, fantasy 115 IfcFlowTerminal, hitos 69 IfcFlowTerminal); public IFC-Bench card lists multi-discipline projects.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer from the given file and say clearly that it contains no MEP elements. Expect these questions to score as wrong; the reported 1.2 million metres of pipe for a building of about 2,800 m² also suggests a unit error (inferred)."
+  },
+  {
+   "id": "F12",
+   "claim": "Some references are contradicted by the model. Q195 says no door fire rating exists, but 5 fantasy doors have Pset_DoorCommon.FireRating = 'EI 30' (for example GlobalId 1TmgNGSQ5B5uLPoToTxf3l). Q88 says beam size and span are not available, but the type name 'STB Träger - rechteckig:STB 250 x 500' and Qto_BeamBaseQuantities.Length (5.35 to 6.75 m) exist. Q41 calls 'Stahlbeton' columns 'Steel' (Stahlbeton is reinforced concrete). Q121 calls the exterior brick wall 'likely load-bearing', while Pset_WallCommon.LoadBearing = False.",
+   "evidence": "extra_checks.py (fire rating family, 7/8; Q195 fails with 5 real values); reproduce.py handlers 88, 121; inline check of ac20 column types.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "A verifiable system will sometimes disagree with the key. Cite the GlobalIds and property values so a human or judge can see why."
+  },
+  {
+   "id": "F13",
+   "claim": "References disagree with each other on the same model. duplex Q152 lists 9 house-A rooms (omits A105 'Stair'), while Q153 says 10. For house-A bathroom tiles, Q157 reports 9.50 m² from 'Finish Floor - Ceramic Tile' slab areas (A204 6.34), while Q161's bathroom tiling uses room floor areas (A204 5.42, total 18.85). hitos maps 'ground level'/'level 1' to '1.etg' (Q202/Q203) but 'ground floor' to 'u.etg' (Q227).",
+   "evidence": "duplex_checks.py -> duplex_checks.csv (12/12 confirmed); reproduce.py handlers 157, 161; sweep.py Q202/Q203; Q227 answer text.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Scoring against these keys will be noisy. Name the storey used ('ground floor = u.etg, +24.3 m') and the basis (room floor area vs tile finish area) in every answer."
+  },
+  {
+   "id": "F14",
+   "claim": "Hedge wording sometimes wraps exact data. Q144 says the foundation concrete 'cannot be exactly calculated... around 16.528 m³', which is the exact sum of the 7 footing volumes. Q122 gives foundation 'depth' as 300 mm, the footing thickness from 'Bearing Footing - 900 x 300', although the footing bottom elevation is -1.55 m. 7 of 11 takeoff answers are 'not available plus estimate', and estimates such as the painting area (~398 m²) are not reproducible (simple methods give 354 or 688 m²).",
+   "evidence": "duplex_checks.py (Q144, Q122); reproduce.py handler 149 (two methods, both outside 2%).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "When the model holds the data, give the exact number with its derivation. Label anything else as an assumption-based estimate and state the assumptions."
+  },
+  {
+   "id": "F15",
+   "claim": "Template reuse is partial: 100 of 249 questions have a close paraphrase (token Jaccard >= 0.5) in another model; duplex has only 3 of 51. The public IFC-Bench v2 card lists 22 projects, 51 IFC models and about 1,026 QA pairs, so the preview holds about a quarter of the benchmark questions.",
+   "evidence": "paraphrase.py (printed counts); WebFetch of the public dataset card URL from data/ifc_bench/LICENSE.md (no dataset content sent).",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "The hidden set probably has unseen projects, disciplines and phrasings. Design around intents (inventory, areas, materials, presence checks) and a general query layer, not around these templates."
+  },
+  {
+   "id": "F16",
+   "claim": "References carry little evidence. Only 2 of 249 answers cite a GlobalId, and 6 name an IFC class or pset. Units are 'sq m' (904 tokens) and 'mm' (737), area decimals follow the stored precision (1 dp for ac20/digital_hub/hitos, 2 dp for fantasy/duplex), and percentages use 1 decimal (314 of 324).",
+   "evidence": "inline regex count over ifc_bench_questions.jsonl; questions_classified.csv.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Put the key facts first in the reference's format, then a separate evidence block. Extra GUIDs are unlikely to hurt a fact-matching judge if the main answer stays short."
+  },
+  {
+   "id": "F17",
+   "claim": "Tessellating the key element classes takes 0.9 s (duplex), 3.8 s (ac20), 7.6 s (digital_hub), 12.5 s (hitos) and 29.8 s (fantasy) with 8 threads. Element-in-room questions (tiles per bathroom, walls around A203) worked here with bounding-box containment.",
+   "evidence": "geom_timing.py output; reproduce.py handlers 121 and 157 use ifcopenshell.geom bounding boxes.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Precompute geometry, per-storey plan renders and GUID-to-polygon maps at ingest, so 'show where' highlights are instant. Per-question tessellation is too slow for fantasy-size models."
+  },
+  {
+   "id": "F18",
+   "claim": "Revit exports fill unset text properties with their own name ('FireRating' = 'Fire Rating', 'ExpectedLife' = 'ExpectedLife'), and the references treat these placeholders as empty.",
+   "evidence": "reproduce.py is_placeholder() used in handlers 129, 130, 141 (all reproduced); duplex property scan (inline).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Treat a value equal to its property name, or empty, as missing. Otherwise the system will report 'Fire Rating' as a real rating."
+  },
+  {
+   "id": "F19",
+   "claim": "Interpretive questions (structural system, load path, efficiency, electrical voltages, embodied carbon, material lifespan) get generic engineering prose in the references, partly from outside knowledge (6 answers, for example 'EPDM lifespan 30 to 50 years', 'Standard German building voltages likely used').",
+   "evidence": "questions_classified.csv (answer_style interpretive 7, uses_external_knowledge 6); reproduce.py marks Q103 and Q141 prose as unverifiable.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Separate model-backed facts from general knowledge in the answer, for example 'From the model: ...' and 'General guidance (not in model): ...'. This keeps accuracy claims honest and may still satisfy a judge."
+  },
+  {
+   "id": "F20",
+   "claim": "Free-form answers are most likely scored by an LLM judge or by key-fact matching against the reference. The README only says 'text answers are free-form', and the IFC-Bench card does not state its scoring. The best-scoring verifiable format is: a direct answer line; the reference-shaped breakdown (total, original labels, counts, 1-dp percentages, 'sq m'/'mm'); one 'Basis:' line (property or quantity path, filters, storey interpretation); then 'Evidence:' with IFC class, GlobalIds (all when there are few, else the first few plus the count) and storey names. For negatives, list what was checked and found zero.",
+   "evidence": "README.md; WebFetch of the IFC-Bench card (scoring not stated); answer-format measurements in F4 and F16.",
+   "kind": "inferred",
+   "confidence": "low",
+   "implication": "Confirm the scoring method with Stoa. Until then, keep the answer body close to the reference shape and keep the evidence compact."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "Element inventory by type (doors, windows, walls, columns, beams, railings, stairs, furniture, coverings, slabs) with counts and percentages",
+   "n_questions": 52,
+   "best_source_format": "IFC: IfcRelDefinesByType type names, else element Name/ObjectType; exterior/interior via Pset_WallCommon.IsExternal or vendor layer names",
+   "method": "ifcopenshell by_type + group by label; percentage = count/total*100 rounded to 1 dp",
+   "tested": "40/40 checked reproduced (37 all-instance sweep + 3 seed-0 sample); totals 36/37; fixed default label rule exact 25/37",
+   "notes": "Label source varies by model and class; show both type and element or family names. Two references (ac20 Q30, Q41) add a second derived list with errors ('Labortisch', 'Steel')."
+  },
+  {
+   "question_family": "Spaces and areas (rooms per level with areas, totals, largest room, room counts, utilization)",
+   "n_questions": 47,
+   "best_source_format": "IFC: IfcSpace + model-specific area quantity (NetFloorArea / PSet_Room.Area / NetFootprintArea / Revit Area), storey via aggregation",
+   "method": "per-storey aggregation of space quantities; sum then round",
+   "tested": "31/31 checked reproduced (18 per-level lists, 5 totals, 3 largest-room, duplex room counts)",
+   "notes": "'Gross' and 'net' used loosely; hitos includes 'Bruttoareal' zone spaces in totals and 'largest room'; floor naming (u.etg vs 1.etg) is ambiguous."
+  },
+  {
+   "question_family": "Levels and heights (storey elevations, floor-to-floor, ceiling heights, tallest rooms)",
+   "n_questions": 9,
+   "best_source_format": "IFC: IfcBuildingStorey.Elevation times unit scale; space height quantities or space solid depth",
+   "method": "elevation differences; space quantity or extrusion depth",
+   "tested": "6/6 checked reproduced",
+   "notes": "digital_hub mixes floor-to-floor and modal space height; hitos is in mm; duplex room height = solid depth 2.581 m."
+  },
+  {
+   "question_family": "Element dimensions (door/window widths, wall thickness, column sizes)",
+   "n_questions": 15,
+   "best_source_format": "IFC: OverallWidth/OverallHeight, material layer sums, type names with sizes",
+   "method": "attribute/quantity extraction with filters",
+   "tested": "4/5 checked (Q74 door width stats partial: no single width property gives avg 1.00, max 1.64, min 0.80, n 62)",
+   "notes": "Hidden filters: 'Empty Fill' layer excluded, curtain-wall panels excluded from windows."
+  },
+  {
+   "question_family": "Materials (walls, exterior/interior walls, ceilings, structural)",
+   "n_questions": 18,
+   "best_source_format": "IFC: IfcRelAssociatesMaterial (layer sets, constituent sets, single materials)",
+   "method": "union of material names per type or class",
+   "tested": "3/3 sampled reproduced (2 need non-obvious rules: roof slabs as ceilings, keyword filter)",
+   "notes": "Remaining 15 not individually tested; the hitos ceiling count 277 was not reproduced."
+  },
+  {
+   "question_family": "Lengths and volumes (wall lengths, slab volumes, concrete volume)",
+   "n_questions": 9,
+   "best_source_format": "IFC: Qto_*BaseQuantities Length/NetVolume (or vendor BaseQuantities)",
+   "method": "sum stored quantities by class and flag",
+   "tested": "3/3 in harness; ac20 exterior/interior lengths 643.8/522.2 also matched in exploration",
+   "notes": "fantasy has no quantity sets, so the references say 'not available' although geometry could compute lengths."
+  },
+  {
+   "question_family": "Structural interpretation (load-bearing split, structural elements, system type, load path, foundation)",
+   "n_questions": 20,
+   "best_source_format": "IFC: Pset_*Common.LoadBearing, class counts, type names",
+   "method": "flag counts plus LLM explanation",
+   "tested": "5/7 checked (Q88 reference contradicted by model data; Q95 counts right but label translated)",
+   "notes": "7 of 20 references are interpretive prose; only flag-based parts are verifiable."
+  },
+  {
+   "question_family": "MEP presence and inventories (systems, pipes, heating, cooling, electrical, sanitary)",
+   "n_questions": 25,
+   "best_source_format": "IFC: IfcDistributionElement subclasses and types (IFC2X3: IfcFlowTerminal + IfcSanitaryTerminalType)",
+   "method": "presence counts by class/type and keyword",
+   "tested": "11/17 checked reproduced (10/10 'none found' negatives confirmed); 6 digital_hub answers not derivable from provided file",
+   "notes": "References for digital_hub appear to use MEP discipline files not in the dataset."
+  },
+  {
+   "question_family": "Fire safety and accessibility (fire ratings, exits, escape routes, outdoor access)",
+   "n_questions": 15,
+   "best_source_format": "IFC: Pset_DoorCommon/Pset_WindowCommon FireRating, IsExternal doors per storey",
+   "method": "property presence (placeholders count as empty), door counts",
+   "tested": "9/11 checked (Q195 reference wrong: 5 doors have 'EI 30'; Q131 egress distance is an estimate)",
+   "notes": "Accessibility compliance and escape-route widths are judgments without code rules in the model."
+  },
+  {
+   "question_family": "Performance and lifecycle (thermal, airtightness, SHGC, warranty, lifespan, embodied carbon, energy rating)",
+   "n_questions": 12,
+   "best_source_format": "IFC psets (mostly absent)",
+   "method": "keyword property scan; report absence",
+   "tested": "3/3 sampled reproduced (absence confirmed; lifespan years are outside knowledge)",
+   "notes": "9 of 12 references are 'not available'; embodied carbon and recyclability answers are estimates."
+  },
+  {
+   "question_family": "Quantity takeoff estimates (facade area, glazing, flooring, tiles, painting, insulation volume, foundation concrete)",
+   "n_questions": 11,
+   "best_source_format": "IFC quantities (Revit Area/Volume, finish slabs, footings) plus stated assumptions",
+   "method": "sum relevant quantities; spatial mapping of finishes to rooms",
+   "tested": "4/5 checked (Q149 painting ~398 m² not reproducible)",
+   "notes": "7 of 11 are hedge-then-estimate; Q144's estimate is actually the exact footing sum."
+  },
+  {
+   "question_family": "Element lookups (by GUID, by room, room-specific furniture or heights)",
+   "n_questions": 8,
+   "best_source_format": "IFC: by_guid, spatial containment, space geometry",
+   "method": "direct lookup; bbox containment for unrelated elements",
+   "tested": "4/5 checked (Q121 interpretive wording partial)",
+   "notes": "Needs English-to-local term mapping ('staff room' to 'Personalrom')."
+  },
+  {
+   "question_family": "Metadata (software, schema, project, site, building)",
+   "n_questions": 8,
+   "best_source_format": "IFC header FILE_NAME/FILE_DESCRIPTION, IfcApplication, IfcProject, IfcSite, IfcBuilding",
+   "method": "attribute read; lat/lon from RefLatitude/RefLongitude",
+   "tested": "3/3 sampled reproduced",
+   "notes": "Building type/usage is often inferred from names (for example 'Buerogebaeude' read as office)."
+  }
+ ],
+ "risks": [
+  "Reference answers contain errors and internal inconsistencies (F10 to F13), so correct, verifiable answers will sometimes score as wrong against the key.",
+  "Six digital_hub MEP references depend on discipline files that are not in the dataset; the hidden set may contain more such questions.",
+  "The scoring method for free-form text is not stated in the README or on the IFC-Bench card; the recommended format is an inference.",
+  "My reproductions were written after reading the references, and the sweep picked the best label source per question (oracle). A blind system would score lower: the fixed label rule alone gives 25/37.",
+  "Only 139 of 249 questions were checked; 110 (mostly materials lists, long space breakdowns, structural prose and duplicated templates) were not individually tested.",
+  "Vendor conventions found here (ArchiCAD layer names, Revit placeholders, 'Bruttoareal' zones) come from 5 models; the hidden set likely has about 17 more IFC-Bench projects with other tools, disciplines and possibly schemas, so hard-coded rules would overfit.",
+  "Storey-name mapping ('ground floor', 'first floor') is ambiguous and inconsistent even within the references.",
+  "Geometry-dependent answers (room heights, finishes per room, wall lengths without Qto) rely on tessellation (up to 30 s per model) and simple bounding-box containment, which can misassign elements in irregular rooms.",
+  "ifc_bench has no PDF or plan renders, so 'show where' must come from our own rendering of IFC geometry plus GlobalId lists.",
+  "Not done: charts (CSVs only), a geometric wall-length computation for fantasy, and the 277 hitos ceiling-slab rule (not found). Nothing was installed, no dataset content was sent anywhere, and only one public IFC-Bench page was fetched."
+ ],
+ "questions_for_stoa": [
+  "How are free-form text answers scored: an LLM judge, a rubric, or key-fact matching? Is extra evidence (GlobalIds, property paths) neutral, rewarded or penalized?",
+  "For IFC questions, may the hidden set rely on other discipline models of the same project (as the digital_hub MEP references appear to), and will those files be provided?",
+  "When a reference conflicts with the model data (for example fire rating 'EI 30' present, or gross-area zones counted as rooms), which counts as correct?",
+  "Which conventions should we follow for ambiguous terms: 'ground floor' in Norwegian/German models, 'gross floor area', 'exterior wall' when IsExternal is missing, and 'ceiling height' (clear height vs storey height)?",
+  "Are estimates acceptable when the model lacks the data, or should the system decline? (15 references hedge and then estimate.)",
+  "For IFC questions, what counts as showing where the answer came from: a GlobalId list, a highlighted plan or 3D view, or a property path?",
+  "Will hidden IFC files include IFC4X3, structural or MEP discipline files, or files larger than the 64 MB hitos model?"
+ ],
+ "artifacts": [
+  "eda/ifc_bench/profile_ifc.py",
+  "eda/ifc_bench/profile.json",
+  "eda/ifc_bench/model_profile.csv",
+  "eda/ifc_bench/types.csv",
+  "eda/ifc_bench/psets.csv",
+  "eda/ifc_bench/materials.csv",
+  "eda/ifc_bench/storeys.csv",
+  "eda/ifc_bench/product_classes.csv",
+  "eda/ifc_bench/ifc_bench_questions.jsonl",
+  "eda/ifc_bench/classify.py",
+  "eda/ifc_bench/questions_classified.csv",
+  "eda/ifc_bench/category_stats.csv",
+  "eda/ifc_bench/category_by_answer_style.csv",
+  "eda/ifc_bench/repro_sample.json",
+  "eda/ifc_bench/reproduce.py",
+  "eda/ifc_bench/repro_results.csv",
+  "eda/ifc_bench/repro_results.json",
+  "eda/ifc_bench/sweep.py",
+  "eda/ifc_bench/sweep_results.csv",
+  "eda/ifc_bench/extra_checks.py",
+  "eda/ifc_bench/extra_checks.csv",
+  "eda/ifc_bench/duplex_checks.py",
+  "eda/ifc_bench/duplex_checks.csv",
+  "eda/ifc_bench/paraphrase.py",
+  "eda/ifc_bench/geom_timing.py",
+  "eda/ifc_bench/tally.py",
+  "eda/ifc_bench/coverage.csv",
+  "eda/ifc_bench/coverage_by_category.csv"
+ ]
+}
