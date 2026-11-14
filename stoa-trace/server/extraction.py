@@ -529,6 +529,13 @@ def _dxf(path, root):
     def _stack(number):
         x, y = number["point"]
         return [t for t in room_texts if t is not number and abs(t["point"][0]-x) < 1e-6 and abs(t["point"][1]-y) < 1.2]
+    # Net floor area excludes spaces drawn inside a room (a lift or shaft inside a stairwell).
+    from shapely.ops import unary_union
+    net_geometry = {}
+    for handle, _, polygon in outlines:
+        inner = [other for h, _, other in outlines if h != handle and other.area < polygon.area
+                 and polygon.intersection(other).area > 0.5 * other.area]
+        net_geometry[handle] = polygon.difference(unary_union(inner)).area if inner else polygon.area
     for handle, points, polygon in outlines:
         numbers = owner.get(handle, [])
         if numbers:
@@ -560,8 +567,10 @@ def _dxf(path, root):
             props["printed_area_m2"] = props["net_area_m2"]
             props["area_source"] = "native room area annotation"
         elif drawing.units == 6:
-            props["net_area_m2"] = polygon.area
-            props["area_source"] = "closed native room polygon in metre drawing units"
+            props["net_area_m2"] = net_geometry[handle]
+            props["area_source"] = ("closed native room polygon minus enclosed spaces, metre drawing units"
+                                    if net_geometry[handle] < polygon.area - 1e-9 else
+                                    "closed native room polygon in metre drawing units")
         if drawing.units == 6:
             props["geometry_area_m2"] = polygon.area
             props["geometry_area_source"] = "closed ROOM_OUTLINE polygon; DXF INSUNITS=metres"
