@@ -49,6 +49,32 @@ class ReadingPolicy(unittest.TestCase):
 
 
 class LocalDetector(unittest.TestCase):
+    def test_box_detector_maps_letterbox_and_deduplicates(self):
+        import numpy as np
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory);(folder/'model.onnx').write_bytes(b'box-fixture')
+            manifest={'kind':'yolo_boxes','model_file':'model.onnx','model_sha256':hashlib.sha256(b'box-fixture').hexdigest(),
+                      'classes':['door','window'],'input_size':640,'class_thresholds':{'door':.4,'window':.5}}
+            path=folder/'manifest.json';path.write_text(json.dumps(manifest))
+            class Session:
+                def get_inputs(self):return [type('Input',(),{'name':'images'})()]
+                def run(self,_,inputs):
+                    self.shape=inputs['images'].shape
+                    self.center=inputs['images'][0,:,320,320]
+                    return [np.array([[[320,322,512,200],[320,320,320,30],[128,128,64,30],[64,64,64,20],[.9,.8,.02,.7],[.02,.02,.85,.01]]],np.float32)]
+            session=Session()
+            with patch.dict(os.environ,{'STOA_DETECTOR_MANIFEST':str(path)}),patch.object(detector,'_session',return_value=session):
+                result=detector.detect_image(Image.new('RGB',(400,200),'white'),document_id='source',page=2)
+            self.assertFalse(result.get('unavailable'));self.assertEqual(session.shape,(1,3,640,640))
+            self.assertEqual([o['category'] for o in result['objects']],['door','window'])
+            for actual,expected in zip(result['objects'][0]['bbox'],[.4,.4,.6,.6]):self.assertAlmostEqual(actual,expected,places=6)
+            self.assertTrue(all(o['page']==2 and not o['source_verified'] for o in result['objects']))
+            manifest['color_mode']='grayscale';path.write_text(json.dumps(manifest))
+            with patch.dict(os.environ,{'STOA_DETECTOR_MANIFEST':str(path)}),patch.object(detector,'_session',return_value=session):
+                detector.detect_image(Image.new('RGB',(400,200),'red'))
+                self.assertEqual(detector.signature()['color_mode'],'grayscale')
+            self.assertTrue(np.allclose(session.center,76/255))
     def test_unconfigured_model_does_not_need_runtime_dependencies(self):
         with patch.dict(os.environ,{'STOA_DETECTOR_MANIFEST':''}):
             self.assertIsNone(detector.signature())
