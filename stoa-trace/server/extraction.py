@@ -364,6 +364,7 @@ def _dxf(path, root):
     norm = lambda x, y: [round((x-minx)/width, 6), round((maxy-y)/height, 6)]
     prefix = _uid(path, root)
     text_items, outlines, unit_outlines, arcs, windows, room_lines, fixtures = [], [], [], [], [], [], []
+    door_frames = []
     layers = {}
     for entity in model:
         layer, kind = entity.dxf.layer.upper(), entity.dxftype()
@@ -384,6 +385,8 @@ def _dxf(path, root):
                 room_lines.append(points)
         elif kind == "ARC" and layer == "DOOR":
             arcs.append(entity)
+        elif kind == "LWPOLYLINE" and layer == "DOOR" and len(entity) == 5:
+            door_frames.append(entity)
         elif kind == "LWPOLYLINE" and layer == "WINDOW" and entity.closed:
             windows.append(entity)
         elif layer == "FIXTURE":
@@ -400,11 +403,15 @@ def _dxf(path, root):
     result.update(page_count=1, pages=[{"page": 1, "width": width, "height": height,
                                       "text": "\n".join(t["text"] for t in text_items), "words": words}])
     for handle, points, polygon in unit_outlines:
-        assigned = [t for t in text_items if re.fullmatch(r"(?:app\.?|apt\.?|wohnung|whg\.?|appartement|unita)\s+[A-Z]", t["text"], re.I)
-                    and polygon.covers(Point(t["point"]))]
-        label = assigned[0]["text"] if assigned else f"Residential unit {handle}"
+        inside_tags = [t for t in text_items if polygon.covers(Point(t["point"]))]
+        assigned = [t for t in inside_tags if re.fullmatch(r"(?:app\.?|apt\.?|wohnung|whg\.?|appartement|appart\.?|unita)\s+[A-Z]", t["text"], re.I)]
+        commercial = [t for t in inside_tags if re.fullmatch(r"(?:gewerbe|commerce|commercio|commercial|unit[aàé])\s+\S{1,3}", t["text"], re.I)]
+        # Only outlines carrying a residential tag are apartments. Untagged outlines and
+        # commercial units stay inspectable but are not counted as residential units.
+        kind = "apartment" if assigned else "commercial_unit" if commercial else "unit_outline_untagged"
+        label = assigned[0]["text"] if assigned else commercial[0]["text"] if commercial else f"Untagged unit outline {handle}"
         poly = [norm(x,y) for x,y in points]
-        result["objects"].append({"id": f"{prefix}:{handle}", "type": "apartment", "label": label,
+        result["objects"].append({"id": f"{prefix}:{handle}", "type": kind, "label": label,
                                   "page": 1, "bbox": _bbox(poly), "polygon": poly,
                                   "source_path": relative_path(path, root),
                                   "properties": {"layer": "UNIT_OUTLINE", "cad_handle": handle}})
@@ -446,7 +453,7 @@ def _dxf(path, root):
                                   "source_path": relative_path(path, root), "properties": props})
     semantic_layers = {"ROOM_OUTLINE", "UNIT_OUTLINE", "ROOM_TEXT"}.issubset(layers)
     if semantic_layers:
-        result["metadata"]["semantic_inventory"] = {"door":len(arcs), "window":len(windows)}
+        result["metadata"]["semantic_inventory"] = {"door":len(door_frames) if door_frames else len(arcs), "window":len(windows)}
     # These symbol rules describe the supplied layered Swiss export style only.
     # They are not a general CAD object detector. Restrict them to its semantic
     # layers and retain the geometric basis for every classified fixture.
@@ -455,7 +462,18 @@ def _dxf(path, root):
         for category in ("toilet", "washbasin", "bathtub", "shower"):
             result["metadata"]["semantic_inventory"][category] = sum(
                 o["type"] == category for o in result["objects"])
-    for arc in arcs:
+    # One door frame (5-point leaf outline) per door symbol, duplicates kept as in the
+    # export. Arcs miss leaf-only doors and double-count double doors; they remain the
+    # basis only for exports without frames.
+    for frame in door_frames if semantic_layers else []:
+        poly = [norm(v[0], v[1]) for v in frame.get_points()]
+        result["objects"].append({"id": f"{prefix}:{frame.dxf.handle}", "type": "door",
+                                  "label": "Door frame", "page": 1, "bbox": _bbox(poly), "polygon": poly,
+                                  "source_path": relative_path(path, root),
+                                  "properties": {"cad_handle": frame.dxf.handle,
+                                                 "count_basis": "one door frame outline per semantic door symbol",
+                                                 "complete_inventory": True}})
+    for arc in arcs if not (semantic_layers and door_frames) else []:
         center, radius = arc.dxf.center, arc.dxf.radius
         points = [norm(center.x-radius, center.y-radius), norm(center.x+radius, center.y+radius)]
         result["objects"].append({"id": f"{prefix}:{arc.dxf.handle}", "type": "door" if semantic_layers else "door_swing",

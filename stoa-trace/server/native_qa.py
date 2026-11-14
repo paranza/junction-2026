@@ -66,6 +66,8 @@ def _measurement_language_supported(question, labels=()):
             q = re.sub(r"\b(?:rooms?|spaces?)\s+['\"]?"+re.escape(label)+r"['\"]?(?!\w)", " room ", q)
         else:
             q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
+    # An apartment selector letter ("apartment B") is part of the scope, not a free word.
+    q = re.sub(r"\b(apartment|appartamento|wohnung|appartement|unit)\s+[a-z]\b", r" \1 ", q)
     exclusion = re.search(r"\b(?:excluding|except|without|ohne|esclusi|exclus)\b(.+)$", q)
     if exclusion:
         outdoor_words = set("balcony balconies balcon loggia loggias terrace terraces outdoor outdoors spaces space shafts shaft void voids other and or all the any balconies loggien terrassen balkone cavedi vuoti".split())
@@ -101,7 +103,8 @@ def _finite_quantity(obj, key):
     return type(value) in (int, float) and math.isfinite(value) and value >= 0
 
 
-_QUOTED_TEXT = r'''(?:"[^"]*"|'[^']*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
+# A single-quoted label may contain an apostrophe between letters ('Cage d'escalier').
+_QUOTED_TEXT = r'''(?:"[^"]*"|'(?:[^']|(?<=\w)'(?=\w))*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
 
 
 def _without_model_titles(question):

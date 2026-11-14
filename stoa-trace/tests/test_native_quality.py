@@ -274,6 +274,48 @@ class SwissExporterCompatibility(unittest.TestCase):
             self.assertEqual(answer_native('What is the net floor area of apartment A in m²?',doc,path,root)['value'],9)
             self.assertIsNone(answer_native('What is the gross floor area of room U1.01 in m²?',doc,path,root))
 
+    def test_apartment_letters_beyond_a_and_apostrophe_labels(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            root=Path(folder); path=root/'fixture.dxf'
+            drawing=ezdxf.new(); drawing.units=6; model=drawing.modelspace()
+            model.add_lwpolyline([(0,0),(4,0),(4,4),(0,4),(0,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            model.add_lwpolyline([(0,0),(3,0),(3,3),(0,3),(0,0)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            for text,point in [('Whg. B',(3.5,3.5)),("Cage d'escalier",(1,2)),('2.01',(1,1.7)),('9 m²',(1,1.4))]:
+                model.add_text(text,dxfattribs={'layer':'ROOM_TEXT','insert':point})
+            drawing.saveas(path)
+            doc=extract_document(path,root)
+            # "a" is an article; every other apartment letter used to be rejected as an unknown word.
+            self.assertEqual(answer_native('What is the net floor area of apartment B in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?',doc,path,root)['value'],9)
+            # The quote parser used to stop at the apostrophe inside the label.
+            self.assertEqual(answer_native("How many rooms labelled 'Cage d'escalier' are there on this floor?",doc,path,root)['value'],1)
+            self.assertEqual(answer_native("What is the net floor area of room 2.01 ('Cage d'escalier') in m²?",doc,path,root)['value'],9)
+            # An unknown quoted label must still abstain rather than fall back to all rooms.
+            self.assertIsNone(answer_native("How many rooms labelled 'Salle d'eau' are there on this floor?",doc,path,root))
+
+    def test_doors_count_frames_and_apartments_need_residential_tags(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            root=Path(folder); path=root/'fixture.dxf'
+            drawing=ezdxf.new(); drawing.units=6; model=drawing.modelspace()
+            model.add_lwpolyline([(0,0),(4,0),(4,4),(0,4),(0,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            model.add_lwpolyline([(5,0),(9,0),(9,4),(5,4),(5,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            model.add_lwpolyline([(10,0),(14,0),(14,4),(10,4),(10,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            model.add_lwpolyline([(0,0),(3,0),(3,3),(0,3),(0,0)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            for text,point in [('App. A',(3.5,3.5)),('Gewerbe 1',(8.5,3.5)),('Pièce',(1,2)),('2.01',(1,1.7)),('9 m²',(1,1.4))]:
+                model.add_text(text,dxfattribs={'layer':'ROOM_TEXT','insert':point})
+            # one double door: two swing arcs but one door frame each side -> frames are the count basis
+            for x in (1.0, 2.8):
+                model.add_lwpolyline([(x,0),(x+.9,0),(x+.9,.05),(x,.05),(x,0)],dxfattribs={'layer':'DOOR'})
+            for c in ((1.0,0),(2.8,0),(3.7,0)):
+                model.add_arc(c,.9,0,90,dxfattribs={'layer':'DOOR'})
+            drawing.saveas(path)
+            doc=extract_document(path,root)
+            kinds=sorted(o['type'] for o in doc['objects'] if 'unit' in o['type'] or o['type']=='apartment')
+            self.assertEqual(kinds,['apartment','commercial_unit','unit_outline_untagged'])
+            self.assertEqual(answer_native('How many apartments (residential units) are shown on this floor plan?',doc,path,root)['value'],1)
+            self.assertEqual(answer_native('How many doors (interior doors and entrance doors together) are drawn on this floor plan?',doc,path,root)['value'],2)
+
     def test_fixture_requires_semantic_export_signature(self):
         for semantic in (True,False):
             with self.subTest(semantic=semantic),tempfile.TemporaryDirectory() as folder:
