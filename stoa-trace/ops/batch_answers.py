@@ -274,7 +274,7 @@ def main(argv=None, *, client=None):
     parser.add_argument('--allow-paid', action='store_true', help='Allow the chosen auto/vision mode; server caps still apply')
     parser.add_argument('--upload-unmatched', action='store_true')
     parser.add_argument('--input-root', type=Path, help='Explicit local root permitted for unmatched uploads')
-    parser.add_argument('--timeout', type=float, default=180)
+    parser.add_argument('--timeout', type=float, default=900)  # longer than one 600 s Gemini request
     args = parser.parse_args(argv)
     if args.mode != 'native' and not args.allow_paid:
         parser.error('auto/vision mode requires --allow-paid; native is the zero-model default')

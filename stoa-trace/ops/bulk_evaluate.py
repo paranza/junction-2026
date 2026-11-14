@@ -358,7 +358,7 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, required=True, help='Private raw JSONL checkpoint; never publish it as aggregate-only.')
     parser.add_argument('--summary', type=Path, required=True, help='Aggregate JSON report; .md companion is written.')
     parser.add_argument('--resume', action='store_true')
-    parser.add_argument('--timeout', type=float, default=300)
+    parser.add_argument('--timeout', type=float, default=900)  # longer than one 600 s Gemini request
     args = parser.parse_args(argv)
     if args.mode != 'native' and not args.allow_paid:
         parser.error('Automatic/vision bulk runs require --allow-paid.')

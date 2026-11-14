@@ -75,3 +75,7 @@ Each page inventory now makes two identical model requests in parallel (`STOA_IN
 ### 2026-11-14: unify Metria branding and the current analysis engine
 
 Adopt Antonio's Metria identity, neutral interface, upload flow and interactive source overlays while retaining Michele's latest native extraction and question handling. Preserve server-backed session and message costs, persistent conversation, Cloudinary evidence close-ups, calibration, inspector controls, review history and explicit evidence focus. Unknown usage remains unknown; no demonstration token counts or fixed inference prices are introduced. Runtime paths and internal Trace-compatible API/configuration names stay portable so existing uploads, answers, credentials and counters survive. Owner: Riccardo integration.
+
+### 2026-11-14: Gemini requests may take up to 600 seconds
+
+The default Gemini timeout is now 600 seconds instead of 240 (`STOA_GEMINI_TIMEOUT_SECONDS`, 60 to 600). In the end-to-end run of commit d0c9fcd, 16 of 482 inventory readings got no response within 240 seconds; one CubiCasa plan lost both readings and all 24 of its questions. The evaluation and batch tools now wait up to 900 seconds per request by default so that they never cut a Gemini request short. The interface has no time limit of its own; a user can still stop waiting. Owner: Matteo.

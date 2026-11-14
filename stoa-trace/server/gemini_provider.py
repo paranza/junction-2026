@@ -53,7 +53,8 @@ def _integer_setting(name, default, minimum, maximum):
 
 
 def timeout_seconds():
-    return _integer_setting('STOA_GEMINI_TIMEOUT_SECONDS', 240, 60, 600)
+    # 600 s: in the end-to-end run, 16 of 482 inventory readings hit a 240 s limit.
+    return _integer_setting('STOA_GEMINI_TIMEOUT_SECONDS', 600, 60, 600)
 
 
 def visual_thinking_level(model=None):

@@ -336,7 +336,7 @@ def main(argv=None):
     parser.add_argument("--max-questions", type=int, default=50)
     parser.add_argument("--dry-run", action="store_true", help="Validate the frozen selection without any network requests")
     parser.add_argument("--allow-paid", action="store_true", help="Explicit operator opt-in for auto/vision; capped at five questions")
-    parser.add_argument("--timeout", type=float, default=180)
+    parser.add_argument("--timeout", type=float, default=900)  # longer than one 600 s Gemini request
     parser.add_argument("--output", type=Path, help="JSON report path; a readable .md companion is also written")
     args = parser.parse_args(argv)
     if args.max_questions < 1 or args.timeout <= 0:
