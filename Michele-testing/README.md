@@ -1,4 +1,4 @@
-# Blueprint Takeoff (junction-testing)
+# Blueprint Takeoff (Michele-testing)
 
 Upload a floor plan (PNG, JPG, PDF or DXF). Our own PyTorch models find walls, rooms,
 doors, windows and sanitary fixtures, read the printed room labels and areas, and the UI
@@ -12,7 +12,7 @@ Runs on a laptop CPU. No YOLO, no pretrained detector, no image sent to any API.
 ## Run
 
 ```sh
-cd junction-testing
+cd Michele-testing
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt     # Windows; use .venv/bin/python on macOS/Linux
 cp .env.example .env                                         # add GEMINI_API_KEY (optional, only for free-form questions)

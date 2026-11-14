@@ -1,6 +1,6 @@
 # Progress log (overnight build)
 
-Branch: `feat/blueprint-analyzer`. App folder: `junction-testing/`. Port: 9999.
+Branch: `feat/blueprint-analyzer`. App folder: `Michele-testing/`. Port: 9999.
 
 ## Teammate work (merged from origin/main, 2026-11-14 ~08:00)
 

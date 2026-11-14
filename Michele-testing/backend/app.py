@@ -1,6 +1,6 @@
 """FastAPI server: upload a drawing, get analysed facts, ask questions. Port 9999.
 
-Run from junction-testing/backend:  python app.py
+Run from Michele-testing/backend:  python app.py
 """
 from __future__ import annotations
 
