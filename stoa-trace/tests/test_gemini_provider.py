@@ -71,6 +71,7 @@ class GeminiProviderTests(unittest.TestCase):
         payload = post.call_args.kwargs['json']
         self.assertEqual(payload['response_format']['schema']['required'], ['question'])
         self.assertEqual(payload['generation_config']['max_output_tokens'], 700)
+        self.assertEqual(payload['generation_config']['thinking_level'], 'low')
         self.reserve.assert_called_once()
 
     def test_missing_selected_key_and_unknown_provider_do_not_reserve(self):

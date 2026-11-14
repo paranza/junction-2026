@@ -47,7 +47,8 @@ def prepare_request(content, system, schema, max_tokens, model):
             raise ProviderError('This drawing input is not supported by Gemini.')
     return {'model': model, 'input': inputs, 'system_instruction': system, 'store': False,
             'response_format': {'type': 'text', 'mime_type': 'application/json', 'schema': schema},
-            'generation_config': {'max_output_tokens': max_tokens, 'thinking_level': 'high',
+            'generation_config': {'max_output_tokens': max_tokens,
+                                  'thinking_level': 'low' if max_tokens < 1000 else 'high',
                                   'thinking_summaries': 'none'}}
 
 
