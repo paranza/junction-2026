@@ -1329,7 +1329,7 @@ function App({thread, chatWorkspace}) {
         </aside>
 
         <main className="main-drawing" aria-label="Drawing workspace">
-          {selectedDocument ? (
+          {selectedId && detailLoading ? <div className="drawing-loading" role="status">Opening drawing…</div> : selectedDocument ? (
             <>
               <div className="drawing-topbar">
                 <div className="drawing-breadcrumbs">
