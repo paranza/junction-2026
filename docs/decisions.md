@@ -45,3 +45,7 @@ On branch `feat/blueprint-analyzer`, add a separate FastAPI app (port 9999) whos
 ### 2026-11-14: remove `Michele-testing/` and build only in Trace
 
 The team works on one product, Trace (`stoa-trace/`). The separate raster app is removed from main. Its useful parts are ported into Trace under the Saturday plan: the Swiss DXF rules (`vector_dxf.py`) into the native solvers and the multilingual templates (`questions.py`) into the normalizer. The code, weights and docs remain in history at commit `a4bd811`. Owner: Michele.
+
+### 2026-11-14: selectable Gemini provider and unknown-upload quality
+
+The user requested switching the hosted model to Gemini and prioritized general performance on answerable drawing questions over scoreboard messages and video work. Trace keeps native extraction, deterministic calculations, evidence mapping and review history, with a Gemini Interactions adapter behind the existing model interface. Initial configured candidate: `gemini-4-carbon`, subject to actual key access and development evaluation. Key presence is not proof of live access. Private configuration and provider-aware caches are implemented; successful live Gemini inference remains pending. No claim of 99.9% accuracy is made without measurement. Owner: Riccardo integration.

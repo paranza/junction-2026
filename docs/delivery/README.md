@@ -1,6 +1,6 @@
 # Trace delivery pack
 
-Prepared for Riccardo on **14 November 2026**. All deadlines use **Europe/Helsinki**. This pack concerns the Trace product in `stoa-trace/`; results from the separate `Michele-testing/` prototype must not be presented as Trace results.
+Prepared for Riccardo on **14 November 2026**. All deadlines use **Europe/Helsinki**. Trace in `stoa-trace/` is the single product. The separate prototype was removed by the team; its historical results must not be presented as Trace results.
 
 - [Two-minute video storyboard and narration](video-script.md): target 1:55; timing is estimated until a recording is encoded and measured.
 - [Live demo and recording runbook](demo-runbook.md): source-backed questions, review restoration, usage and failure handling.
