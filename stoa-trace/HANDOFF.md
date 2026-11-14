@@ -15,7 +15,7 @@ The repository-root `INFRA/architecture_pipeline.md` is an earlier research prop
 ## Repository and working deployment
 
 - Repository: <https://github.com/paranza/junction-2026>.
-- Handoff branch: `codex/stoa-trace-handoff`.
+- Handoff branch: `codex/stoa-competitive-upgrade`.
 - Project folder inside that repository: `stoa-trace/`.
 - Existing workspace: <https://stoa-86-38-182-146.sslip.io>.
 
@@ -31,7 +31,7 @@ One Verda **CPU-TURIN.4V.16G** instance already exists: 4 vCPUs, 16 GB RAM, 55 G
 - Questions resolved through native operations first, with an OpenAI vision fallback for other supported previews.
 - Normalized bounding boxes/polygons and source IDs; clicking evidence opens the relevant drawing/page or exposes BIM properties.
 - Explicit requests such as **“Highlight all windows”** and **“Highlight room 5.11”** reuse constrained source selection. Objects without usable 2D locations remain source records, with an explanation.
-- Count-candidate exclusion and recomputation, saved answer/review history, and JSON export. Corrections preserve the original result and do not establish detection completeness.
+- Count-candidate additions/exclusions, undo, saved review revisions and working quantities, and JSON export. Corrections preserve the original result and do not establish detection completeness.
 - Source attribution, scope/method labels, calculations, and warnings.
 
 ## Architecture and important files
@@ -96,10 +96,12 @@ At this snapshot the owner's configured OpenAI key expires **20 November 2026** 
 
 ## Verification and honest claims
 
-Last reported checks: **25 tests passed**. Re-run locally after changes:
+The competitive upgrade adds native quantity/source guards, cached visual inventories, manual additions and complete review history, saved working quantities, source-change warnings, and source-aware preview caching. It passed 80 Python tests, 11 frontend tests, a production frontend build, and browser checks for evidence focus, additions/exclusions, saved revisions and working quantities across reloads. Live model calls were disabled during these upgrade checks. See `README.md` and `ops/reports/competitive-upgrade/` for current results. Re-run locally after changes:
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
+npm --prefix frontend test
+npm --prefix frontend run build
 .venv/bin/python ops/benchmark.py --dry-run
 .venv/bin/python ops/benchmark.py --mode native --suite full
 ```
@@ -108,11 +110,11 @@ The handoff checkout also passed a clean dependency install and frontend build, 
 
 On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe` in these checks.
 
-The frozen 50-case diagnostic has **22/50 answered**, including **21/21 answered numeric questions matching supplied labels** and one text answer requiring manual review. Across all 44 numeric cases, it is **21/44** because abstentions count as failures. The separate three-call vision check had **2/3 correct**: two areas correct, one window count wrong and flagged for review. These samples do not establish general or competition accuracy. Coordinate validation does not establish citation correctness.
+The upgraded frozen 50-case diagnostic has **30/50 answered**, including **28/28 answered numeric questions matching supplied labels** and two text answers requiring manual review. Across all 44 numeric cases, it is **28/44** because abstentions count as failures. The paired disjoint-group native evaluation improves from **41/97 to 55/97** correct numeric questions, with three incorrect numeric answers remaining. The separate three-call vision check had **2/3 correct**: two areas correct, one window count wrong and flagged for review. These samples do not establish general or competition accuracy. Coordinate validation does not establish citation correctness.
 
 The frozen manifest defaults to `./datasets/junction-dataset-preview`. Pass `--dataset-root` with your own location when using another preview directory. Historical report metadata can contain the original machine's paths; those paths are not required for setup.
 
-Read `ops/reports/benchmark-native-50-final.json` and `ops/reports/benchmark-vision-3.json` for the actual cases and limitations. The benchmark defaults to native mode. Paid modes require `--allow-paid` and at most five questions per invocation; that guard does not grant a spending allowance.
+Read `ops/reports/competitive-upgrade/` for the paired native evaluation and updated diagnostic, and `ops/reports/benchmark-vision-3.json` for the earlier visual cases and limitations. The benchmark defaults to native mode. Paid modes require `--allow-paid` and at most five questions per invocation; that guard does not grant a spending allowance.
 
 **Gold-label boundary:** supplied answers belong only in evaluation/config/report files. Never put `questions.jsonl` answer labels, expected values from the frozen manifest, or benchmark results into extraction, model prompts, retrieval indexes, or training. Example-question wording is exposed separately.
 

@@ -8,10 +8,10 @@ Continue our **Trace** project for the Junction 2026 **Stoa challenge**. Use an 
 
 We are four people with roughly 24 hours, aiming for a competitive demo. The challenge is to answer natural-language questions about construction drawings and BIM accurately and verifiably, showing exactly which drawing objects or source values support an answer. We want durable source extraction, geometry, scope controls and human verification that remain useful as models improve.
 
-Repository: <https://github.com/paranza/junction-2026>, branch **`codex/stoa-trace-handoff`**, project subfolder **`stoa-trace/`**. If you need a fresh checkout:
+Repository: <https://github.com/paranza/junction-2026>, branch **`codex/stoa-competitive-upgrade`**, project subfolder **`stoa-trace/`**. If you need a fresh checkout:
 
 ```sh
-git clone --branch codex/stoa-trace-handoff --single-branch https://github.com/paranza/junction-2026.git
+git clone --branch codex/stoa-competitive-upgrade --single-branch https://github.com/paranza/junction-2026.git
 cd junction-2026/stoa-trace
 ```
 
@@ -35,7 +35,7 @@ If the preview is not already available, download and extract this explicit publ
 
 Point `STOA_DATA_ROOT` at the folder containing `data/` and `questions.jsonl`. Preserve source licences/credits. **Do not download the full 10 GB dataset as an automatic setup step; it is not currently loaded.**
 
-Last reported verification: **25 tests passed**. The frozen native diagnostic answered **22/50** cases; **21/21 answered numeric questions** matched their labels, while accuracy across all numeric cases was **21/44**. One text answer needs manual review. Three separate vision examples produced **2/3 correct**, with a cropped-window overcount flagged for review. These are limited diagnostics, not general accuracy claims. Read the reports and rerun native checks after changes. Pass the evaluator `--dataset-root` with your own preview directory when checking its source-label hash.
+Last reported verification: **80 Python tests and 11 frontend tests passed**, with a successful frontend build and browser checks of saved reviews and working quantities across reloads. The upgraded frozen native diagnostic answered **30/50** cases; **28/28 answered numeric questions** matched their labels, while accuracy across all numeric cases was **28/44**. Two text answers need manual review. A separate paired 100-case evaluation improved numeric correctness from **41/97 to 55/97**, with three incorrect numeric answers remaining. Earlier vision examples produced **2/3 correct**, with a cropped-window overcount flagged for review; the new visual inventory's live accuracy remains unmeasured. These are limited diagnostics, not general accuracy claims. Read `ops/reports/competitive-upgrade/` and rerun native checks after changes. Pass the evaluator `--dataset-root` with your own preview directory when checking its source-label hash.
 
 Do not send supplied gold answers, benchmark expected values, or evaluation results into inference prompts, retrieval indexes, native extraction or training. The benchmark is an evaluator, not an answer lookup. Preserve the frozen selection when comparing changes. Start with zero-API native tests; any paid testing must stay within the owner's authorised budget and the configured attempt cap.
 

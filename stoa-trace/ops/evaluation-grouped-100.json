@@ -1,0 +1,1613 @@
+{
+  "schema_version": 1,
+  "name": "Trace disjoint drawing-group evaluation",
+  "frozen_at": "2026-11-13T23:49:09.219437+00:00",
+  "evaluation_only": true,
+  "selection_seed": "trace-preview-diagnostic-50-v1",
+  "cases_sha256": "a97b1ab16f6786e8eea6c18f0d927860cd63cdf53d8334fd9b0860c371144bc9",
+  "dataset": {
+    "root": "./datasets/junction-dataset-preview",
+    "questions_path": "questions.jsonl",
+    "questions_sha256": "03b857a7ff91c63c81288081b526548ff4cfdf116e84f335f298906613168a70",
+    "questions_count": 7990
+  },
+  "selection": {
+    "case_count": 100,
+    "seed": "trace-grouped-evaluation-v1",
+    "max_per_group": 3,
+    "english_only": true,
+    "language_hint_rule": "Initial-word heuristic; not externally validated",
+    "excluded_groups": [
+      "cubicasa5k:colorful-1732",
+      "cubicasa5k:high_quality-11384",
+      "cubicasa5k:high_quality-3086",
+      "cubicasa5k:high_quality-698",
+      "cubicasa5k:high_quality-8488",
+      "cubicasa5k:high_quality_architectural-10370",
+      "cubicasa5k:high_quality_architectural-11007",
+      "cubicasa5k:high_quality_architectural-11769",
+      "cubicasa5k:high_quality_architectural-2105",
+      "cubicasa5k:high_quality_architectural-672",
+      "cubicasa5k:high_quality_architectural-745",
+      "cubicasa5k:high_quality_architectural-7787",
+      "ifc_bench:ac20_arc",
+      "ifc_bench:digital_hub_arc",
+      "ifc_bench:duplex_arc",
+      "ifc_bench:fantasy_office_building_3_arc",
+      "ifc_models:bsc-clinic_clinic-plumbing",
+      "ifc_models:bsc-esplanades_1807-ep-ar-v18",
+      "ifc_models:bsc-molio_molio-with-uris",
+      "ifc_models:kit-fzk-haus_ac20-fzk-haus",
+      "opening_design:CTR",
+      "opening_design:Sports_Complex",
+      "swiss_dwellings:site1088_bldg2216",
+      "swiss_dwellings:site1098_bldg2234",
+      "swiss_dwellings:site1102_bldg2242",
+      "swiss_dwellings:site3863_bldg6018",
+      "swiss_dwellings:site65_bldg3",
+      "swiss_dwellings:site719_bldg1540",
+      "swiss_dwellings:site897_bldg1970"
+    ],
+    "strata": {
+      "cubicasa5k/count/en": 33,
+      "ifc_bench/text/en": 3,
+      "swiss_dwellings/area/en": 32,
+      "swiss_dwellings/count/en": 32
+    },
+    "procedure": "Deterministic source/type/language round-robin; grouped by building/model/project; no expected values used for selection."
+  },
+  "scoring": {
+    "counts": "Exact integral value; no rounding or tolerance.",
+    "measurement_relative_tolerance": 0.02,
+    "zero_absolute_tolerance": 1e-09,
+    "units": "Explicit compatible units required for measurements; convertible SI/imperial units are normalized. A missing unit is allowed only for counts.",
+    "text": "Manual review only; excluded from automatic accuracy denominators.",
+    "answered": "Numeric value supplied or nonempty free-text answer, unless an explicit abstention/error status. needs_review numeric values are provisional answers and remain in accuracy denominators."
+  },
+  "evaluation_limits": [
+    "This stratified diagnostic sample deliberately oversamples rare task types; its percentage is not an estimate of full-dataset or competition accuracy.",
+    "Preview labels may themselves contain ambiguity or errors; results compare with supplied labels, not independent engineering ground truth.",
+    "Geometry checks validate finite normalized coordinates, nondegenerate shapes, pages and IDs only. They do not verify cited content, count completeness, actual source alignment, or semantic correctness.",
+    "Unprojected native IFC source IDs are legitimate evidence references but cannot count as 2D highlight coverage.",
+    "All gold labels remain exclusively in evaluator/config/report files and are never included in inference requests.",
+    "Auto/vision execution requires explicit operator opt-in and is capped at five questions per invocation; native is the zero-API default.",
+    "This sample is disjoint from explicitly excluded diagnostic groups, not proof that a developer has never seen these drawings.",
+    "Round-robin stratification oversamples rare types. Report per-source results; do not present this as a naturally weighted competition score.",
+    "Preserve this manifest unchanged after scoring; use fresh excluded groups for an independent final holdout."
+  ],
+  "cases": [
+    {
+      "id": "grouped-005a5461bf7df41b",
+      "source_line": 2461,
+      "path": "data/cubicasa5k/high_quality_architectural-14759.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-14759",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-041c502afd640c35",
+      "source_line": 4476,
+      "path": "data/ifc_bench/hitos_arc.ifc",
+      "question": "What are all the spaces on level 3, grouped by function with their areas?",
+      "expected": "Level 3 (3.etg): 27 spaces\n   Total Area: 292.4 sq m\n\n   Level 3 Spaces by Function:\n\n   BK (1 spaces, 2.0 sq m):\n     - 07.016: 2.0 sq m\n\n   El (1 spaces, 2.8 sq m):\n     - 80.026: 2.8 sq m\n\n   Heis-3 (1 spaces, 6.4 sq m):\n     - 99.03.001-03: 6.4 sq m\n\n   Kont. adm (6 spaces, 46.8 sq m):\n     - 05.004: 7.3 sq m\n     - 05.005: 7.9 sq m\n     - 05.006: 7.9 sq m\n     - 05.007: 7.9 sq m\n     - 05.008: 7.9 sq m\n     - 05.009: 7.9 sq m\n\n   Kont. øk/adm (9 spaces, 70.7 sq m):\n     - 05.015: 7.9 sq m\n     - 05.016: 7.8 sq m\n     - 05.017: 7.8 sq m\n     - 05.018: 7.9 sq m\n     - 05.019: 7.9 sq m\n     - 05.020: 7.9 sq m\n     - 05.021: 7.9 sq m\n     - 05.022: 7.9 sq m\n     - 05.023: 7.9 sq m\n\n   Kopi (1 spaces, 2.0 sq m):\n     - 05.063: 2.0 sq m\n\n   Korridor (1 spaces, 40.3 sq m):\n     - 99.01.009: 40.3 sq m\n\n   Personalrom/møterom (1 spaces, 79.8 sq m):\n     - 05.061: 79.8 sq m\n\n   Rømningstrapp T01-3 (1 spaces, 11.5 sq m):\n     - 99.02.002-3: 11.5 sq m\n\n   Sluse (2 spaces, 11.0 sq m):\n     - 80.028: 6.7 sq m\n     - 80.029: 4.3 sq m\n\n   Trapp T02-3 (1 spaces, 15.7 sq m):\n     - 99.02.002-3: 15.7 sq m\n\n   WC (2 spaces, 3.3 sq m):\n     - 01.035: 1.7 sq m\n     - 01.036: 1.7 sq m",
+      "unit": null,
+      "type": "text",
+      "source": "ifc_bench",
+      "group": "ifc_bench:hitos_arc",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-019a7cb9baf3e8b1",
+      "source_line": 7501,
+      "path": "data/swiss_dwellings/site3377_bldg5220_floor23409.pdf",
+      "question": "What is the net floor area of room 1.17 ('Vano scala') in m²?",
+      "expected": 11.43,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site3377_bldg5220",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0074658fdaf51ca2",
+      "source_line": 6581,
+      "path": "data/swiss_dwellings/site4237_bldg7396_floor29509.pdf",
+      "question": "How many windows are drawn on this floor plan?",
+      "expected": 8,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4237_bldg7396",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0066440721aea02d",
+      "source_line": 3679,
+      "path": "data/cubicasa5k/high_quality_architectural-6642.png",
+      "question": "How many showers and bathtubs are drawn on this floor plan in total?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-6642",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-051cdceb865b3a27",
+      "source_line": 4518,
+      "path": "data/ifc_bench/hitos_arc.ifc",
+      "question": "What cooling systems are installed?",
+      "expected": "No Cooling system found in this model.",
+      "unit": null,
+      "type": "text",
+      "source": "ifc_bench",
+      "group": "ifc_bench:hitos_arc",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-01ed8f4cfa941de9",
+      "source_line": 6771,
+      "path": "data/swiss_dwellings/site2294_bldg3383_floor15064.pdf",
+      "question": "What is the net floor area of room 5.09 ('Stanza') in m²?",
+      "expected": 17.55,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2294_bldg3383",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-007e3c73fe989034",
+      "source_line": 6907,
+      "path": "data/swiss_dwellings/site52_bldg298_floor1183.pdf",
+      "question": "How many rooms labelled 'Cage d'escalier' are there on this floor?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site52_bldg298",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0068ee5f55373aca",
+      "source_line": 2879,
+      "path": "data/cubicasa5k/high_quality_architectural-2512.png",
+      "question": "How many bedrooms (makuuhuone, usually marked MH) are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-2512",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-06d776b41efd49ab",
+      "source_line": 4483,
+      "path": "data/ifc_bench/hitos_arc.ifc",
+      "question": "What wall types are used in the building, along with their quantities and percentages?",
+      "expected": "Total Walls: 849\n\n   Complete Wall Types and Quantities:\n   - Betongvegg 200: 139 walls (16.4%)\n   - AV02T: 111 walls (13.1%)\n   - AV03T: 81 walls (9.5%)\n   - AV52T: 77 walls (9.1%)\n   - AV50T: 56 walls (6.6%)\n   - AV51T: 55 walls (6.5%)\n   - AV04T: 42 walls (4.9%)\n   - AV07T: 32 walls (3.8%)\n   - AV57T: 31 walls (3.7%)\n   - AV01T: 27 walls (3.2%)\n   - AV14T: 26 walls (3.1%)\n   - AV55T: 24 walls (2.8%)\n   - AV15T: 18 walls (2.1%)\n   - Skjørt: 13 walls (1.5%)\n   - AV13T: 12 walls (1.4%)\n   - AV60T: 10 walls (1.2%)\n   - AV19T: 9 walls (1.1%)\n   - AV16T: 8 walls (0.9%)\n   - Rekkverk: 8 walls (0.9%)\n   - AV54T: 7 walls (0.8%)\n   - AV53T: 7 walls (0.8%)\n   - Betongvegg 250: 7 walls (0.8%)\n   - AV11aT: 6 walls (0.7%)\n   - AV56T: 6 walls (0.7%)\n   - Utlekting trapp: 5 walls (0.6%)\n   - Gesims_AV52T: 5 walls (0.6%)\n   - AV18T: 4 walls (0.5%)\n   - AV06T: 4 walls (0.5%)\n   - AV11T: 4 walls (0.5%)\n   - Foldevegg: 3 walls (0.4%)\n   - AV17T: 2 walls (0.2%)\n   - AV05T: 2 walls (0.2%)\n   - Skråvegg aud.: 1 walls (0.1%)\n   - AV12T: 1 walls (0.1%)\n   - AV10T: 1 walls (0.1%)\n   - Utlekting: 1 walls (0.1%)\n   - Utlekting aud.: 1 walls (0.1%)\n   - AV58T: 1 walls (0.1%)\n   - AV11bT: 1 walls (0.1%)\n   - AV08T: 1 walls (0.1%)",
+      "unit": null,
+      "type": "text",
+      "source": "ifc_bench",
+      "group": "ifc_bench:hitos_arc",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0368e16bb6fadec1",
+      "source_line": 7793,
+      "path": "data/swiss_dwellings/site208_bldg397_floor1579.pdf",
+      "question": "What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 75.32,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site208_bldg397",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-00c59a6513d6d89b",
+      "source_line": 7749,
+      "path": "data/swiss_dwellings/site11861_bldg18508_floor50415.pdf",
+      "question": "How many showers are drawn on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site11861_bldg18508",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-008271cc4c952e16",
+      "source_line": 1303,
+      "path": "data/cubicasa5k/high_quality_architectural-10571.png",
+      "question": "How many floors (storeys) does this floor plan show?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-10571",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-04b6e43aaea17ccf",
+      "source_line": 6891,
+      "path": "data/swiss_dwellings/site629_bldg1355_floor5906.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 142.51,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site629_bldg1355",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0121ee4e63d7ed2a",
+      "source_line": 7123,
+      "path": "data/swiss_dwellings/site4038_bldg6362_floor26166.pdf",
+      "question": "How many rooms labelled 'Balcone' are there on this floor?",
+      "expected": 5,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4038_bldg6362",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-008babfeebe5a62e",
+      "source_line": 1705,
+      "path": "data/cubicasa5k/high_quality_architectural-11926.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 7,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-11926",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-05d9baa5119cd8f8",
+      "source_line": 7279,
+      "path": "data/swiss_dwellings/site3259_bldg4943_floor22529.pdf",
+      "question": "What is the net floor area of room 3.01 ('Zimmer') in m²?",
+      "expected": 12.67,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site3259_bldg4943",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0131cb5c61156328",
+      "source_line": 6661,
+      "path": "data/swiss_dwellings/site424_bldg1074_floor4711.pdf",
+      "question": "How many showers are drawn on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site424_bldg1074",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-00987e6ea3006653",
+      "source_line": 1887,
+      "path": "data/cubicasa5k/high_quality_architectural-12415.png",
+      "question": "How many floors (storeys) does this floor plan show?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-12415",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-07d262fa9ce0f044",
+      "source_line": 6857,
+      "path": "data/swiss_dwellings/site11704_bldg18258_floor48967.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 159.76,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site11704_bldg18258",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-014d062b57aa88e8",
+      "source_line": 6603,
+      "path": "data/swiss_dwellings/site2293_bldg3380_floor15055.pdf",
+      "question": "How many rooms labelled 'Schlafzimmer' are there on this floor?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2293_bldg3380",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-009cf998350ebac6",
+      "source_line": 4145,
+      "path": "data/cubicasa5k/high_quality_architectural-9198.png",
+      "question": "How many floors (storeys) does this floor plan show?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-9198",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-08db70cbad107dff",
+      "source_line": 6243,
+      "path": "data/swiss_dwellings/site248_bldg456_floor1800.pdf",
+      "question": "What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 70.86,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site248_bldg456",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-027103665e3bf192",
+      "source_line": 6289,
+      "path": "data/swiss_dwellings/site610_bldg1324_floor50793.pdf",
+      "question": "How many apartments (residential units) are shown on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site610_bldg1324",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-00eccbcc1f04ed58",
+      "source_line": 3861,
+      "path": "data/cubicasa5k/high_quality_architectural-7731.png",
+      "question": "How many sinks and wash basins (kitchen and bathroom combined; a double-bowl sink counts as one) are drawn on this floor plan?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-7731",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-097aa58d60c466f3",
+      "source_line": 6487,
+      "path": "data/swiss_dwellings/site1101_bldg2241_floor10275.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 86.11,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1101_bldg2241",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-02a7dbf51facf28e",
+      "source_line": 6867,
+      "path": "data/swiss_dwellings/site629_bldg1355_floor5906.pdf",
+      "question": "How many rooms labelled 'Balcone' are there on this floor?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site629_bldg1355",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-010eda146b504d3a",
+      "source_line": 1349,
+      "path": "data/cubicasa5k/high_quality_architectural-11011.png",
+      "question": "How many floors (storeys) does this floor plan show?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-11011",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-09cc75d4b12b8bdc",
+      "source_line": 7321,
+      "path": "data/swiss_dwellings/site339_bldg710_floor3024.pdf",
+      "question": "What is the net floor area of apartment B in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 90.73,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site339_bldg710",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-035481c884d45a94",
+      "source_line": 7933,
+      "path": "data/swiss_dwellings/site1869_bldg2903_floor13293.pdf",
+      "question": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
+      "expected": 41,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1869_bldg2903",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0118a61da5edce2a",
+      "source_line": 995,
+      "path": "data/cubicasa5k/high_quality-9775.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 6,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality-9775",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-09ea86ad8119ad81",
+      "source_line": 6775,
+      "path": "data/swiss_dwellings/site2294_bldg3383_floor15064.pdf",
+      "question": "What is the total net area in m² of all rooms labelled 'Stanza' on this floor?",
+      "expected": 17.55,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2294_bldg3383",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-038b48bdf5b38204",
+      "source_line": 7129,
+      "path": "data/swiss_dwellings/site4038_bldg6362_floor26166.pdf",
+      "question": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
+      "expected": 30,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4038_bldg6362",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-012588b1ee882c5c",
+      "source_line": 99,
+      "path": "data/cubicasa5k/colorful-2002.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 7,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:colorful-2002",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0a7437ab08939137",
+      "source_line": 7955,
+      "path": "data/swiss_dwellings/site1869_bldg2903_floor13293.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 455.13,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1869_bldg2903",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-03a0a0b560e8dcdc",
+      "source_line": 6079,
+      "path": "data/swiss_dwellings/site1000_bldg2082_floor9385.pdf",
+      "question": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
+      "expected": 36,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1000_bldg2082",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-01397e771a6767a9",
+      "source_line": 33,
+      "path": "data/cubicasa5k/colorful-12200.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:colorful-12200",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0ad7a90ea0fb0297",
+      "source_line": 6927,
+      "path": "data/swiss_dwellings/site52_bldg298_floor1183.pdf",
+      "question": "What is the total net area in m² of all rooms labelled 'Pièce' on this floor?",
+      "expected": 50.14,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site52_bldg298",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-03d845b7a732da25",
+      "source_line": 5797,
+      "path": "data/swiss_dwellings/site11711_bldg18268_floor48991.pdf",
+      "question": "How many windows are drawn on this floor plan?",
+      "expected": 16,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site11711_bldg18268",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0144896c3b7822b6",
+      "source_line": 1595,
+      "path": "data/cubicasa5k/high_quality_architectural-1169.png",
+      "question": "How many balconies (parveke, including glazed balconies) are on this floor plan?",
+      "expected": 0,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-1169",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0be70b2f78ebf053",
+      "source_line": 7499,
+      "path": "data/swiss_dwellings/site3377_bldg5220_floor23409.pdf",
+      "question": "What is the net floor area of room 1.10 ('Cucina') in m²?",
+      "expected": 7.19,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site3377_bldg5220",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-048b15bc811fe1d2",
+      "source_line": 6459,
+      "path": "data/swiss_dwellings/site1101_bldg2241_floor10275.pdf",
+      "question": "How many rooms labelled 'Soggiorno/pranzo' are there on this floor?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1101_bldg2241",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-016d1ac9b24eb3cc",
+      "source_line": 983,
+      "path": "data/cubicasa5k/high_quality-9770.png",
+      "question": "How many saunas are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality-9770",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0c239e93acaca763",
+      "source_line": 7217,
+      "path": "data/swiss_dwellings/site1015_bldg2113_floor9557.pdf",
+      "question": "What is the net floor area of apartment D in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 73.57,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1015_bldg2113",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0520fb2a4a06bdd4",
+      "source_line": 7781,
+      "path": "data/swiss_dwellings/site208_bldg397_floor1579.pdf",
+      "question": "How many windows are drawn on this floor plan?",
+      "expected": 10,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site208_bldg397",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-01d0b8313c0f945c",
+      "source_line": 4229,
+      "path": "data/cubicasa5k/high_quality_architectural-9680.png",
+      "question": "How many bedrooms (makuuhuone, usually marked MH) are on this floor plan?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-9680",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0f4f17109ff941f7",
+      "source_line": 7103,
+      "path": "data/swiss_dwellings/site1213_bldg2383_floor48290.pdf",
+      "question": "What is the net floor area of room 2.31 ('Pièce') in m²?",
+      "expected": 24.41,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1213_bldg2383",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-052135f9673e2f10",
+      "source_line": 6475,
+      "path": "data/swiss_dwellings/site1101_bldg2241_floor10275.pdf",
+      "question": "How many washbasins are drawn on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1101_bldg2241",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-01f51ec3a34fb64c",
+      "source_line": 3149,
+      "path": "data/cubicasa5k/high_quality_architectural-4561.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 5,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-4561",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-0ff712e1e9f2e946",
+      "source_line": 5989,
+      "path": "data/swiss_dwellings/site1138_bldg2292_floor10584.pdf",
+      "question": "What is the net floor area of apartment D in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 162.01,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1138_bldg2292",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-05e6d6f71dcefc6c",
+      "source_line": 6119,
+      "path": "data/swiss_dwellings/site279_bldg514_floor2041.pdf",
+      "question": "How many toilets (WC) are drawn on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site279_bldg514",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-020964d7c42879bb",
+      "source_line": 3367,
+      "path": "data/cubicasa5k/high_quality_architectural-5640.png",
+      "question": "How many sinks and wash basins (kitchen and bathroom combined; a double-bowl sink counts as one) are drawn on this floor plan?",
+      "expected": 0,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-5640",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-100e374b747e5fec",
+      "source_line": 5695,
+      "path": "data/swiss_dwellings/site11692_bldg18240_floor48820.pdf",
+      "question": "What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 113.98,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site11692_bldg18240",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0603e46294130c4c",
+      "source_line": 6865,
+      "path": "data/swiss_dwellings/site629_bldg1355_floor5906.pdf",
+      "question": "How many rooms labelled 'Bagno' are there on this floor?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site629_bldg1355",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-023de812c9841ca2",
+      "source_line": 1423,
+      "path": "data/cubicasa5k/high_quality_architectural-11257.png",
+      "question": "How many kitchens (including kitchenettes, open kitchens and utility kitchens) are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-11257",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1136cdaf7bf6a78f",
+      "source_line": 6697,
+      "path": "data/swiss_dwellings/site4085_bldg6548_floor26706.pdf",
+      "question": "What is the net floor area of room 3.05 ('Schlafzimmer') in m²?",
+      "expected": 18.63,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4085_bldg6548",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0671cd2e6a70187d",
+      "source_line": 7447,
+      "path": "data/swiss_dwellings/site274_bldg500_floor1980.pdf",
+      "question": "How many rooms labelled 'Korridor' are there on this floor?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site274_bldg500",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0248758f8ee17909",
+      "source_line": 1183,
+      "path": "data/cubicasa5k/high_quality_architectural-10321.png",
+      "question": "How many saunas are on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-10321",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-12430469cf07ced6",
+      "source_line": 7323,
+      "path": "data/swiss_dwellings/site339_bldg710_floor3024.pdf",
+      "question": "What is the total net area in m² of all rooms labelled 'Stanza' on this floor?",
+      "expected": 81.83,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site339_bldg710",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0695ceff3d933fdd",
+      "source_line": 6145,
+      "path": "data/swiss_dwellings/site2150_bldg3001_floor13690.pdf",
+      "question": "How many rooms labelled 'Couloir' are there on this floor?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2150_bldg3001",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-025c99f7ed45e057",
+      "source_line": 3407,
+      "path": "data/cubicasa5k/high_quality_architectural-5906.png",
+      "question": "How many bedrooms (makuuhuone, usually marked MH) are on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-5906",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-13ce66800306136c",
+      "source_line": 7951,
+      "path": "data/swiss_dwellings/site1869_bldg2903_floor13293.pdf",
+      "question": "What is the net floor area of apartment F in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 58.92,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1869_bldg2903",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-06e4a1eba11e7a73",
+      "source_line": 7059,
+      "path": "data/swiss_dwellings/site289_bldg536_floor2149.pdf",
+      "question": "How many bathtubs are drawn on this floor plan?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site289_bldg536",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-02cf5a983f4bb48c",
+      "source_line": 1871,
+      "path": "data/cubicasa5k/high_quality_architectural-1241.png",
+      "question": "How many toilet bowls (WC seats) are drawn on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-1241",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1452ff387139f320",
+      "source_line": 7831,
+      "path": "data/swiss_dwellings/site2146_bldg2990_floor13636.pdf",
+      "question": "What is the net floor area of room 3.02 ('Zimmer') in m²?",
+      "expected": 14.34,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2146_bldg2990",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-071172018efa4cb2",
+      "source_line": 7083,
+      "path": "data/swiss_dwellings/site1213_bldg2383_floor48290.pdf",
+      "question": "How many rooms labelled 'Bain' are there on this floor?",
+      "expected": 8,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1213_bldg2383",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-02d560f64ff44db7",
+      "source_line": 3075,
+      "path": "data/cubicasa5k/high_quality_architectural-4064.png",
+      "question": "How many sinks and wash basins (kitchen and bathroom combined; a double-bowl sink counts as one) are drawn on this floor plan?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-4064",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1473ccfb3db11141",
+      "source_line": 6019,
+      "path": "data/swiss_dwellings/site2152_bldg3002_floor13692.pdf",
+      "question": "What is the net floor area of room 5.01 ('Bad') in m²?",
+      "expected": 9.47,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2152_bldg3002",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-073aac821f8672f3",
+      "source_line": 7829,
+      "path": "data/swiss_dwellings/site2146_bldg2990_floor13636.pdf",
+      "question": "How many showers are drawn on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2146_bldg2990",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-02f5b7cd6af70718",
+      "source_line": 3997,
+      "path": "data/cubicasa5k/high_quality_architectural-8394.png",
+      "question": "How many kitchens (including kitchenettes, open kitchens and utility kitchens) are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-8394",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-171975c8e4673341",
+      "source_line": 6591,
+      "path": "data/swiss_dwellings/site4237_bldg7396_floor29509.pdf",
+      "question": "What is the net floor area of room 2.15 ('Zimmer') in m²?",
+      "expected": 14.79,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4237_bldg7396",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-07a315c8205fb658",
+      "source_line": 6299,
+      "path": "data/swiss_dwellings/site610_bldg1324_floor50793.pdf",
+      "question": "How many rooms labelled 'Balcon' are there on this floor?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site610_bldg1324",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-031ae3d882c6998c",
+      "source_line": 549,
+      "path": "data/cubicasa5k/high_quality-1391.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 5,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality-1391",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-178014f1abb2d7cc",
+      "source_line": 6135,
+      "path": "data/swiss_dwellings/site279_bldg514_floor2041.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 197.75,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site279_bldg514",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-08145e161acad637",
+      "source_line": 5819,
+      "path": "data/swiss_dwellings/site4267_bldg7556_floor30516.pdf",
+      "question": "How many rooms labelled 'Zimmer' are there on this floor?",
+      "expected": 2,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4267_bldg7556",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0324df36cb5e88c2",
+      "source_line": 4239,
+      "path": "data/cubicasa5k/high_quality_architectural-9680.png",
+      "question": "How many showers and bathtubs are drawn on this floor plan in total?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-9680",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-197679d2df775d4f",
+      "source_line": 6957,
+      "path": "data/swiss_dwellings/site3434_bldg5310_floor23630.pdf",
+      "question": "What is the net floor area of room 1.01 ('Balcon') in m²?",
+      "expected": 8.51,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site3434_bldg5310",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-08f3df1eb56f91b9",
+      "source_line": 6565,
+      "path": "data/swiss_dwellings/site4237_bldg7396_floor29509.pdf",
+      "question": "How many rooms labelled 'Zimmer' are there on this floor?",
+      "expected": 7,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4237_bldg7396",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-036e3c4cf24f54fb",
+      "source_line": 3295,
+      "path": "data/cubicasa5k/high_quality_architectural-5006.png",
+      "question": "How many balconies (parveke, including glazed balconies) are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-5006",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1cde32e2f544a68d",
+      "source_line": 6425,
+      "path": "data/swiss_dwellings/site3238_bldg4922_floor22515.pdf",
+      "question": "What is the total net floor area in m² of all numbered indoor rooms on this floor (excluding balconies, loggias, terraces and other outdoor spaces, shafts and voids)?",
+      "expected": 182.97,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site3238_bldg4922",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0a1f88116f0b8fbd",
+      "source_line": 5931,
+      "path": "data/swiss_dwellings/site644_bldg1390_floor6077.pdf",
+      "question": "How many apartments (residential units) are shown on this floor plan?",
+      "expected": 4,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site644_bldg1390",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0386458d3dfeccc9",
+      "source_line": 4189,
+      "path": "data/cubicasa5k/high_quality_architectural-9460.png",
+      "question": "How many saunas are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-9460",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1d2d7f72bf24d42d",
+      "source_line": 6165,
+      "path": "data/swiss_dwellings/site2150_bldg3001_floor13690.pdf",
+      "question": "What is the net floor area of apartment B in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 37.6,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2150_bldg3001",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0a247fa257415ef8",
+      "source_line": 6619,
+      "path": "data/swiss_dwellings/site2293_bldg3380_floor15055.pdf",
+      "question": "How many doors (interior doors and entrance doors together) are drawn on this floor plan?",
+      "expected": 24,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2293_bldg3380",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0391712c3d189e4e",
+      "source_line": 2185,
+      "path": "data/cubicasa5k/high_quality_architectural-1357.png",
+      "question": "How many floors (storeys) does this floor plan show?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-1357",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1e330d0dd7fdc90d",
+      "source_line": 7981,
+      "path": "data/swiss_dwellings/site303_bldg598_floor2434.pdf",
+      "question": "What is the net floor area of room 0.01 ('Balcon') in m²?",
+      "expected": 12.2,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site303_bldg598",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0a3d56e23b5d43ab",
+      "source_line": 6621,
+      "path": "data/swiss_dwellings/site2293_bldg3380_floor15055.pdf",
+      "question": "How many windows are drawn on this floor plan?",
+      "expected": 10,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site2293_bldg3380",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-03b7a4237ddb0450",
+      "source_line": 195,
+      "path": "data/cubicasa5k/colorful-7513.png",
+      "question": "How many toilet bowls (WC seats) are drawn on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:colorful-7513",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1f30ea3b328dbec7",
+      "source_line": 7141,
+      "path": "data/swiss_dwellings/site4038_bldg6362_floor26166.pdf",
+      "question": "What is the net floor area of room 1.11 ('Bagno') in m²?",
+      "expected": 3.9,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site4038_bldg6362",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0ad9969dda9b2f1d",
+      "source_line": 7209,
+      "path": "data/swiss_dwellings/site1015_bldg2113_floor9557.pdf",
+      "question": "How many bathtubs are drawn on this floor plan?",
+      "expected": 15,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1015_bldg2113",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-03cf04dcb0fabb46",
+      "source_line": 821,
+      "path": "data/cubicasa5k/high_quality-729.png",
+      "question": "How many separate WC rooms (toilet rooms marked WC) are on this floor plan?",
+      "expected": 0,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality-729",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1f4dcbb17e49d729",
+      "source_line": 5985,
+      "path": "data/swiss_dwellings/site1138_bldg2292_floor10584.pdf",
+      "question": "What is the net floor area of room 3.71 ('Ripostiglio') in m²?",
+      "expected": 16.56,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1138_bldg2292",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0b861f62b3aca696",
+      "source_line": 7435,
+      "path": "data/swiss_dwellings/site274_bldg500_floor1980.pdf",
+      "question": "How many apartments (residential units) are shown on this floor plan?",
+      "expected": 3,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site274_bldg500",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-03e178cf6c0cbcbf",
+      "source_line": 1375,
+      "path": "data/cubicasa5k/high_quality_architectural-11059.png",
+      "question": "How many saunas are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-11059",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-1fe9ffad227c6fcb",
+      "source_line": 6519,
+      "path": "data/swiss_dwellings/site120_bldg55_floor209.pdf",
+      "question": "What is the net floor area of apartment A in m², summing all its rooms except balconies, loggias, terraces and other outdoor spaces?",
+      "expected": 116.67,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site120_bldg55",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0cc454f97dae696d",
+      "source_line": 6901,
+      "path": "data/swiss_dwellings/site52_bldg298_floor1183.pdf",
+      "question": "How many rooms labelled 'Bain' are there on this floor?",
+      "expected": 5,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site52_bldg298",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-041609f602390500",
+      "source_line": 1905,
+      "path": "data/cubicasa5k/high_quality_architectural-12617.png",
+      "question": "How many kitchens (including kitchenettes, open kitchens and utility kitchens) are on this floor plan?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-12617",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    },
+    {
+      "id": "grouped-2055aa8f6765cfff",
+      "source_line": 6089,
+      "path": "data/swiss_dwellings/site1000_bldg2082_floor9385.pdf",
+      "question": "What is the net floor area of room 2.10 ('Zimmer') in m²?",
+      "expected": 16.78,
+      "unit": "m2",
+      "type": "area",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1000_bldg2082",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-0d78ed0b947e87c8",
+      "source_line": 7403,
+      "path": "data/swiss_dwellings/site1047_bldg2154_floor9740.pdf",
+      "question": "How many rooms labelled 'Soggiorno/pranzo' are there on this floor?",
+      "expected": 1,
+      "unit": "count",
+      "type": "count",
+      "source": "swiss_dwellings",
+      "group": "swiss_dwellings:site1047_bldg2154",
+      "language_hint": "en",
+      "suites": [
+        "full"
+      ]
+    },
+    {
+      "id": "grouped-041e5509a994c5c7",
+      "source_line": 1133,
+      "path": "data/cubicasa5k/high_quality_architectural-10254.png",
+      "question": "How many windows are shown on this floor plan?",
+      "expected": 6,
+      "unit": "count",
+      "type": "count",
+      "source": "cubicasa5k",
+      "group": "cubicasa5k:high_quality_architectural-10254",
+      "language_hint": "en",
+      "suites": [
+        "full",
+        "raster"
+      ]
+    }
+  ]
+}
