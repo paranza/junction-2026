@@ -39,7 +39,10 @@ def usage_snapshot(cache_hit=False):
     unknown = current.pop('unknown_usage', False)
     current.update(cache_hit=bool(cache_hit), cost_estimate_usd=0.0 if not current['model_calls'] else None,
                    cost_basis='native' if not current['model_calls'] else 'unconfigured')
-    if current['model_calls'] and not unknown:
+    # Rates belong to a specific provider/model. A switch must not silently
+    # apply the previous model's prices to a new provider's tokens.
+    price_model = os.environ.get('STOA_PRICE_MODEL', '')
+    if current['model_calls'] and not unknown and price_model == PROVIDER + '/' + MODEL:
         try:
             input_rate = float(os.environ['STOA_INPUT_USD_PER_MILLION'])
             output_rate = float(os.environ['STOA_OUTPUT_USD_PER_MILLION'])

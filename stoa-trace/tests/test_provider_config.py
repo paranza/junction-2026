@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from server.config import load_environment
+from server import llm
 
 OPS = Path(__file__).resolve().parents[1] / 'ops'
 sys.path.insert(0, str(OPS))
@@ -15,6 +16,15 @@ from check_connections import load_runtime_config
 
 
 class ProviderConfiguration(unittest.TestCase):
+    def test_token_prices_must_match_current_provider_and_model(self):
+        rates = {'STOA_INPUT_USD_PER_MILLION': '1', 'STOA_OUTPUT_USD_PER_MILLION': '2',
+                 'STOA_PRICE_MODEL': 'openai/previous-model'}
+        with patch.object(llm, 'PROVIDER', 'gemini'), patch.object(llm, 'MODEL', 'test-model'), patch.dict(os.environ, rates), llm.usage_scope():
+            llm._usage.get().update(model_calls=1, input_tokens=100, output_tokens=200, unknown_usage=False)
+            self.assertIsNone(llm.usage_snapshot()['cost_estimate_usd'])
+            with patch.dict(os.environ, {'STOA_PRICE_MODEL': 'gemini/test-model'}):
+                self.assertEqual(llm.usage_snapshot()['cost_estimate_usd'], .0005)
+
     def test_empty_gemini_preparation_does_not_switch_openai(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {}, clear=True):
             root = Path(folder)

@@ -17,6 +17,8 @@ For the existing Verda deployment, `python ops/deploy_verda.py sync` transfers o
 
 Provider and model identity are part of answer and inventory cache keys. Output usage includes Gemini reasoning tokens. Dollar estimates remain unknown until the configured model's rates are supplied. Provider failures are sanitized; automatic inference retries are disabled.
 
+Cost estimates additionally require `STOA_PRICE_MODEL=gemini/gemini-4-carbon` to match the active provider/model exactly. This prevents old OpenAI prices from being applied after a provider switch. Obtain current rates from the provider before setting the three `STOA_*_USD_PER_MILLION` values.
+
 Current Google documentation, checked 14 November 2026:
 
 - [Gemini 4 Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon), text/image/PDF input and structured output.
