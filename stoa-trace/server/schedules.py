@@ -189,16 +189,45 @@ def find_tables(page, drawings=None):
     return tables
 
 
+_HEADING_WORDS = set("""mark type types count qty quantity no number width height thickness depth length size level name
+area room rooms door doors window windows frame material matl finish floor base wall walls ceiling notes note comments
+comment remarks description family fire rating hardware group set glazing elevation location phase sill head jamb
+manufacturer model unit units from to label key keynote category reinforcing reinf ties anchor bolt spacing elev rough
+opening top bottom""".split())
+
+
+def _is_heading_row(row):
+    """A row is a heading when most of its non-empty cells are schedule column words."""
+    cells = [c["text"].strip() for c in row if c["text"].strip()]
+    if not cells:
+        return False
+    if any(re.search(r"schedule", c, re.I) for c in cells):
+        return True
+    def heading(text):
+        words = re.findall(r"[a-z]+", text.lower())
+        return bool(words) and not re.search(r"\d", text) and sum(w in _HEADING_WORDS for w in words) >= max(1, len(words) // 2)
+    hits = sum(heading(c) for c in cells)
+    return hits >= 2 and hits >= 0.6 * len(cells)
+
+
 def split_header(rows, header_above=None):
     """Header rows are the leading rows without a digit in their first two cells (after a title row).
     If the grid starts with data, the header drawn just above the grid is used."""
     if header_above and any(re.search(r"\d", c["text"]) for c in rows[0][:2]):
         return list(header_above), rows
     start = None
-    for i, r in enumerate(rows):
-        if i > 0 and any(re.search(r"\d", c["text"]) for c in r[:2]):
-            start = i
-            break
+    # Rows worded like column headings (Mark, Type, Width, Level, Name, Area, ...) or naming the
+    # schedule form the header; data starts at the first row after them that is not.
+    lead = 0
+    while lead < min(len(rows), 6) and _is_heading_row(rows[lead]):
+        lead += 1  # the contiguous run of heading rows at the top
+    if lead and lead < len(rows):
+        start = lead
+    if start is None:
+        for i, r in enumerate(rows):
+            if i > 0 and any(re.search(r"\d", c["text"]) for c in r[:2]):
+                start = i
+                break
     if start is None:
         return [], rows
     head = rows[:start]
