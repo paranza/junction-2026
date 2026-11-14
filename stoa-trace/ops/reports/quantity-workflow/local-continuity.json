@@ -1,0 +1,61 @@
+{
+  "8791": {
+    "model_requests_before": 4,
+    "model_requests_after": 4,
+    "all_answers_events_documents_uploads_identical": true,
+    "previous_health_available": true,
+    "provider": "gemini",
+    "model": "gemini-4-argon",
+    "provider_signature": "gemini:gemini-4-argon:gemini-interactions-v3:2026-05-20:image_resolution=ultra_high:thinking_level=high:max_output_tokens=caller:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v5",
+      "small_image_crops": true,
+      "reading_policy": "repeat",
+      "symbol_reader": "standard",
+      "detector": null,
+      "readings": 2
+    },
+    "solver_revision": "e9d40533f415760f559d",
+    "source_revision": "e9d40533f415760f559d",
+    "ceiling": 1000,
+    "answers_prior_rows_preserved": 7328,
+    "events_prior_rows_preserved": 28,
+    "documents_prior_rows_preserved": 916,
+    "native_ifc_smoke": {
+      "doors": 211,
+      "evidence": 211,
+      "model_calls": 0,
+      "json_receipt": "passed"
+    },
+    "timeout_policy_note": "The restart check caught a 240-second override; the original private configured 600-second timeout was restored before verification."
+  },
+  "8798": {
+    "model_requests_before": 137,
+    "model_requests_after": 137,
+    "all_answers_events_documents_uploads_identical": true,
+    "previous_health_available": true,
+    "provider": "gemini",
+    "model": "gemini-4-carbon",
+    "provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v5",
+      "small_image_crops": false,
+      "reading_policy": "repeat",
+      "symbol_reader": "standard",
+      "detector": null,
+      "readings": 2
+    },
+    "solver_revision": "e9d40533f415760f559d",
+    "source_revision": "e9d40533f415760f559d",
+    "ceiling": 200,
+    "answers_prior_rows_preserved": 7156,
+    "events_prior_rows_preserved": 305,
+    "documents_prior_rows_preserved": 924,
+    "native_ifc_smoke": {
+      "doors": 211,
+      "evidence": 211,
+      "model_calls": 0,
+      "json_receipt": "passed"
+    }
+  }
+}

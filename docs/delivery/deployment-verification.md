@@ -1,5 +1,13 @@
 # Deployment verification
 
+## Quantity workflow release, 14 November evening
+
+Reviewed main revision `8dabfa7273504db21cc77ef0272c7388a412f6dd` is deployed to the existing protected Verda VM. 371 Python tests, 59 frontend tests/build and the 7,066-question native development gate passed, with no previously correct losses, changed outcomes, source-hash changes, request errors or model requests in that gate. The reserved evaluation was not rerun.
+
+The old Docker image and SQLite backup were retained. Authentication, the 211-door IFC answer with 211 evidence objects, PNG preview, review/restoration, JSON export and restart persistence passed. All 26 existing answers and 11 uploads remain intact; the event history and credentials are unchanged. The production policy remains Gemini Carbon, the cumulative model counter remains **17/1,000**, and verification used zero model requests. Both local apps also load the release, retaining their separate Argon/Carbon policies and counters of 4/1,000 and 137/200.
+
+[Deployment and source hashes](../../stoa-trace/ops/reports/quantity-workflow/deployment.json), [development regression](../../stoa-trace/ops/reports/quantity-workflow/native-development.json), [tests/build](../../stoa-trace/ops/reports/quantity-workflow/build-checks.json), [local continuity](../../stoa-trace/ops/reports/quantity-workflow/local-continuity.json), [product changes and limitations](quantity-workflow-improvements.md).
+
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
 Current runtime source matches reviewed main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed on **14 November 2026 at 13:06 Europe/Helsinki** during Riccardo's scheduled deployment. All 21 server files and all three generated frontend files match the running container by SHA256. Later commits may contain verification records or teammate work not yet deployed. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.

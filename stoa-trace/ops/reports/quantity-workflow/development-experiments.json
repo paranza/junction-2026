@@ -1,0 +1,226 @@
+{
+  "code_revision": "8dabfa7273504db21cc77ef0272c7388a412f6dd",
+  "development_only": true,
+  "reserved_scored": false,
+  "model_attempts_total": 80,
+  "live_query_checks": [
+    {
+      "case": "exclusion",
+      "http": 200,
+      "correct": true,
+      "value": 4,
+      "rows": [],
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 10174
+    },
+    {
+      "case": "median",
+      "http": 200,
+      "correct": true,
+      "value": 22.5,
+      "rows": [],
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 10909
+    },
+    {
+      "case": "difference",
+      "http": 200,
+      "correct": true,
+      "value": 5.0,
+      "rows": [],
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 13877
+    },
+    {
+      "case": "material-groups",
+      "http": 200,
+      "correct": true,
+      "value": null,
+      "rows": [
+        {
+          "label": "Oak",
+          "value": 9.0,
+          "unit": "count",
+          "object_ids": [
+            "ef5eb30337e3:p1:s0:r0",
+            "ef5eb30337e3:p1:s0:r2"
+          ]
+        },
+        {
+          "label": "Steel",
+          "value": 4.0,
+          "unit": "count",
+          "object_ids": [
+            "ef5eb30337e3:p1:s0:r1"
+          ]
+        }
+      ],
+      "method": "model_planned_schedule_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 7098
+    },
+    {
+      "case": "cross-sheet-rating",
+      "http": 200,
+      "correct": true,
+      "value": "Fire rating: EI60",
+      "rows": [],
+      "method": "model_planned_schedule_query",
+      "status": "supported",
+      "evidence_pages": [
+        1,
+        2
+      ],
+      "model_calls": 1,
+      "duration_ms": 9414
+    },
+    {
+      "case": "weighted-material-width",
+      "http": 200,
+      "correct": true,
+      "value": 11800.0,
+      "rows": [],
+      "method": "model_planned_schedule_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 10976
+    },
+    {
+      "case": "percentage",
+      "http": 200,
+      "correct": true,
+      "value": 28.571429,
+      "rows": [],
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 33429
+    },
+    {
+      "case": "follow-up-selection",
+      "http": 200,
+      "correct": true,
+      "value": 75.0,
+      "rows": [],
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "evidence_pages": [
+        1
+      ],
+      "model_calls": 1,
+      "duration_ms": 14478
+    }
+  ],
+  "focused_reader": {
+    "drawings": 12,
+    "questions": 22,
+    "baseline_correct": 12,
+    "focused_correct": 12,
+    "changed_count_predictions": 0,
+    "actual_model_attempts": 68,
+    "selection_sha256": "a64357acfad25216eebdbd6cfc2ccb6cd434a8b1442dbfb31e5dad94119246ac",
+    "model": "gemini-4-argon",
+    "by_category": {
+      "door": {
+        "cases": 10,
+        "correct": 8
+      },
+      "window": {
+        "cases": 12,
+        "correct": 4
+      }
+    },
+    "enabled_in_release": false
+  },
+  "adaptive_live_check": {
+    "correct": false,
+    "policy": [
+      {
+        "policy": "adaptive",
+        "attempts": 2,
+        "successful": 2,
+        "repeat_reason": "uncertain_candidates"
+      }
+    ],
+    "cold_usage": {
+      "model_calls": 2,
+      "input_tokens": 26870,
+      "output_tokens": 31090,
+      "cached_input_tokens": 11221,
+      "models": [
+        "gemini/gemini-4-argon"
+      ],
+      "cost_known_usd": 0.0,
+      "unknown_usage_calls": 0,
+      "cost_unavailable_calls": 2,
+      "cache_hit": false,
+      "pricing_note": "Estimated provider token cost before credits; hosting and storage excluded.",
+      "model_usage": [
+        {
+          "model": "gemini/gemini-4-argon",
+          "model_calls": 2,
+          "input_tokens": 26870,
+          "output_tokens": 31090,
+          "cached_input_tokens": 11221,
+          "cost_known_usd": 0.0,
+          "unknown_usage_calls": 0,
+          "cost_unavailable_calls": 2,
+          "cost_estimate_usd": null
+        }
+      ],
+      "cost_estimate_usd": null,
+      "cost_basis": "unconfigured"
+    },
+    "warm_usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0,
+      "models": [],
+      "cost_known_usd": 0.0,
+      "unknown_usage_calls": 0,
+      "cost_unavailable_calls": 0,
+      "cache_hit": false,
+      "pricing_note": "Estimated provider token cost before credits; hosting and storage excluded.",
+      "model_usage": [],
+      "cost_estimate_usd": 0.0,
+      "cost_basis": "native"
+    },
+    "cold_ms": 318154,
+    "cache_preserved_value": true
+  },
+  "detector": {
+    "drawings": 8,
+    "door_window_questions": 14,
+    "exact_correct": 0,
+    "usable_detections": 0,
+    "pytorch_onnx_max_absolute_error": 1.601874828338623e-07,
+    "enabled_in_release": false
+  },
+  "limits": "Development functional checks and small exposed development image experiments. No new overall or held-out accuracy estimate. Pricing unconfigured; unknown model cost is not zero."
+}

@@ -32,3 +32,7 @@ An adaptive reading policy can skip the second reading when the first reports co
 `STOA_INVENTORY_POLICY=repeat` and `STOA_SYMBOL_READER=standard` preserve reviewed behavior. `adaptive` and `focused` are experimental alternatives. Leave `STOA_DETECTOR_MANIFEST` unset for the release. Optional detector dependencies are isolated in `requirements-detector.txt`; core deployment does not install Torch or model weights.
 
 The query planner has bounded operations and a preview of source records, not arbitrary SQL or code execution. It can still misunderstand a question. Cross-sheet joins require real unique keys and extracted tables. Region membership uses registered object anchors/centers, not clipped polygon area. Image-only detection remains the largest measured weakness; these changes do not establish 99.9% accuracy or support every arbitrary file. The strongest demonstrable difference is an inspectable path from question to source operands, correction and reusable quantities.
+
+## Release verification
+
+The reviewed code is on main and deployed to the existing protected Verda VM. Authentication, native evidence, previews, review/export and restart persistence passed with zero model calls; production remains at 17/1,000 cumulative attempts. Local ports 8791 and 8798 load the same code while preserving their respective Argon/Carbon policies and counters. [Source hashes, tests, experiments and continuity records](../../stoa-trace/ops/reports/quantity-workflow/).
