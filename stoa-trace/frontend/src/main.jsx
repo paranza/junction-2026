@@ -45,14 +45,14 @@ import {
   Zap,
 } from 'lucide-react';
 import './styles.css';
-import MeasurementPanel from './MeasurementPanel.jsx';
+import ChatWorkspace, { ThreadActions } from './ChatWorkspace.jsx';
+import { WorkspaceNavigation, DatasetPage, SpendingPage, SettingsPage } from './WorkspacePages.jsx';
 import ChatThread, { useConversation } from './ChatThread.jsx';
 import EvidenceCloseup from './EvidenceCloseup.jsx';
-import InferenceCost, { MessageInferenceCost } from './InferenceCost.jsx';
+import { MessageInferenceCost } from './InferenceCost.jsx';
 import useSessionUsage from './useSessionUsage.js';
 import { messageCost, requestFailure } from './inferenceUsage.js';
 import { Button as BoardButton } from './boardui/primitives.jsx';
-import InspectorPanel, { InspectorOverlay } from './InspectorPanel.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, displayQuantity, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
@@ -79,7 +79,7 @@ const quantityUnit = answer => {
 };
 const collectionLabel = source => ({ swiss_dwellings: 'Swiss Dwellings', cubicasa5k: 'CubiCasa5K', opening_design: 'Opening Design', habs: 'HABS historic drawings', finna: 'Finna archives', europeana: 'Europeana', wikimedia: 'Wikimedia', ifc_models: 'IFC models', ifc_bench: 'IFC benchmark', uploads: 'Uploaded drawings' }[source] || readable(source));
 const documentListUrl = (search, source, offset = 0) => {
-  const params = new URLSearchParams({ search, limit: '60', offset: String(offset) });
+  const params = new URLSearchParams({ search, limit: '60', offset: String(offset), uploaded: 'true' });
   if (source) params.set('source', source);
   return `/api/documents?${params}`;
 };
@@ -578,7 +578,6 @@ function DrawingCanvas({
               </svg>
             )}
 
-            <InspectorOverlay overlay={inspectorOverlay} />
             {captureMode && measurementPoints.length > 0 && <svg className="evidence-shapes measurement-shapes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><polyline points={measurementPoints.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} fill={captureMode === 'polygon' ? 'rgba(34,125,75,.12)' : 'none'} stroke="#247d4b" strokeWidth="3" vectorEffect="non-scaling-stroke" />{measurementPoints.map(([x, y], index) => <circle key={index} cx={x * 1000} cy={y * 1000} r={4 / transform.scale} fill="#247d4b" />)}</svg>}
 
             {/* Marker badges on shapes */}
@@ -697,8 +696,6 @@ function DrawingCanvas({
           </div>
         )}
 
-        {imageState === 'ready' && <MeasurementPanel documentId={document?.id} page={page} captureMode={captureMode} points={measurementPoints} onCaptureModeChange={setCaptureMode} onClearPoints={clearMeasurementPoints} onAnswer={onMeasuredAnswer} disabled={manualMode} />}
-        {imageState === 'ready' && <InspectorPanel key={`${document?.id}:${page}`} documentId={document?.id} documentName={documentName(document)} onOverlay={setInspectorOverlay} />}
         {captureMode && <div className="manual-notice">Click {captureMode === 'calibration' ? 'two reference endpoints' : captureMode === 'polygon' ? 'each boundary corner' : 'two segment endpoints'}. <button type="button" onClick={() => setCaptureMode(null)}>Stop marking</button></div>}
         {manualMode && <div className="manual-notice"><Plus size={14} /> Drag a box or click the missed object.<button type="button" onClick={onCancelManual}>Cancel marking</button></div>}
         {region && <div className="region-notice"><SquareDashedMousePointer size={14} /> Selected area <button type="button" onClick={() => onRegion(null)} aria-label="Clear selected area"><X size={14} /></button></div>}
@@ -802,11 +799,17 @@ function ReconciliationDetails({ answer, onSelect, onResolve, resolving, disable
   </section>;
 }
 
-function App() {
+const readPreference = (name, fallback) => { try { return JSON.parse(localStorage.getItem('metria.preferences.v1') || '{}')[name] ?? fallback; } catch { return fallback; } };
+
+function App({thread, chatWorkspace}) {
+  const [route, setRoute] = useState(() => ['chats','dataset','spending','settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'chats');
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const navigate = (next) => { setRoute(next); location.hash = next; setLibraryOpen(false); setSettingsOpen(false); };
+  useEffect(() => { const changed = () => { const next=location.hash.slice(1); setRoute(['chats','dataset','spending','settings'].includes(next)?next:'chats'); }; window.addEventListener('hashchange',changed); return()=>window.removeEventListener('hashchange',changed); }, []);
   const [health, setHealth] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [unitSystem, setUnitSystem] = useState('metric');
-  const [confidenceThreshold, setConfidenceThreshold] = useState(0);
+  const [unitSystem, setUnitSystem] = useState(() => readPreference('units','metric'));
+  const [confidenceThreshold, setConfidenceThreshold] = useState(() => readPreference('confidence',0));
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [hoveredEvidence, setHoveredEvidence] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -817,14 +820,15 @@ function App() {
   const [collection, setCollection] = useState('');
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [documentsError, setDocumentsError] = useState('');
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(thread?.document_id || null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [page, setPage] = useState(1);
   const [scope, setScope] = useState('document');
-  const [crossCheck, setCrossCheck] = useState(false);
-  const [verifyVisual, setVerifyVisual] = useState(false);
+  const [crossCheck, setCrossCheck] = useState(() => readPreference('crossCheck',false));
+  const [verifyVisual, setVerifyVisual] = useState(() => readPreference('verifyVisual',false));
+  useEffect(() => { try { localStorage.setItem('metria.preferences.v1', JSON.stringify({units:unitSystem, confidence:confidenceThreshold, crossCheck, verifyVisual})); } catch { /* Preferences remain available for this session. */ } }, [unitSystem, confidenceThreshold, crossCheck, verifyVisual]);
   const [region, setRegion] = useState(null);
   const [question, setQuestion] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -836,7 +840,7 @@ function App() {
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState('');
   const [askErrorUsage, setAskErrorUsage] = useState(undefined);
-  const sessionUsage = useSessionUsage(request, asking);
+  const sessionUsage = useSessionUsage(request, asking, thread?.id);
   const [elapsed, setElapsed] = useState(0);
   const [history, setHistory] = useState([]);
   const [excluded, setExcluded] = useState([]);
@@ -954,11 +958,12 @@ function App() {
     return () => controller.abort();
   }, [selectedId, refreshVersion]);
   useEffect(() => { if (!asking) return; setElapsed(0); const timer = setInterval(() => setElapsed(value => value + 1), 1000); return () => clearInterval(timer); }, [asking]);
-  const selectDocument = useCallback((id, keepAnswer = false, requestedPage = 1) => {
+  const selectDocument = useCallback(async (id, keepAnswer = false, requestedPage = 1) => {
+    if (!keepAnswer && await chatWorkspace.document(id)) return;
     initialConversationRestore.current = true;
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
     if (!keepAnswer) { setFocusToken(0); setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
-  }, [cancelAsk, cancelHistory, cancelManual]);
+  }, [cancelAsk, cancelHistory, cancelManual, chatWorkspace]);
   const selectEvidence = useCallback(item => {
     if (answerRef.current?.source_changed) return;
     setAnswerOpen(false);
@@ -995,6 +1000,7 @@ function App() {
     finally { sessionUsage.refresh(); if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
   };
   const acceptMeasuredAnswer = useCallback(result => {
+    jsonRequest(`/api/chats/${thread.id}/answers`, {answer_id:result.id}).then(sessionUsage.refresh).catch(() => setAskError('The measurement was saved, but could not be linked to this chat.'));
     if (String(result.document_id) !== String(selectedId)) return;
     cancelAsk(); cancelHistory(); cancelManual();
     setFocusToken(0); setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion('');
@@ -1133,7 +1139,7 @@ function App() {
   }, []);
   const quickQuestions = suggestions.slice(0, 3);
   const sampleItems = ['swiss_dwellings', 'cubicasa5k', 'ifc_models'].map(source => ({ doc: documents.find(item => item.source === source), label: collectionLabel(source) })).filter(item => item.doc);
-  const showAnswerPanel = Boolean(answer) || asking || conversation.records.length > 0 || Boolean(askError);
+  const showAnswerPanel = Boolean(selectedId) || Boolean(answer) || asking || conversation.records.length > 0 || Boolean(askError);
   const panelIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>;
   const formatAnswerQuantity = useCallback(response => {
     const shown = displayQuantity(response.value, response.unit, unitSystem);
@@ -1142,7 +1148,7 @@ function App() {
   const shownValue = answer?.value != null ? formatAnswerQuantity(answer) : null;
 
   return (
-    <div className="app-shell" data-mobile-view={answerOpen ? 'conversation' : 'drawing'}>
+    <div className={`app-shell navigation-shell ${navCollapsed ? 'nav-collapsed' : ''}`} data-mobile-view={answerOpen ? 'conversation' : 'drawing'}>
       <input
               ref={fileInputRef}
               type="file"
@@ -1151,20 +1157,21 @@ function App() {
               hidden
               onChange={event => uploadFiles(event.target.files)}
             />
+      <WorkspaceNavigation chatWorkspace={chatWorkspace} thread={thread} route={route} onNavigate={navigate} collapsed={navCollapsed} onCollapse={()=>setNavCollapsed(v=>!v)} onUpload={()=>{ navigate('chats'); fileInputRef.current?.click(); }} />
       <header className="app-header">
         <div className="header-left">
           <button
             type="button"
             className="header-icon-btn"
-            title={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
-            aria-label={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
+            title={sidebarOpen ? 'Hide uploads' : 'Show uploads'}
+            aria-label={sidebarOpen ? 'Hide uploads' : 'Show uploads'}
             aria-expanded={sidebarOpen}
             onClick={() => { initialConversationRestore.current = true; setSidebarOpen(value => !value); }}
           >
             {panelIcon}
           </button>
-          <span className="brand-text">Metria</span>
-          {selectedDocument && (
+          <span className="brand-text">{{chats:thread?.title || 'Chats',dataset:'Dataset',spending:'Spending',settings:'Settings'}[route]}</span>
+          {route === 'chats' && selectedDocument && thread?.title !== documentName(selectedDocument) && (
             <>
               <span className="header-divider" />
               <span className="header-doc">{documentName(selectedDocument)}</span>
@@ -1172,31 +1179,18 @@ function App() {
           )}
         </div>
 
-        <div className="header-right">
-          <InferenceCost snapshot={sessionUsage.snapshot} unavailable={sessionUsage.unavailable} />
+        <div className="header-right">{route === 'chats' && <ThreadActions thread={thread} workspace={chatWorkspace}/>}
           {health?.status === 'offline' && (
             <span className="status-badge is-offline" title="Backend not reachable">
               <span className="pulse-dot" />
               Offline
             </span>
           )}
-          <button
-            type="button"
-            className="header-icon-btn"
-            title="Settings"
-            aria-label="Settings"
-            aria-expanded={settingsOpen}
-            onClick={() => setSettingsOpen(value => !value)}
-          >
-            <Settings size={16} />
-          </button>
+
         </div>
       </header>
 
-      {settingsOpen && (
-        <>
-          <button type="button" className="settings-scrim" aria-label="Close settings" onClick={() => setSettingsOpen(false)} />
-          <div className="settings-popover" role="dialog" aria-label="Settings">
+      {route === 'settings' && <SettingsPage health={health}><div className="settings-controls">
             <div className="settings-popover-title">Analysis</div>
             <div className="setting-pill-group" role="group" aria-label="Analysis engine">
               <button
@@ -1257,10 +1251,10 @@ function App() {
               <span className="setting-slider-val">{confidenceThreshold}%</span>
             </div>
             <p className="setting-row-desc">Filters visible highlights only. The answer count is unchanged; unreported confidence remains visible.</p>
-          </div>
-        </>
-      )}
-
+          </div></SettingsPage>}
+      {route === 'dataset' && <DatasetPage onOpen={id => { initialConversationRestore.current=true; navigate('chats'); selectDocument(id); }} />}
+      {route === 'spending' && <SpendingPage sessionUsage={sessionUsage} />}
+      <div className="workspace-dashboard" hidden={route !== 'chats'}>
       <div className="mobile-toolbar" aria-label="Workspace view"><button type="button" aria-pressed={answerOpen} disabled={!showAnswerPanel} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(true); setLibraryOpen(false); }}><MessageSquareText size={17} /> Conversation</button><button type="button" aria-pressed={!answerOpen} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(false); setLibraryOpen(false); }}><FileImage size={17} /> Drawing</button></div>
       <div className={`workspace-layout ${sidebarOpen ? 'sidebar-open' : ''} ${showAnswerPanel ? 'has-answer' : ''}`}>
         {sidebarOpen && <button type="button" className="sidebar-scrim" aria-label="Close drawing library" onClick={() => setSidebarOpen(false)} />}
@@ -1268,7 +1262,7 @@ function App() {
         <aside className="sidebar-panel" aria-label="Drawings" aria-hidden={!sidebarOpen} inert={!sidebarOpen ? true : undefined}>
           <div className="sidebar-header-row">
             <span className="sidebar-title">
-              Drawings <span className="count-chip">{total.toLocaleString()}</span>
+              Your uploads <span className="count-chip">{total.toLocaleString()}</span>
             </span>
             <button type="button" className="icon-btn" title="Close" aria-label="Close drawings" onClick={() => setSidebarOpen(false)}>
               <X size={14} />
@@ -1292,7 +1286,6 @@ function App() {
             )}
           </label>
 
-          <label className="collection-filter"><span>Collection</span><select aria-label="Drawing collection" value={collection} onChange={event => setCollection(event.target.value)}><option value="">All collections</option>{collections.map(source => <option key={source.source} value={source.source}>{collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})</option>)}</select></label>
           <div className="document-list">
             {documentsError && <p className="panel-note">Could not reach the drawing library.</p>}
             {documentsLoading && !documents.length && <p className="panel-note" role="status">Loading drawings…</p>}
@@ -1470,6 +1463,69 @@ function App() {
             </div>
           )}
 
+
+        </main>
+
+      <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Conversation and source evidence">
+        <div className="answer-panel-heading"><h2>Conversation</h2><button type="button" className="icon-btn mobile-close-answer" aria-label="Show drawing" onClick={() => setAnswerOpen(false)}><X size={16} /></button></div>
+        <div className="answer-panel-scroll">
+
+          {!answer && !asking && !conversation.records.length && <section className="chat-empty"><span className="chat-assistant-label">Metria</span><h2>What do you need from this drawing?</h2><p>Ask about quantities, dimensions or rooms. Open the evidence to inspect the source.</p>{!selectedDocument && <BoardButton onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload a drawing</BoardButton>}<div className="question-suggestions">{(suggestions.length ? suggestions : ['How many doors are shown?', 'What is the area of the largest labelled room?', 'Highlight the windows.']).slice(0, 3).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={15} /></button>)}</div></section>}
+          <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={restoreHistory} quantityUnit={quantityUnit} formatQuantity={formatAnswerQuantity}>
+          {answer && !asking && <section className="answer-result chat-assistant-message" aria-live="polite">
+            <div className="result-topline"><span className="chat-assistant-label">Metria</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
+            {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
+            {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
+
+            {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
+            <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
+            <details className="chat-artifact" key={answer.id} open={selectedEvidence || hasReviewChanges || pendingManual ? true : undefined}><summary><FileText size={19}/><span><strong>Drawing analysis</strong><small>{documentName(selectedDocument)} · {evidence.length} source items</small></span><ChevronDown size={16}/></summary><div className="artifact-body">
+            {answer.value != null && <div className="answer-value">{formatQuantityValue(shownValue.value, shownValue.unit)}{shownValue.unit && <span>{shownValue.unit}</span>}</div>}
+
+            {answer.agreement?.readings?.[0] === answer.value && !answer.source_changed && <p className={`reading-agreement ${answer.agreement.agree ? 'readings-agree' : 'readings-disagree'}`}>{answer.agreement.agree ? `Same count in ${answer.agreement.readings.length} repeated readings by the same model` : `Check this: repeated readings by the same model gave different counts (${answer.agreement.readings.join(' vs ')})`}</p>}
+            {answer.calculation && <details className="answer-section-details"><summary>Calculation</summary><div className="calculation"><code>{calculationText(answer.calculation, answer)}</code></div></details>}
+            {warnings.length > 0 && <details className="answer-warnings"><summary><CircleHelp size={15} />{warnings.length} {warnings.length === 1 ? 'source note' : 'source notes'} to check</summary>{warnings.map((warning, i) => <p key={i}><span>{shortText(warning.message || warning)}</span></p>)}</details>}
+            <ReconciliationDetails answer={answer} onSelect={selectEvidence} onResolve={resolveComparison} resolving={resolving} disabled={reviewing || hasReviewChanges || !!pendingManual} />
+            <div className="evidence-section">
+              <div className="section-label"><span>Source evidence</span><span>{evidence.length} {evidence.length === 1 ? 'source item' : 'source items'}</span></div>
+              <div className="evidence-legend"><span><i className="native-key" /> Native source</span><span><i className="visual-key" /> Visual candidate</span><span><i className="manual-key" /> Added in review</span></div>
+              {evidence.length > 0 && evidence.some(item => !evidenceBBox(item)) && <p className="evidence-coverage">{evidence.every(item => !evidenceBBox(item)) ? 'These records have no linked drawing location. Inspect their element IDs and properties.' : 'Some records have no linked drawing location. Inspect their element IDs and properties.'}</p>}
+              {evidence.length ? <div className="evidence-list" aria-label="Answer source items">{evidence.map(item => <div key={item._key} className={`evidence-item evidence-kind-${evidenceKind(item)} ${item._key === selectedEvidence ? 'is-selected' : ''} ${item._key === hoveredEvidence ? 'is-hovered' : ''} ${excluded.includes(item._key) ? 'is-excluded' : ''}`} onPointerEnter={() => setHoveredEvidence(item._key)} onPointerLeave={() => setHoveredEvidence(null)}>
+                <button type="button" className="evidence-select" disabled={answer.source_changed} onClick={() => selectEvidence(item)} aria-pressed={item._key === selectedEvidence}><span className="evidence-number">{item._number}</span><span><strong>{item.label || item.name || `Source ${item._number}`}</strong><small>{evidenceBBox(item) && item.page ? `Page ${item.page}` : item.guid ? 'Model element' : 'Source record'}{item.guid ? ` · ${item.guid.slice(0, 12)}…` : ''}</small><small className="evidence-origin">{({ native: 'Native source record', visual: 'Visual candidate · check interpretation', manual: answer.method?.startsWith('calibrated_') ? 'Your calibrated measurement' : 'Manually added during review' })[evidenceKind(item)]}</small></span><ChevronRight size={14} /></button>
+                {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
+                {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}<EvidenceCloseup answer={answer} evidence={item} request={request} /></div>}
+              </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
+              {answer.can_review && !answer.source_changed && <details className="review-workspace" open={hasReviewChanges || !!pendingManual || undefined}><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
+                <div className="review-counts"><span>Original count<strong>{answer.original_value ?? answer.value}</strong></span><span>{hasReviewChanges ? 'Draft count' : answer.human_reviewed ? 'Reviewed count' : 'Included count'}<strong>{reviewedCount}</strong></span></div>
+                <p className="review-help">Review changes the included set. Detection completeness remains unverified.</p>
+                <div className="review-actions"><button type="button" className="button" onClick={startManual} disabled={reviewing || resolving || !selectedId}><Plus size={15} /> Add missed object</button><IconButton label="Undo last object change" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}><ArrowLeft size={16} /></IconButton><button type="button" className="text-button" onClick={restoreOriginal} disabled={reviewing || resolving || (!excluded.length && !manualAdditions.length && !reviewNote)}>Restore original</button></div>
+                {pendingManual && <form className="manual-object-form" onSubmit={addManual} aria-label="Add a missed object">
+                  <div><strong>Mark a missed object</strong><button type="button" onClick={cancelManual} aria-label="Cancel missing object"><X size={16} /></button></div>
+                  <p>Drag a box or click the drawing. You can also enter page coordinates below.</p>
+                  <label>Object label<input ref={manualLabelRef} value={manualLabel} maxLength={160} onChange={event => setManualLabel(event.target.value)} placeholder="For example, window beside room 5.11" required /></label>
+                  <label>Count category{knownManualCategory ? <><input value={readable(knownManualCategory)} readOnly aria-label="Count category, fixed by original answer" /><small>Matches the original count. Add an object of this category.</small></> : <select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{(manualCategories.length ? manualCategories : [...reviewCategories, 'other']).map(kind => <option key={kind} value={kind}>{readable(kind)[0].toUpperCase() + readable(kind).slice(1)}</option>)}</select>}</label>
+                  <fieldset><legend>Object bounds · page coordinates from 0 to 1</legend><div>{['Left', 'Top', 'Right', 'Bottom'].map((label, index) => <label key={label}>{label}<input type="number" min="0" max="1" step="0.001" value={pendingManual.bbox[index]} onChange={event => setPendingManual(current => ({ ...current, bbox: current.bbox.map((value, i) => i === index ? Number(event.target.value) : value) }))} required /></label>)}</div></fieldset>
+                  <label>Object note (optional)<input value={manualNote} maxLength={500} onChange={event => setManualNote(event.target.value)} /></label>
+                  {manualError && <p className="manual-error" role="alert">{manualError}</p>}
+                  <div className="manual-form-actions"><button type="button" className="button" onClick={() => { setManualMode(true); setAnswerOpen(false); }}><SquareDashedMousePointer size={15} /> Mark on drawing</button><button type="submit" className="button primary"><Plus size={15} /> Add to count</button></div>
+                </form>}
+                <label className="review-note">Review note (optional)<textarea rows={2} value={reviewNote} maxLength={2000} disabled={reviewing || resolving} onChange={event => setReviewNote(event.target.value)} placeholder="Explain what you changed and why." /></label>
+                <button type="button" className="button primary review-button" onClick={review} disabled={reviewing || resolving || (!hasReviewChanges && answer.human_reviewed)}>{reviewing ? <LoaderCircle size={15} className="spin" /> : <ShieldCheck size={15} />}{reviewing ? 'Saving review…' : 'Save reviewed count'}</button>
+                <div className="review-save-state" role="status">{hasReviewChanges ? 'Unsaved review changes' : answer.review?.reviewed_at ? `Saved ${dateText(answer.review.reviewed_at)}` : 'Original answer is preserved when you save a review.'}</div>
+                {answer.review && <details className="review-summary"><summary>Saved review changes</summary><p>{answer.review.original_value ?? answer.original_value} original → {answer.review.reviewed_value ?? answer.value} reviewed</p><p>{answer.review.added_count || 0} added · {answer.review.excluded_count || 0} excluded</p>{answer.review.note && <p>{answer.review.note}</p>}</details>}
+              </details>}
+            </div>
+          </div></details>
+          </section>}
+          </ChatThread>
+          {askError && <div className="inline-error query-error" role="alert"><strong>{askError.startsWith('Stopped waiting') ? 'Stopped waiting' : 'Couldn’t complete the question'}</strong><span>{askError}</span><button type="button" onClick={event => { setQuestion(pendingQuestion?.question || answerQuestion); questionRef.current?.focus(); }} disabled={asking}>Edit and retry</button></div>}
+          {asking && <div className="chat-pending-question"><span className="chat-user-label">You</span><p>{pendingQuestion?.question}</p><span className="chat-user-context">{pendingQuestion?.documentName}</span></div>}
+          {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Reading the drawing</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
+
+          <div ref={conversationEndRef} className="conversation-end" />
+          {restoringHistory && <p className="history-loading" role="status"><LoaderCircle size={14} className="spin" /> Checking the saved answer and source…</p>}
+
+        </div>
           <form className="docked-composer-container" onSubmit={event => ask(event, crossCheck)}>
             {quickQuestions.length > 0 && (
               <div className="composer-quick-actions">
@@ -1548,73 +1604,11 @@ function App() {
             </div>
 
           </form>
-        </main>
-
-      <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Conversation and source evidence">
-        <div className="answer-panel-heading"><h2>Conversation</h2><button type="button" className="icon-btn mobile-close-answer" aria-label="Show drawing" onClick={() => setAnswerOpen(false)}><X size={16} /></button></div>
-        <div className="answer-panel-scroll">
-
-          {!answer && !asking && !conversation.records.length && <section className="chat-empty"><span className="chat-assistant-label">Metria</span><h2>What do you need from this drawing?</h2><p>Ask about quantities, dimensions or rooms. Open the evidence to inspect the source.</p>{!selectedDocument && <BoardButton onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload a drawing</BoardButton>}<div className="question-suggestions">{(suggestions.length ? suggestions : ['How many doors are shown?', 'What is the area of the largest labelled room?', 'Highlight the windows.']).slice(0, 3).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={15} /></button>)}</div></section>}
-          <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={restoreHistory} quantityUnit={quantityUnit} formatQuantity={formatAnswerQuantity}>
-          {answer && !asking && <section className="answer-result chat-assistant-message" aria-live="polite">
-            <div className="result-topline"><span className="chat-assistant-label">Metria</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
-            {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
-            {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
-
-            {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
-            {answer.value != null && <div className="answer-value">{formatQuantityValue(shownValue.value, shownValue.unit)}{shownValue.unit && <span>{shownValue.unit}</span>}</div>}
-            <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
-            <div className="answer-metadata"><span>{scopeText(answer.scope) || 'Requested source scope'}</span></div>
-            {answer.agreement?.readings?.[0] === answer.value && !answer.source_changed && <p className={`reading-agreement ${answer.agreement.agree ? 'readings-agree' : 'readings-disagree'}`}>{answer.agreement.agree ? `Same count in ${answer.agreement.readings.length} repeated readings by the same model` : `Check this: repeated readings by the same model gave different counts (${answer.agreement.readings.join(' vs ')})`}</p>}
-            <MessageInferenceCost usage={answer.usage} />
-            <details className="answer-section-details"><summary>Calculation and usage</summary><UsageDetails answer={answer} />
-            {answer.calculation && <div className="calculation"><span>Calculation</span><code>{calculationText(answer.calculation, answer)}</code></div>}
-            </details>
-            {warnings.length > 0 && <details className="answer-warnings"><summary><CircleHelp size={15} />{warnings.length} {warnings.length === 1 ? 'source note' : 'source notes'} to check</summary>{warnings.map((warning, i) => <p key={i}><span>{shortText(warning.message || warning)}</span></p>)}</details>}
-            <ReconciliationDetails answer={answer} onSelect={selectEvidence} onResolve={resolveComparison} resolving={resolving} disabled={reviewing || hasReviewChanges || !!pendingManual} />
-            <div className="evidence-section">
-              <div className="section-label"><span>Source evidence</span><span>{evidence.length} {evidence.length === 1 ? 'source item' : 'source items'}</span></div>
-              <div className="evidence-legend"><span><i className="native-key" /> Native source</span><span><i className="visual-key" /> Visual candidate</span><span><i className="manual-key" /> Added in review</span></div>
-              {evidence.length > 0 && evidence.some(item => !evidenceBBox(item)) && <p className="evidence-coverage">{evidence.every(item => !evidenceBBox(item)) ? 'These records have no linked drawing location. Inspect their element IDs and properties.' : 'Some records have no linked drawing location. Inspect their element IDs and properties.'}</p>}
-              {evidence.length ? <div className="evidence-list" aria-label="Answer source items">{evidence.map(item => <div key={item._key} className={`evidence-item evidence-kind-${evidenceKind(item)} ${item._key === selectedEvidence ? 'is-selected' : ''} ${item._key === hoveredEvidence ? 'is-hovered' : ''} ${excluded.includes(item._key) ? 'is-excluded' : ''}`} onPointerEnter={() => setHoveredEvidence(item._key)} onPointerLeave={() => setHoveredEvidence(null)}>
-                <button type="button" className="evidence-select" disabled={answer.source_changed} onClick={() => selectEvidence(item)} aria-pressed={item._key === selectedEvidence}><span className="evidence-number">{item._number}</span><span><strong>{item.label || item.name || `Source ${item._number}`}</strong><small>{evidenceBBox(item) && item.page ? `Page ${item.page}` : item.guid ? 'Model element' : 'Source record'}{item.guid ? ` · ${item.guid.slice(0, 12)}…` : ''}</small><small className="evidence-origin">{({ native: 'Native source record', visual: 'Visual candidate · check interpretation', manual: answer.method?.startsWith('calibrated_') ? 'Your calibrated measurement' : 'Manually added during review' })[evidenceKind(item)]}</small></span><ChevronRight size={14} /></button>
-                {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
-                {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}<EvidenceCloseup answer={answer} evidence={item} request={request} /></div>}
-              </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
-              {answer.can_review && !answer.source_changed && <details className="review-workspace" open={hasReviewChanges || !!pendingManual || undefined}><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
-                <div className="review-counts"><span>Original count<strong>{answer.original_value ?? answer.value}</strong></span><span>{hasReviewChanges ? 'Draft count' : answer.human_reviewed ? 'Reviewed count' : 'Included count'}<strong>{reviewedCount}</strong></span></div>
-                <p className="review-help">Review changes the included set. Detection completeness remains unverified.</p>
-                <div className="review-actions"><button type="button" className="button" onClick={startManual} disabled={reviewing || resolving || !selectedId}><Plus size={15} /> Add missed object</button><IconButton label="Undo last object change" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}><ArrowLeft size={16} /></IconButton><button type="button" className="text-button" onClick={restoreOriginal} disabled={reviewing || resolving || (!excluded.length && !manualAdditions.length && !reviewNote)}>Restore original</button></div>
-                {pendingManual && <form className="manual-object-form" onSubmit={addManual} aria-label="Add a missed object">
-                  <div><strong>Mark a missed object</strong><button type="button" onClick={cancelManual} aria-label="Cancel missing object"><X size={16} /></button></div>
-                  <p>Drag a box or click the drawing. You can also enter page coordinates below.</p>
-                  <label>Object label<input ref={manualLabelRef} value={manualLabel} maxLength={160} onChange={event => setManualLabel(event.target.value)} placeholder="For example, window beside room 5.11" required /></label>
-                  <label>Count category{knownManualCategory ? <><input value={readable(knownManualCategory)} readOnly aria-label="Count category, fixed by original answer" /><small>Matches the original count. Add an object of this category.</small></> : <select value={manualCategory} onChange={event => setManualCategory(event.target.value)}>{(manualCategories.length ? manualCategories : [...reviewCategories, 'other']).map(kind => <option key={kind} value={kind}>{readable(kind)[0].toUpperCase() + readable(kind).slice(1)}</option>)}</select>}</label>
-                  <fieldset><legend>Object bounds · page coordinates from 0 to 1</legend><div>{['Left', 'Top', 'Right', 'Bottom'].map((label, index) => <label key={label}>{label}<input type="number" min="0" max="1" step="0.001" value={pendingManual.bbox[index]} onChange={event => setPendingManual(current => ({ ...current, bbox: current.bbox.map((value, i) => i === index ? Number(event.target.value) : value) }))} required /></label>)}</div></fieldset>
-                  <label>Object note (optional)<input value={manualNote} maxLength={500} onChange={event => setManualNote(event.target.value)} /></label>
-                  {manualError && <p className="manual-error" role="alert">{manualError}</p>}
-                  <div className="manual-form-actions"><button type="button" className="button" onClick={() => { setManualMode(true); setAnswerOpen(false); }}><SquareDashedMousePointer size={15} /> Mark on drawing</button><button type="submit" className="button primary"><Plus size={15} /> Add to count</button></div>
-                </form>}
-                <label className="review-note">Review note (optional)<textarea rows={2} value={reviewNote} maxLength={2000} disabled={reviewing || resolving} onChange={event => setReviewNote(event.target.value)} placeholder="Explain what you changed and why." /></label>
-                <button type="button" className="button primary review-button" onClick={review} disabled={reviewing || resolving || (!hasReviewChanges && answer.human_reviewed)}>{reviewing ? <LoaderCircle size={15} className="spin" /> : <ShieldCheck size={15} />}{reviewing ? 'Saving review…' : 'Save reviewed count'}</button>
-                <div className="review-save-state" role="status">{hasReviewChanges ? 'Unsaved review changes' : answer.review?.reviewed_at ? `Saved ${dateText(answer.review.reviewed_at)}` : 'Original answer is preserved when you save a review.'}</div>
-                {answer.review && <details className="review-summary"><summary>Saved review changes</summary><p>{answer.review.original_value ?? answer.original_value} original → {answer.review.reviewed_value ?? answer.value} reviewed</p><p>{answer.review.added_count || 0} added · {answer.review.excluded_count || 0} excluded</p>{answer.review.note && <p>{answer.review.note}</p>}</details>}
-              </details>}
-            </div>
-          </section>}
-          </ChatThread>
-          {askError && <div className="inline-error query-error" role="alert"><strong>{askError.startsWith('Stopped waiting') ? 'Stopped waiting' : 'Couldn’t complete the question'}</strong><span>{askError}</span>{askErrorUsage !== undefined && <MessageInferenceCost usage={askErrorUsage} label="Failed message" />}<button type="button" onClick={event => { setQuestion(pendingQuestion?.question || answerQuestion); questionRef.current?.focus(); }} disabled={asking}>Edit and retry</button></div>}
-          {asking && <div className="chat-pending-question"><span className="chat-user-label">You</span><p>{pendingQuestion?.question}</p><span className="chat-user-context">{pendingQuestion?.documentName}</span></div>}
-          {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Reading the drawing</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
-
-          <div ref={conversationEndRef} className="conversation-end" />
-          {restoringHistory && <p className="history-loading" role="status"><LoaderCircle size={14} className="spin" /> Checking the saved answer and source…</p>}
-          {history.length > 0 && !asking && <details className="recent-questions"><summary>Saved answers</summary>{history.map(item => <button type="button" key={item.id || item.timestamp} title={`${item.question} · ${item.documentName}`} onClick={() => restoreHistory(item)}><MessageSquareText size={14} /><span><strong>{item.question}</strong><small>{item.documentName}</small><small className="history-cost">{messageCost(item.answer?.usage)}</small></span><ChevronRight size={13} /></button>)}</details>}
-        </div>
       </aside>
+      </div>
       </div>
     </div>
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<ChatWorkspace App={App} />);

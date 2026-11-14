@@ -113,7 +113,7 @@ def resolve_evidence_path(path: str):
     return register(candidate, uploaded=candidate.is_relative_to(RUNTIME / 'uploads'))
 
 
-def list_documents(search='', limit=100, offset=0, source=None):
+def list_documents(search='', limit=100, offset=0, source=None, uploaded=None):
     where, args = [], []
     if search:
         where.append('(name LIKE ? OR path LIKE ?)')
@@ -121,6 +121,9 @@ def list_documents(search='', limit=100, offset=0, source=None):
     if source:
         where.append('source=?')
         args.append(source)
+    if uploaded is not None:
+        where.append('uploaded=?')
+        args.append(int(uploaded))
     clause = ' WHERE ' + ' AND '.join(where) if where else ''
     with connection() as db:
         total = db.execute('SELECT COUNT(*) FROM documents' + clause, args).fetchone()[0]
@@ -362,3 +365,69 @@ def reserve_model_request(limit, detail):
         db.execute('INSERT INTO events(kind,detail,created) VALUES(?,?,?)',
                    ('model_request', json.dumps(detail), time.time()))
     return True
+
+
+def workspace_usage(days=30):
+    """Aggregate immutable attempts, including legacy unscoped calls, once each."""
+    from .costs import summarize_calls
+    from datetime import datetime, timezone, timedelta
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days-1)
+    with connection() as db:
+        rows = db.execute("SELECT kind,detail,created FROM events WHERE kind IN ('model_request','model_response') ORDER BY id").fetchall()
+    attempts, responses = {}, {}
+    for row in rows:
+        try:
+            detail = json.loads(row['detail'])
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(detail, dict):
+            continue
+        identity = detail.get('request_id')
+        if not identity:
+            continue
+        if row['kind'] == 'model_request':
+            if start.timestamp() <= row['created'] < (start+timedelta(days=days)).timestamp():
+                attempts.setdefault(identity, {**detail, 'created': row['created']})
+        else:
+            responses[identity] = detail
+    calls, buckets = [], {}
+    for identity, attempt in attempts.items():
+        response = responses.get(identity, {})
+        valid = all(response.get(k) == attempt.get(k) for k in ('provider','model','message_id'))
+        call = {'model': str(attempt.get('provider') or 'unknown')+'/'+str(attempt.get('model') or 'unknown'), 'created': attempt['created'], 'usage': response.get('usage') if valid else None}
+        calls.append(call)
+        day = datetime.fromtimestamp(call['created'], timezone.utc).date().isoformat()
+        buckets.setdefault(day, []).append(call)
+    daily = [{'date': (start+timedelta(days=i)).date().isoformat(), 'usage': summarize_calls(buckets.get((start+timedelta(days=i)).date().isoformat(), []))} for i in range(days)]
+    return {'days': days, 'timezone': 'UTC', 'aggregate': summarize_calls(calls), 'daily': daily}
+
+
+def chat_workspace():
+    with connection() as db:
+        db.executescript("""CREATE TABLE IF NOT EXISTS chat_projects(id TEXT PRIMARY KEY,name TEXT NOT NULL,created REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS chat_threads(id TEXT PRIMARY KEY,title TEXT NOT NULL,project_id TEXT,document_id TEXT,created REAL NOT NULL,updated REAL NOT NULL);""")
+        return {'projects':[dict(r) for r in db.execute('SELECT * FROM chat_projects ORDER BY created')], 'threads':[dict(r) for r in db.execute('SELECT t.*,d.name AS document_name FROM chat_threads t LEFT JOIN documents d ON d.id=t.document_id ORDER BY t.updated DESC')]}
+
+def create_chat(name, project_id=None, document_id=None, project=False, identity=None):
+    import uuid
+    chat_workspace()
+    identity=identity or str(uuid.uuid4()); now=time.time()
+    with connection() as db:
+        if project:
+            db.execute('INSERT INTO chat_projects VALUES(?,?,?)',(identity,name,now))
+        else:
+            if project_id and not db.execute('SELECT id FROM chat_projects WHERE id=?',(project_id,)).fetchone(): raise KeyError(project_id)
+            if document_id and not db.execute('SELECT id FROM documents WHERE id=?',(document_id,)).fetchone(): raise KeyError(document_id)
+            if document_id and name == 'Floor plan': name = db.execute('SELECT name FROM documents WHERE id=?',(document_id,)).fetchone()[0]
+            db.execute('INSERT OR IGNORE INTO chat_threads VALUES(?,?,?,?,?,?)',(identity,name,project_id,document_id,now,now))
+    return identity
+
+def update_chat(identity,title=None,project_id=None,document_id=None):
+    chat_workspace()
+    with connection() as db:
+        old=db.execute('SELECT * FROM chat_threads WHERE id=?',(identity,)).fetchone()
+        if not old: raise KeyError(identity)
+        if project_id and not db.execute('SELECT id FROM chat_projects WHERE id=?',(project_id,)).fetchone(): raise KeyError(project_id)
+        if document_id and not db.execute('SELECT id FROM documents WHERE id=?',(document_id,)).fetchone(): raise KeyError(document_id)
+        if document_id and not title and old['title'] == 'New chat': title = db.execute('SELECT name FROM documents WHERE id=?',(document_id,)).fetchone()[0]
+        db.execute('UPDATE chat_threads SET title=?,project_id=?,document_id=?,updated=? WHERE id=?',(title or old['title'],old['project_id'] if project_id is None else project_id or None,document_id or old['document_id'],time.time(),identity))

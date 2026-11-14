@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { acceptUsageSnapshot, inferenceSessionId, usagePending } from './inferenceUsage.js';
 
-export default function useSessionUsage(request, asking) {
+export default function useSessionUsage(request, asking, threadId) {
   const [sessionId] = useState(() => {
+    if (threadId) return threadId;
     let storage;
     try { storage = window.sessionStorage; } catch { /* Browser storage can be unavailable. */ }
     return inferenceSessionId(storage);

@@ -81,8 +81,8 @@ def health():
 
 
 @app.get('/api/documents')
-def documents(search: str = '', limit: int = 100, offset: int = 0, source: str | None = None):
-    return store.list_documents(search[:300], max(1, min(limit, 1000)), max(0, offset), source)
+def documents(search: str = '', limit: int = 100, offset: int = 0, source: str | None = None, uploaded: bool | None = None):
+    return store.list_documents(search[:300], max(1, min(limit, 1000)), max(0, offset), source, uploaded)
 
 
 @app.get('/api/usage')
@@ -91,6 +91,13 @@ def session_usage(session_id: uuid.UUID):
     return {'session_id': summary['session_id'], 'revision': summary['revision'],
             'aggregate': summary['usage'], 'message_count': summary['message_count'],
             'by_message': [{**item, 'request_id': item['message_id']} for item in summary['messages']]}
+
+
+@app.get('/api/usage/overview')
+def usage_overview(days: int = 30):
+    if days not in (7, 30, 90):
+        raise HTTPException(422, 'Choose 7, 30 or 90 days.')
+    return store.workspace_usage(days)
 
 
 @app.get('/api/media/status')
@@ -892,6 +899,57 @@ def recent_answers(limit: int = 12):
     fingerprints = {}
     return {'answers': [_answer_view(answer, fingerprints) for answer in store.list_answers(max(1, min(limit, 50)))]}
 
+
+class ChatCreate(BaseModel):
+    session_id: uuid.UUID | None = None
+    name: str = Field(min_length=1,max_length=160)
+    project_id: str | None = None
+    document_id: str | None = None
+
+class ChatUpdate(BaseModel):
+    title: str | None = Field(default=None,min_length=1,max_length=160)
+    project_id: str | None = None
+    document_id: str | None = None
+
+@app.get('/api/chats')
+def chats():
+    return store.chat_workspace()
+
+@app.post('/api/chat-projects')
+def create_project(payload: ChatCreate):
+    identity=store.create_chat(payload.name.strip() or 'Untitled project',project=True)
+    return {'id':identity}
+
+@app.post('/api/chats')
+def create_chat(payload: ChatCreate):
+    try:
+        identity=store.create_chat(payload.name.strip() or 'New chat',payload.project_id,payload.document_id,identity=str(payload.session_id) if payload.session_id else None)
+    except KeyError:
+        raise HTTPException(404,'Project or drawing not found') from None
+    return {'id':identity}
+
+class ThreadAnswer(BaseModel):
+    answer_id: str
+
+@app.post('/api/chats/{identity}/answers')
+def remember_chat_answer(identity: str,payload: ThreadAnswer):
+    workspace=store.chat_workspace()
+    if not any(t['id']==identity for t in workspace['threads']): raise HTTPException(404,'Chat not found')
+    try: answer=store.read_answer(payload.answer_id)
+    except KeyError: raise HTTPException(404,'Answer not found') from None
+    with store.connection() as db:
+        db.execute('CREATE TABLE IF NOT EXISTS chat_thread_answers(thread_id TEXT,answer_id TEXT,PRIMARY KEY(thread_id,answer_id))')
+        inserted=db.execute('INSERT OR IGNORE INTO chat_thread_answers VALUES(?,?)',(identity,payload.answer_id)).rowcount
+    if inserted: store.record_message_usage(identity,'saved:'+payload.answer_id,answer.get('usage'),answer.get('question','Measurement'),'completed',payload.answer_id)
+    return {'status':'ok'}
+
+@app.patch('/api/chats/{identity}')
+def update_chat(identity: str,payload: ChatUpdate):
+    try:
+        store.update_chat(identity,payload.title,payload.project_id,payload.document_id)
+    except KeyError:
+        raise HTTPException(404,'Chat, project or drawing not found') from None
+    return {'status':'ok'}
 
 DIST = ROOT / 'frontend' / 'dist'
 if DIST.exists():
