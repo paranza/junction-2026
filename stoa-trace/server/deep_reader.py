@@ -11,6 +11,7 @@ import base64
 import copy
 import math
 import os
+import re
 from pathlib import Path
 
 from . import llm, rendering
@@ -201,8 +202,9 @@ def finalize(raw, inputs, document, question, region, trace):
             result.update(answer='The inspected source does not yet support a complete calculation from its quoted operands and units.',
                           status='insufficient_evidence', value=None, calculation=None, can_review=False)
             return result
+        readable_expression = re.sub(r'\be\d+\b', lambda match: f"({operands[match[0]]['value']:g} {operands[match[0]]['unit']})", raw['expression'])
         result.update(value=value, answer=f'{value:g} {raw["unit"]}, calculated from the highlighted source readings. Confirm the annotation and geometry interpretation.',
-                      calculation=raw['expression'] + ' = ' + f'{value:g} {raw["unit"]}',
+                      calculation=readable_expression + ' = ' + f'{value:g} {raw["unit"]}',
                       calculation_operands={key: {'value': operands[key]['value'], 'unit': operands[key]['unit']} for key in sorted(used)},
                       measurement_basis='checked_visual_operand_expression')
         expression = ast.parse(raw['expression'], mode='eval').body
