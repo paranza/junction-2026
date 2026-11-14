@@ -10,13 +10,15 @@ Record the verified Trace deployment or a clearly identified local build. Pin it
 | --- | --- | --- |
 | 0:00-0:14 | Open directly on the real floor plan, with the room label visible. Brief title: Trace, MUSTA HELMI, Stoa. | "An engineer needs a quantity from a drawing, and needs to check where it came from. Trace connects the question, the calculation and the exact source evidence in one workspace." |
 | 0:14-0:33 | On `site1102_bldg2242_floor10281.pdf`, ask the room 5.11 net-area question. Show 13.62 m² and click its evidence. | "Ask for the net floor area of room 5.11. Trace reads the source annotation and returns 13.62 square metres. Selecting the evidence brings us directly to the room and its printed value." |
-| 0:33-0:53 | Enable comparison and ask the same question. Show printed annotation, calculated outline area and the scoped comparison. | "Here, a second calculation uses the registered CAD outline. Both values remain visible, with their methods and tolerance. The engineer can save a working quantity and the reason for choosing it. Agreement is a check, not a guarantee." |
-| 0:53-1:13 | Show an existing verified saved count review, its original value and revision. If no genuine review is available, use the clearly labelled rehearsal procedure below. | "For counts, every included candidate is inspectable. A reviewer can exclude an extra object or mark a missed one, then save the revision. Trace preserves the original result, the change and the note, including after a reload." |
-| 1:13-1:31 | Open usage details; repeat a question only if already rehearsed. Briefly show IFC GUID evidence or a schedule row. | "Supported native questions need no model call. Visual analysis can prepare a cached inventory for follow-up questions. Usage separates the current question from initial extraction, and unknown dollar cost stays unknown. BIM records keep their source identifiers too." |
-| 1:31-1:46 | Show the compact full-preview metrics card below, including numeric denominator and native-only mode. Avoid scrolling through raw benchmark output. | "On the full preview, native answering covered 21 percent of questions with no model calls. The numeric result is shown here, including unanswered cases. This development score does not establish unseen-image accuracy." |
+| 0:33-0:55 | Open one rehearsed procedural development upload. Show its saved Gemini door answer and numbered evidence. Identify a cached replay visibly. | "For a supported image question, Gemini creates a reusable inventory of located objects. Trace counts those objects and puts each candidate back on the drawing. An optional Gemma review searches for missed or incorrect objects. That second pass remains a proposal an engineer can inspect." |
+| 0:55-1:14 | Show an existing verified saved count review, its original value and revision. If no genuine review is available, use the clearly labelled rehearsal procedure below. | "A reviewer can exclude an extra object or mark a missed one, then save the revision. Trace preserves the original result, the change and the note, including after a reload." |
+| 1:14-1:33 | Keep the session inference section and the selected answer's cost visible. Repeat a rehearsed identical question and show its cached cost. Briefly show source IDs if time permits. | "The workspace shows inference spending for this session and for every message. A cached repeat makes no new model call. Costs use model-specific token estimates, and missing usage stays unknown. Supported native answers need no model inference." |
+| 1:33-1:46 | Show the compact development metrics card below, including numeric denominator and native-only mode. Avoid scrolling through raw benchmark output. | "Native mode answered 43 percent of development questions with no model calls. Six generated drawings also passed a small visual door-count check across six file formats. Neither result proves general accuracy on unseen plans." |
 | 1:46-1:55 | Return to the selected source and reviewed value. Close on team/product name. | "Trace keeps the quantity, its source and the engineer's review connected as models improve." |
 
-This narration is approximately 222 words, about 1:43 at 130 words per minute, leaving roughly twelve seconds for pauses within the 1:55 target. Screen actions run alongside narration. Shorten after rehearsal if needed; the final encoded file, not this estimate, determines compliance.
+Time the narration with the actual screen recording and shorten after rehearsal. Screen actions run alongside narration. Avoid waiting for a new long-running model request in the two-minute video: identify a saved answer as a replay, or record the request and edit the waiting interval transparently. The final encoded file, not the storyboard timings, determines compliance.
+
+The local six-format answer check used backend `b01af99`; the frontend quantity-label and icon update is `89cd4b8`. Neither reference proves that the existing remote deployment has been updated. Confirm the actual provider, Gemma setting and deployed revision before filming. Hosted Gemma must not be described as local, private or offline inference. Omit its narration if the final policy disables that optional review after evaluation.
 
 ## Honest correction shot
 
@@ -30,18 +32,18 @@ Use only results pinned to the code actually being presented. The card needs the
 
 | Field | Measured value |
 | --- | --- |
-| Code revision and evaluation mode | `d6f5b0c`, native mode |
-| Population | All 7,990 preview questions, already exposed during development; not an unseen-file test |
-| Answered / all questions | 1,682 / 7,990 (21.1%) |
-| Correct numeric / all numeric questions | 1,598 / 7,725 (20.7%); unanswered cases count as incorrect |
-| Correct numeric / answered numeric | 1,598 / 1,679 (95.2%); show coverage beside this figure |
+| Code revision and evaluation mode | Backend `b01af99`, native mode; frontend-only quantity/icon changes at `89cd4b8` |
+| Population | 7,066 preview development questions; not an unseen-file test |
+| Answered / all questions | 3,026 / 7,066 (42.8%) |
+| Correct numeric / all numeric questions | 2,929 / 6,801 (43.1%); unanswered cases count as incorrect |
+| Correct numeric / answered numeric | 2,929 / 3,023 (96.9%); show coverage beside this figure |
 | Text questions | 265 unscored text questions; three answered, requiring manual review |
 | Model calls | Zero; this run does not exercise hosted vision or measure its accuracy |
 | Model cost | No model inference in this run; hosting/storage and earlier extraction costs are separate |
 
-Source: [full baseline summary](../../stoa-trace/ops/reports/riccardo-delivery/native-full-baseline-summary.md). If the filmed code revision changes, rerun the agreed evaluation and update the card before recording. Keep the native-only and development-data labels visible. The 48-group reserve was frozen prospectively after baseline exposure; do not call this result held-out accuracy.
+The local evaluator report was generated on 14 November at 09:51 UTC and uses development manifest SHA-256 `f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07`. It recorded zero request errors, 94 wrong numeric answers and 3,778 unanswered numeric questions. Retain that report and attach its sanitized aggregate to the release. The older [full baseline summary](../../stoa-trace/ops/reports/riccardo-delivery/native-full-baseline-summary.md) uses an earlier revision and a different denominator; do not present the two as a paired score. If inference code or policy changes, rerun the agreed evaluation and update the card before recording. Keep native-only and development-data labels visible. The 48-group reserve was frozen prospectively after baseline exposure; do not call this result held-out accuracy.
 
-The previous paired native diagnostic was **55/97 correct numeric questions**, from **58/100 answered**, with three numeric errors. Its earlier version had 41/97 correct. That is a small source-stratified diagnostic, not a full-corpus or general visual-accuracy claim. Do not show only the 94.8% answered precision while hiding coverage.
+An optional second card can identify the small visual format check separately: **six generated development drawings, six door questions, 6/6 exact counts, zero request errors**, across PNG, JPEG, PDF, SVG, TIFF and WebP. The Gemini Carbon plus Gemma pipeline at `b01af99` matched reference objects with precision and recall 1.0 at one-to-one IoU 0.3. Twelve other questions in that procedural development corpus were unrun in this check. This measures a narrow format and evidence path, not general visual accuracy or a causal benefit from Gemma. The larger CubiCasa run and predeclared Gemma comparison were still in progress at this documentation update; insert only their completed, pinned and reviewed results later.
 
 ## Recording acceptance checklist
 
