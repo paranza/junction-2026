@@ -50,8 +50,15 @@ class BackendUpgrade(unittest.TestCase):
         })
         self.assertEqual(created.status_code, 200)
         thread_id = created.json()['id']
+        self.assertEqual(created.json()['thread']['document_id'], self.doc['id'])
+        replay = self.client.post('/api/workspace/chats', json={
+            'name': 'Ground floor', 'session_id': thread_id,
+            'project_id': project, 'document_id': self.doc['id']
+        })
+        self.assertEqual(replay.json()['thread'], created.json()['thread'])
         renamed = self.client.patch('/api/workspace/chats/' + thread_id, json={'title': 'Entrance'})
         self.assertEqual(renamed.status_code, 200)
+        self.assertEqual(renamed.json()['thread']['title'], 'Entrance')
         first = self.client.get('/api/workspace/chats')
         second = self.client.get('/api/workspace/chats')
         self.assertEqual(first.headers['cache-control'], 'no-store')

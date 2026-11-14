@@ -408,6 +408,13 @@ def chat_workspace():
         CREATE TABLE IF NOT EXISTS chat_threads(id TEXT PRIMARY KEY,title TEXT NOT NULL,project_id TEXT,document_id TEXT,created REAL NOT NULL,updated REAL NOT NULL);""")
         return {'projects':[dict(r) for r in db.execute('SELECT * FROM chat_projects ORDER BY created')], 'threads':[dict(r) for r in db.execute('SELECT t.*,d.name AS document_name FROM chat_threads t LEFT JOIN documents d ON d.id=t.document_id ORDER BY t.updated DESC')]}
 
+def get_chat(identity):
+    with connection() as db:
+        row = db.execute('SELECT t.*,d.name AS document_name FROM chat_threads t LEFT JOIN documents d ON d.id=t.document_id WHERE t.id=?', (identity,)).fetchone()
+        if not row:
+            raise KeyError(identity)
+        return dict(row)
+
 def create_chat(name, project_id=None, document_id=None, project=False, identity=None):
     import uuid
     chat_workspace()

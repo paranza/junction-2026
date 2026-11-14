@@ -959,7 +959,7 @@ function App({thread, chatWorkspace}) {
   }, [selectedId, refreshVersion]);
   useEffect(() => { if (!asking) return; setElapsed(0); const timer = setInterval(() => setElapsed(value => value + 1), 1000); return () => clearInterval(timer); }, [asking]);
   const selectDocument = useCallback(async (id, keepAnswer = false, requestedPage = 1) => {
-    if (!keepAnswer && await chatWorkspace.document(id)) return;
+    if (id && !keepAnswer && await chatWorkspace.document(id)) return;
     initialConversationRestore.current = true;
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
     if (!keepAnswer) { setFocusToken(0); setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }

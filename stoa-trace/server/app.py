@@ -931,7 +931,7 @@ def create_chat(payload: ChatCreate):
         identity=store.create_chat(payload.name.strip() or 'New chat',payload.project_id,payload.document_id,identity=str(payload.session_id) if payload.session_id else None)
     except KeyError:
         raise HTTPException(404,'Project or drawing not found') from None
-    return {'id':identity}
+    return {'id':identity, 'thread':store.get_chat(identity)}
 
 class ThreadAnswer(BaseModel):
     answer_id: str
@@ -956,7 +956,7 @@ def update_chat(identity: str,payload: ChatUpdate):
         store.update_chat(identity,payload.title,payload.project_id,payload.document_id)
     except KeyError:
         raise HTTPException(404,'Chat, project or drawing not found') from None
-    return {'status':'ok'}
+    return {'status':'ok', 'thread':store.get_chat(identity)}
 
 DIST = ROOT / 'frontend' / 'dist'
 if DIST.exists():
