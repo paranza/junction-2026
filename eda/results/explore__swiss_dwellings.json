@@ -1,0 +1,377 @@
+{
+ "slice": "swiss_dwellings (data/swiss_dwellings: 65 floors, each as PDF + DXF + PNG; 2,358 questions, all pointing at the PDFs)",
+ "summary": "The swiss_dwellings slice is 65 synthetic Swiss apartment floor plans. Each comes as a one-page A3 vector PDF, a DXF in metres and a 150-dpi PNG of the same drawing. All 2,358 questions point at the PDF: 1,179 English questions, each paired with a German, French or Italian twin that has the same answer. They follow 12 templates: room-label counts, apartment counts, counts of doors, windows, WCs, washbasins, bathtubs and showers, and four net-area families (one room, one apartment, all rooms with a given label, whole floor). The PDF holds everything needed. Its text layer has room labels, bold room numbers, unit tags and the drawing scale. Its vector layer has room polygons, unit outlines, door frames, windows and fixture symbols, plus a fill colour that marks each room as private, common or outdoor. A 222-line PDF-only parser (no DXF, OCR or vision) reproduced 2,358/2,358 answers in all four languages, with areas matching to 2 decimals in 742/744 cases. The DXF alone reached 1,171/1,179 English questions, because it has no room-category information. These results are in-sample, since the rules were tuned on these 65 files. Two independent cross-checks support them: computed net areas equal the drawing's own printed areas for all 550 printed rooms, and the PDF and DXF agree on all 1,618 rooms. Only 23 of 65 drawings print room areas, so most area questions need geometry rather than lookup, and measuring pixels on the 150-dpi PNG would break the 2% tolerance for 85 of 130 asked rooms. The answers follow conventions an engineer would not guess. Door and window counts include duplicate records drawn exactly on top of each other, so a perfect visual door count is right on only 4/65 floors. Net areas subtract columns and shafts inside a room. Lifts and common corridors count toward the floor total. Unlabelled outdoor rooms are excluded from apartment areas, and label matching is exact. For the product, swiss_dwellings should go through a deterministic vector parser that also produces evidence overlays, with an LLM only translating free-form questions into queries on the extracted floor model. The parser depends on this generator's exact style constants, so it must detect unfamiliar styles and fall back rather than answer confidently.",
+ "key_stats": [
+  {
+   "metric": "Drawings",
+   "value": "65 floors, each as PDF + DXF + PNG (195 files, 34 MB)"
+  },
+  {
+   "metric": "Questions",
+   "value": "2,358 = 1,179 English + 1,179 local-language twins with identical answers (pairing verified 1179/1179); local language per file: de 22, fr 22, it 21"
+  },
+  {
+   "metric": "Question types",
+   "value": "1,614 count, 744 area (m2); 12 template families; every path is a .pdf"
+  },
+  {
+   "metric": "English questions by family",
+   "value": "count_label 405, area_room 130, area_apartment 112, count_apartments 65, doors 65, windows 65, WC 65, washbasins 65, area_label_total 65, area_total_indoor 65, bathtubs 56, showers 21"
+  },
+  {
+   "metric": "PDF format",
+   "value": "1 page each, A3 (51 landscape 1190.6x841.9 pt, 14 portrait), Matplotlib 3.11.2, vector paths + text layer, 0 embedded images, 71-313 words, 118-1448 vector paths"
+  },
+  {
+   "metric": "Drawing scale",
+   "value": "1:100 on 57 sheets, 1:200 on 8 (printed in title block as '1:100 (A3)')"
+  },
+  {
+   "metric": "PDFs with printed room areas",
+   "value": "23/65 (35%); 550 of 1,618 numbered rooms (34%) have an 'X.XX m2' label"
+  },
+  {
+   "metric": "Numbered rooms",
+   "value": "1,618 (5-116 per floor, median 20); 93 have a number but no label (none of them has a printed area)"
+  },
+  {
+   "metric": "Room number formats",
+   "value": "'9.99' 1,577; 'U9.99' (basement) 24; '9.999' 17"
+  },
+  {
+   "metric": "Unit outlines",
+   "value": "199: 132 'App. X', 52 'Whg. X', 1 'Gewerbe 1' (commercial), 14 untagged (common areas)"
+  },
+  {
+   "metric": "PDF-only solver accuracy (in-sample)",
+   "value": "2,358/2,358 (all 4 languages); English 1,179/1,179"
+  },
+  {
+   "metric": "DXF-only solver accuracy",
+   "value": "1,171/1,179 English (8 area totals missed on 3 floors with unlabelled outdoor rooms)"
+  },
+  {
+   "metric": "PDF text layer only (no geometry) + perfect visual symbol counts",
+   "value": "604/1,179 English"
+  },
+  {
+   "metric": "Area precision (PDF solver)",
+   "value": "742/744 area answers equal at 2 decimals; max relative error 0.015%"
+  },
+  {
+   "metric": "Door count conventions",
+   "value": "count of door records incl. duplicates matches 65/65; distinct symbols 4/65; door arcs 37/65; 1,777 records at 1,501 distinct positions (236 doubled, 20 tripled)"
+  },
+  {
+   "metric": "Window count conventions",
+   "value": "records incl. duplicates 65/65; distinct symbols 51/65 (24 doubled, 2 tripled)"
+  },
+  {
+   "metric": "PDF vs DXF agreement",
+   "value": "room-number sets identical 65/65 files; labels, printed areas, unit membership identical 1,618/1,618 rooms; net area diff max 0.00003 m2"
+  },
+  {
+   "metric": "PNG",
+   "value": "2480x1753 (or 1753x2480), 150 dpi, RGBA, Matplotlib; differs from PDF render on 1.0-3.7% of pixels (anti-aliasing), 10 files sampled with seed 0"
+  },
+  {
+   "metric": "Raster area sensitivity",
+   "value": "1-px boundary error alone exceeds 2% for 85/130 asked rooms at 150 dpi (16/16 on 1:200 sheets), 20/130 at 300 dpi"
+  },
+  {
+   "metric": "Answer ranges",
+   "value": "label counts 1-24 (median 2); apartments 1-15; doors 5-114 (median 23); windows 0-69; WC 0-15; washbasins 0-33; room area 1.51-118.24 m2 (median 11.64); apartment area 25.54-163.78; floor total 34.08-1275.14"
+  },
+  {
+   "metric": "Solver speed",
+   "value": "1.72 s to parse all 65 PDFs (26 ms per drawing), pymupdf + shapely"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "All swiss_dwellings questions target the PDF and come as an English question plus a local-language twin (de/fr/it) with the identical answer; there are 12 template families and no text answers.",
+   "evidence": "q_templates.py and q_pairs.py on questions.jsonl: 2,358 rows, ext pdf 2,358; consecutive pairs (en, local) with same path and answer 1179/1179; families counted in questions_en_families.csv.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Half the questions are translations, so parsing must work in 4 languages; templates are rigid, which makes a deterministic route possible, but the parser should map any phrasing to a structured query rather than regex-matching these exact strings."
+  },
+  {
+   "id": "F2",
+   "claim": "Each PDF is a clean single-page vector drawing with a full text layer: room label (regular font), room number (bold), optional printed net area 'X.XX m2', bold unit tags in boxes, and a title block with scale ('1:100 (A3)' or '1:200 (A3)'). There are no raster images.",
+   "evidence": "pdf_probe.py / pdf_text_stats.py over 65 PDFs: producer Matplotlib 3.11.2, images 0, words 71-313, drawings 118-1448; scale 1:100 x57, 1:200 x8. Rendered and inspected 6 pages (site1102, site1015, site11692, site892, site2152, site1110).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "No OCR is needed for this source: pymupdf text extraction gives exact labels, numbers and positions, which also provide the bounding boxes for evidence highlighting."
+  },
+  {
+   "id": "F3",
+   "claim": "Printed room areas appear on only 23/65 PDFs (550/1,618 rooms), never on the 93 unlabelled rooms, so area questions are mostly not lookups.",
+   "evidence": "pdf_text_stats.csv; text_only.py: text-only lookup answers area_room 46/130, area_label_total 23/65, area_total_indoor 10/65, area_apartment 0/112.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "An area pipeline must measure polygons from the vector layer. Printed values are a useful cross-check where present, never the main method."
+  },
+  {
+   "id": "F4",
+   "claim": "Net room area is defined as the room outline minus every outline nested inside it (columns, shafts, lift shafts, stair voids). With that definition the drawing's printed area equals round(net, 2) for 550/550 rooms, versus 538/550 for the raw outline.",
+   "evidence": "dxf_model.py + holes.py: the 12 raw-outline mismatches (balconies with columns, corridors and stairwells containing lifts) disappear after subtracting the union of nested outlines; eval_all_langs.py: 742/744 gold areas equal at 2 decimals, max relative error 0.00015.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use polygon difference with nested outlines (or compound-path holes in the PDF). Plain outline area would silently over-report stairwells and corridors by up to 7 m2."
+  },
+  {
+   "id": "F5",
+   "claim": "The gold door count is the number of door records including exact duplicates, not the number of visible door symbols.",
+   "evidence": "doors_windows.py/doors2.py: door frame count (DXF 5-vertex DOOR polylines; PDF grey 0.267 width 0.369 quad paths) equals gold in 65/65 files; distinct frames 4/65; ARC count 37/65 (double doors have 2 arcs, 1 frame). dup_analysis.py: 1,777 records at 1,501 positions (236 doubled, 20 tripled). 169 of 175 doors on unit boundaries are duplicated, but 87 duplicates sit inside one zone, so the rule 'distinct + boundary doors' matches only 25/65.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Count door frame paths in the PDF vector layer, keeping duplicates. Any image-based (VLM/PNG) or de-duplicated count will be wrong on about 94% of floors. Evidence overlays should badge stacked duplicates (for example 'x2') so the engineer sees why 18 visible symbols yield 21."
+  },
+  {
+   "id": "F6",
+   "claim": "Window counts likewise include duplicated records: closed WINDOW rectangles including duplicates match gold 65/65; distinct rectangles 51/65.",
+   "evidence": "doors_windows.csv (win_closed vs win_unique vs ans_windows); dup_openings.csv: 24 windows doubled, 2 tripled.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Same as doors: count vector records. A purely visual count fails about 22% of window questions."
+  },
+  {
+   "id": "F7",
+   "claim": "WC, washbasin, bathtub and shower counts are fully determined by symbol geometry. WC = frame + ellipse + tank line; washbasin = frame + ellipse + drain dot; bathtub = frame + rounded inner outline + drain dot; shower = frame + inner square + drain dot; kitchen = frame + 4 burners. Fixtures are never duplicated.",
+   "evidence": "fixtures.py/fixtures_eval.py on DXF and pdf_solver.py on PDF: WC 65/65, washbasins 65/65, bathtubs 56/56, showers 21/21; raw == unique counts in all files. Legend crop inspected (img/legend_crop.png).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "A rule-based symbol classifier on PDF paths is exact here. Symbols are generator-specific, so other sources need a learned or VLM detector."
+  },
+  {
+   "id": "F8",
+   "claim": "The PDF fill colour of each room polygon encodes its category: white = room inside a unit, 0.953 grey = room outside every unit (common), 0.894 grey = outdoor (balcony/loggia/terrace, including 28 unlabelled ones), 0.812 grey = unnumbered shaft. The DXF has no equivalent attribute.",
+   "evidence": "pdf_solver.py + verification script: common fill <-> no unit 212/212; all 152 outdoor-labelled rooms have the outdoor fill; 28 unlabelled rooms are outdoor-filled. Every DXF ROOM_OUTLINE has identical attributes (flags=1 only), checked on site2150.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The PDF is strictly richer than the DXF for this source. A language-independent outdoor test via fill colour beats label dictionaries and handles unlabelled balconies."
+  },
+  {
+   "id": "F9",
+   "claim": "Apartment net area = sum of net areas of rooms whose smallest enclosing unit outline carries a residential tag, excluding outdoor rooms and including unlabelled indoor rooms (such as a small WC without a label).",
+   "evidence": "eval with PDF solver: 112/112. Alternatives: outdoor by label only 107/112, including outdoor 30/112, largest-overlap unit assignment fails site892, where a common stair outline is nested inside apartment A's outline.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Membership must come from the unit outlines (smallest enclosing), not from room-number ranges or tag proximity. Overlays should show included rooms (green) and excluded outdoor rooms (red); img/evidence_site1102..._aptA.png demonstrates this."
+  },
+  {
+   "id": "F10",
+   "claim": "Floor total 'numbered indoor rooms (excluding outdoor, shafts and voids)' = every numbered room except outdoor ones, including common corridors, staircases and lifts. Shafts are unnumbered and only enter as holes.",
+   "evidence": "65/65 with this rule; excluding lift rooms 60/65 (23/23 lift floors exact only with lifts included); excluding common-fill rooms 8/65; excluding unlabelled rooms 59/65.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The wording suggests lifts might be excluded, but the gold includes them. Encode this convention explicitly and show it in the evidence note."
+  },
+  {
+   "id": "F11",
+   "claim": "Apartment count = number of residential unit tags ('App. X' fr/it, 'Whg. X' de, letter suffix). The commercial 'Gewerbe 1' and 14 untagged unit outlines (common areas) are not apartments.",
+   "evidence": "65/65 residential tags; counting all red unit outlines 55/65; counting all tags 64/65 (site11692 mixed-use floor, gold 1).",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Only one commercial example exists, and French/Italian commercial tag words are unseen. Treat 'letter suffix = dwelling, digit suffix = commercial' as a hypothesis and flag unknown tag prefixes."
+  },
+  {
+   "id": "F12",
+   "claim": "Label counts use exact string match on the drawing label across the whole floor, including common areas and commercial units. Every asked label exists on its floor.",
+   "evidence": "405/405 English (810/810 incl. twins). Prefix or substring matching would be wrong in 4/4 cases where 'Wohnen' and 'Wohnen/Essen' or 'Séjour' and 'Séjour/repas' co-occur. 0 zero-answer label questions; quoted labels in room-area questions equal the drawn label 130/130.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "An LLM that interprets 'Wohnen' semantically would over-count. Matching must be literal, and absent labels should return 0 even though the preview never tests that."
+  },
+  {
+   "id": "F13",
+   "claim": "PDF alone suffices: a 222-line PDF-only parser reproduces 2,358/2,358 answers. The DXF-only parser gets 1,171/1,179 English because it cannot identify unlabelled outdoor rooms.",
+   "evidence": "pdf_solver.py + eval_all_langs.py (eval_pdf_all_langs.csv); eval_dxf.py (eval_dxf.csv); accuracy_by_approach.csv. 1.72 s for 65 PDFs (26 ms each). IN-SAMPLE: rules were tuned on these 65 files (fixes came from 1-7 files each).",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Siblings are unnecessary for this source, which matters because the hidden test may not ship them. Expect some drop on unseen floors. Independent cross-checks (550/550 printed areas, 1,618/1,618 PDF-DXF agreement) suggest the geometry is right; the residual risk is in conventions and styles not seen here."
+  },
+  {
+   "id": "F14",
+   "claim": "PDF, DXF and PNG are the same drawing.",
+   "evidence": "PDF vs DXF: identical room sets 65/65, identical labels, printed areas and unit membership 1,618/1,618, net-area diff <= 0.00003 m2. PNG vs PDF rendered at the same size: 1.0-3.7% of pixels differ by >64 grey levels (anti-aliasing), ink coverage within 0.2 points, 10 files sampled with random seed 0. DXF->PDF registration residual <= 0.15 pt.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Any sibling can serve as a fallback or cross-check, and an answer computed on one format can be highlighted on another via the fitted affine transform."
+  },
+  {
+   "id": "F15",
+   "claim": "Raster-only measurement cannot reliably meet the 2% area tolerance at the PNG's resolution.",
+   "evidence": "raster_sensitivity.csv: relative error from a 1-pixel boundary shift = perimeter x pixel size / area; exceeds 2% for 85/130 asked rooms at 150 dpi (69/114 at 1:100, 16/16 at 1:200) and 20/130 at 300 dpi.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use vector geometry for areas wherever a PDF exists. VLM or pixel estimates should be labelled low confidence for small rooms and for 1:200 sheets."
+  },
+  {
+   "id": "F16",
+   "claim": "Question text has parsing traps: French wraps labels as '« Pièce »' with spaces inside the guillemets, and English quotes labels with apostrophes even when the label contains one ('Cage d'escalier').",
+   "evidence": "A first multilingual parser failed 170 of 2,358 questions (all French label questions plus 'Cage d'escalier'); after stripping spaces and greedy quote matching, 2,358/2,358.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Normalise quotes and whitespace before label matching. An LLM extraction step must return the label verbatim."
+  },
+  {
+   "id": "F17",
+   "claim": "PDF styling is stable across all 65 files (room polygons stroke 0.541 grey with category fills; door frames grey 0.267 quads; unit outlines red dash-dot width 1.276; windows and fixture frames black/white width 0.51), but plans can be slightly rotated and rooms with columns are compound paths with holes.",
+   "evidence": "register.py (DXF entity to PDF path matching) and pdf_styles.py over 65 PDFs; rotated plan in site4267; compound room path in site2152 fixed by splitting subpaths.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "The parser must handle rotation (no axis-aligned assumptions) and multi-ring paths. Exact style constants are generator-specific; if the hidden set uses another renderer version they could shift, so unknown styles must be detected and reported, not ignored."
+  },
+  {
+   "id": "F18",
+   "claim": "The question generator appears to ask bathtub and shower questions only when the count is at least 1, while WC, washbasin and window questions can have answer 0.",
+   "evidence": "9 floors without a bathtub question all have 0 bathtubs; 44 floors without a shower question all have 0 showers; min answers: bathtubs 1, showers 1, WC 0 (3 floors), washbasins 0 (6), windows 0 (1).",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Do not use the existence of a question as a prior on the answer; the hidden set may include zero cases."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "count_label (rooms labelled X)",
+   "n_questions": 810,
+   "best_source_format": "PDF text layer",
+   "method": "Group label (regular font) above bold room number by shared centre x; count rooms whose label equals X exactly, floor-wide",
+   "tested": "405/405 English, 810/810 all languages (full set)",
+   "notes": "Prefix matching would fail 4/4 overlapping-label cases; French guillemets carry spaces"
+  },
+  {
+   "question_family": "count_apartments",
+   "n_questions": 130,
+   "best_source_format": "PDF text layer + vector unit outlines",
+   "method": "Count bold residential unit tags (App./Whg. + letter); exclude Gewerbe and untagged common-area outlines",
+   "tested": "65/65 English, 130/130 all languages",
+   "notes": "Counting red outlines 55/65; counting all tags 64/65"
+  },
+  {
+   "question_family": "count_doors",
+   "n_questions": 130,
+   "best_source_format": "PDF vector paths",
+   "method": "Count door-frame paths (stroke 0.267 grey, width 0.369, quad items) including exact duplicates",
+   "tested": "65/65 English, 130/130 all languages",
+   "notes": "Distinct visible symbols match only 4/65; arcs 37/65; vision-only approaches will fail"
+  },
+  {
+   "question_family": "count_windows",
+   "n_questions": 130,
+   "best_source_format": "PDF vector paths",
+   "method": "White frame (black stroke, width 0.51) containing exactly two non-crossing glazing lines spanning >= 80% of the frame's long side; duplicates kept",
+   "tested": "65/65 English, 130/130 all languages",
+   "notes": "Lift X-symbols and 2-tread stair segments must be excluded; distinct symbols match 51/65"
+  },
+  {
+   "question_family": "count_wc / count_washbasins",
+   "n_questions": 260,
+   "best_source_format": "PDF vector paths",
+   "method": "Classify fixture frames by contents: ellipse (47 segments) + 1-segment tank line = WC; ellipse + small circle = washbasin",
+   "tested": "WC 65/65, washbasins 65/65 English; 130/130 each all languages",
+   "notes": "No duplicates for fixtures"
+  },
+  {
+   "question_family": "count_bathtubs / count_showers",
+   "n_questions": 154,
+   "best_source_format": "PDF vector paths",
+   "method": "Bathtub = rounded inner outline (68 segments) + drain; shower = inner square (quad item) + drain",
+   "tested": "bathtubs 56/56, showers 21/21 English; 112/112 and 42/42 all languages",
+   "notes": "Only asked when count >= 1 in this preview"
+  },
+  {
+   "question_family": "area_room (net area of room N)",
+   "n_questions": 260,
+   "best_source_format": "PDF vector paths (printed text when present)",
+   "method": "Room polygon containing the number (compound-path holes subtracted) minus nested outlines, x (scale m/pt)^2; scale from title block text",
+   "tested": "130/130 English, 260/260 all languages; exact at 2 decimals",
+   "notes": "Printed-area lookup covers only 46/130; computed net equals printed for 550/550 rooms"
+  },
+  {
+   "question_family": "area_apartment",
+   "n_questions": 224,
+   "best_source_format": "PDF vector paths (unit outlines + fill colours)",
+   "method": "Sum net areas of rooms in the smallest enclosing unit outline tagged with the apartment letter, excluding outdoor-filled rooms",
+   "tested": "112/112 English, 224/224 all languages; max abs error 0.01 m2",
+   "notes": "DXF-only or label-based outdoor detection 107/112; text-only 0/112"
+  },
+  {
+   "question_family": "area_label_total",
+   "n_questions": 130,
+   "best_source_format": "PDF vector paths + text",
+   "method": "Sum net areas of all rooms whose label equals X exactly",
+   "tested": "65/65 English, 130/130 all languages",
+   "notes": "Only bedroom-type labels asked here (Pièce, Stanza, Zimmer, Schlafzimmer, Camera da letto, Chambre à coucher); text-only 23/65"
+  },
+  {
+   "question_family": "area_total_indoor",
+   "n_questions": 130,
+   "best_source_format": "PDF vector paths (fill colours)",
+   "method": "Sum net areas of all numbered rooms except outdoor-filled ones (common areas, stairs and lifts included)",
+   "tested": "65/65 English, 130/130 all languages",
+   "notes": "Excluding lifts 60/65; excluding common 8/65; text-only 10/65; DXF-only 62/65"
+  }
+ ],
+ "risks": [
+  "In-sample results: the 2,358/2,358 PDF-solver score comes from rules tuned on these same 65 files. Each fix (holes, smallest unit, fill category, compound paths, window filters) was triggered by 1-7 files, so unseen floors in the full set may expose new edge cases.",
+  "Generator lock-in: the parser relies on exact style constants (RGB fills, line widths, path item types). A different renderer version in the hidden set would break it silently unless unknown styles are detected and the parser falls back.",
+  "Ground-truth artifacts: door and window answers count duplicated records that are visually invisible. A VLM, PNG-based or de-duplicating approach will be wrong on about 94% of door and 22% of window questions, and evidence overlays will look inconsistent unless duplicates are badged.",
+  "Unseen vocabulary: only 41 room labels in 3 languages, 3 unit-tag prefixes (App., Whg., Gewerbe) and 4 fill colours were observed. Non-residential tags in French/Italian, voids/Luftraum fills or new labels could change apartment counts and totals.",
+  "Template coverage: only 12 families appear. Every asked label exists and bathtub/shower questions are only asked when present, so zero-answer and absent-label behaviour is untested.",
+  "Sibling availability: questions target PDFs here. If hidden questions target PNGs (or siblings are missing), area accuracy collapses (1-px error exceeds 2% for 85/130 rooms at 150 dpi) and door counts become unanswerable visually.",
+  "Scale parsing reads the title-block text ('1:100 (A3)'); missing or reformatted title blocks need a scale-bar fallback (not implemented).",
+  "No OCR engine is installed; not needed for this source, but any scanned or flattened variant would need one.",
+  "Not checked: whether the full swiss_dwellings set contains multi-page PDFs, other paper sizes, or scales other than 1:100/1:200."
+ ],
+ "questions_for_stoa": [
+  "Will hidden-test swiss_dwellings questions always target the PDF, and will the sibling DXF/PNG files be available at test time?",
+  "Door and window answers count duplicated records (for example entrance doors shared by an apartment and the stair hall are stored twice and drawn on top of each other). Is that intended, and is it what an engineer verifying the drawing is expected to see?",
+  "Should 'numbered indoor rooms (excluding shafts and voids)' include lift/elevator rooms and common stair halls? The current gold includes them.",
+  "How are non-residential units tagged in French and Italian sheets, and should mixed-use floors count only residential units (the current gold excludes 'Gewerbe')?",
+  "Will the hidden set contain question families beyond the 12 seen here (room counts per apartment, largest room, lengths, perimeters) or zero-answer questions about labels that are absent?",
+  "Is the 'show where the answer came from' evidence scored automatically (in which format), or only judged in the demo?",
+  "Are the full-set swiss_dwellings PDFs produced by the same renderer (Matplotlib 3.11.2, same styles) as this preview?"
+ ],
+ "artifacts": [
+  "eda/swiss_dwellings/pdf_solver.py",
+  "eda/swiss_dwellings/eval_all_langs.py",
+  "eda/swiss_dwellings/dxf_model.py",
+  "eda/swiss_dwellings/eval_dxf.py",
+  "eda/swiss_dwellings/fixtures.py",
+  "eda/swiss_dwellings/fixtures_eval.py",
+  "eda/swiss_dwellings/register.py",
+  "eda/swiss_dwellings/dup_analysis.py",
+  "eda/swiss_dwellings/text_only.py",
+  "eda/swiss_dwellings/evidence_overlay.py",
+  "eda/swiss_dwellings/q_templates.py",
+  "eda/swiss_dwellings/q_pairs.py",
+  "eda/swiss_dwellings/pdf_text_stats.py",
+  "eda/swiss_dwellings/dxf_survey.py",
+  "eda/swiss_dwellings/doors_windows.py",
+  "eda/swiss_dwellings/doors2.py",
+  "eda/swiss_dwellings/accuracy_by_approach.csv",
+  "eda/swiss_dwellings/eval_pdf_all_langs.csv",
+  "eda/swiss_dwellings/eval_pdf.csv",
+  "eda/swiss_dwellings/eval_dxf.csv",
+  "eda/swiss_dwellings/eval_text_only.csv",
+  "eda/swiss_dwellings/questions_swiss.csv",
+  "eda/swiss_dwellings/questions_en_families.csv",
+  "eda/swiss_dwellings/pdf_text_stats.csv",
+  "eda/swiss_dwellings/dxf_survey.csv",
+  "eda/swiss_dwellings/dxf_rooms.csv",
+  "eda/swiss_dwellings/doors_windows.csv",
+  "eda/swiss_dwellings/dup_openings.csv",
+  "eda/swiss_dwellings/fixtures_eval.csv",
+  "eda/swiss_dwellings/raster_sensitivity.csv",
+  "eda/swiss_dwellings/pdf_styles.csv",
+  "eda/swiss_dwellings/img/evidence_site1102_bldg2242_floor10281_aptA.png",
+  "eda/swiss_dwellings/img/evidence_site1102_bldg2242_floor10281_doors.png",
+  "eda/swiss_dwellings/img/site1102_bldg2242_floor10281_pdf.png",
+  "eda/swiss_dwellings/img/site1015_bldg2113_floor9557_pdf.png",
+  "eda/swiss_dwellings/img/site11692_bldg18240_floor48820_pdf.png",
+  "eda/swiss_dwellings/img/legend_crop.png"
+ ]
+}

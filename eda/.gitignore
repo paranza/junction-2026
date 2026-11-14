@@ -1,0 +1,11 @@
+# Keep scripts, notes and agent reports. Everything the scripts generate
+# (CSVs, renders, crops, caches, logs) is derived from the partner dataset
+# and stays local.
+*
+!*/
+!.gitignore
+!*.py
+!*.mjs
+!*.md
+!requirements.txt
+!results/*.json

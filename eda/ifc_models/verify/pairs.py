@@ -1,0 +1,21 @@
+import pandas as pd
+q=pd.read_pickle("qp.pkl")
+q["key"]=q.apply(lambda r:(r.path,r.fam,r.get("elem"),r.get("room"),r.get("storey"),r.get("model")),axis=1).astype(str)
+g=q.groupby("key")
+print("intents",g.ngroups)
+sz=g.size(); print(sz.value_counts())
+langs=g.lang.apply(lambda s:"+".join(sorted(s)))
+print(langs.value_counts())
+na=g.answer.nunique(); print("intents with >1 distinct answer:",(na>1).sum())
+# same key across different paths? (same storey/room asked on IFC and PDF)
+q["key_nopath"]=q.apply(lambda r:(r.path.split("_plan-")[0].replace(".ifc","").replace(".pdf",""),r.fam,r.get("elem"),r.get("room"),r.get("storey"),r.get("model")),axis=1).astype(str)
+x=q.groupby("key_nopath").path.nunique()
+print("intents asked on >1 path:",(x>1).sum())
+# room labels uniqueness per model
+ra=q[(q.fam=="room_area")&(q.lang=="en")]
+ra["model"]=ra.path.str.split("_plan-").str[0].str.replace(".ifc","")
+print("room EN q per model", ra.groupby("model").size().to_dict())
+print("dup (model,room) EN:", ra.duplicated(["model","room"]).sum(), " dup (model,room,storey):",ra.duplicated(["model","room","storey"]).sum())
+ln=ra.room.str.replace(r" \(.*\)$","",regex=True)
+print(ln.value_counts().head(8))
+print("answers stats", ra.answer.describe().to_dict(), "under 5 m2:",(ra.answer<5).sum())

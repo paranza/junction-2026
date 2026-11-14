@@ -1,0 +1,203 @@
+{
+ "slice": "swiss_dwellings (independent skeptic check of explore__swiss_dwellings.json). Work dir with all scripts, logs and CSVs: eda/swiss_dwellings/verify/ . Main code: v_pdf.py (PDF floor model), v_fixtures.py (window and fixture classifier), v_dxf.py (DXF model), v_parse.py (4-language question parser), v_eval.py, v_dxf_eval.py, v_checks.py to v_checks5.py, v_raster.py. Results: eval_pdf_65files.csv, dxf_doors_windows_65files.csv, raster_floodfill.csv, checks*.log. All numbers below come from code I wrote and ran on all 65 floors (1,179 English questions) unless a sample is stated. I did not re-run the analyst's scripts.",
+ "verdicts": [
+  {
+   "finding_id": "F13",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My own PDF-only model (no DXF, no PNG, no OCR) scores 1,179/1,179 English questions on all 65 floors. Per family: count_label 405/405, count_apartments 65/65, doors 65/65, windows 65/65, WC 65/65, washbasins 65/65, bathtubs 56/56, showers 21/21, area_room 130/130, area_apartment 112/112, area_label_total 65/65, area_total_indoor 65/65. My parser maps every local-language question to the same (file, family, parameter) as its English twin (0 unmatched keys) and the answers are identical, so the twins also score 2,358/2,358. Partial holdout: my room, area, label, unit and door code was frozen while only 30 of the 65 PDFs were downloaded from iCloud. The other 35 floors score 641/641, or 493/493 if the window and fixture families are left out, because that code changed later. DXF-only with label-based outdoor detection misses exactly 8 English questions (5 apartment areas and 3 floor totals) on 3 floors. All other DXF families I tested are correct (labels, apartments, doors, windows, room and label areas). I did not test fixture counts on the DXF.",
+   "corrected_claim": "No correction. The PDF alone reproduces every preview answer, and the result held on 35 floors that my rules had not seen."
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. PDF: grey 0.267 door-frame quad paths, duplicates kept, equal the gold count 65/65; distinct positions 4/65. DXF: 5-vertex DOOR polylines 65/65, distinct 4/65, ARC count 37/65, distinct arcs 10/65. There are 1,777 records at 1,501 distinct positions, duplicates appear on 61/65 floors, and the maximum multiplicity is 3. On 2 floors drawn at random (seed 7: site357_bldg769_floor4266, site1869_bldg2903_floor13293), every duplicated frame comes with an identical duplicated arc and leaf (same centre, radius and angles). The duplicates are therefore invisible on the drawing.",
+   "corrected_claim": "No correction. Count door records including exact duplicates. A visual or de-duplicated count is right on only 4/65 floors."
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My own PDF window classifier (white frame with a 0.51 black stroke and two parallel glazing lines spanning at least 80% of the long side, with duplicates kept) gives 65/65, and 51/65 when de-duplicated. DXF closed WINDOW polylines give 65/65, distinct 51/65. 1,040 records, 1,012 distinct.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F4",
+   "verdict": "corrected",
+   "independent_evidence": "Measured. The definition holds. Printed area equals round(DXF outline minus nested outlines, 2) for 550/550 printed rooms, and round(outer outline, 2) for only 538/550, in both the DXF and the PDF outer ring. In the PDF, rooms with columns or shafts are compound paths whose holes already give the net area. Under the official 2% rule, though, skipping holes barely changes the score. Outer-outline areas pass area_room 130/130, area_apartment 112/112 and area_label_total 65/65, and area_total_indoor 64/65 (site11861 is off by 2.5%). The closest call is room 3.02 on site2146, off by 1.45%. Only 10 of 1,618 rooms and 4 of 550 printed rooms differ from net by more than 2%.",
+   "corrected_claim": "Net area = outline minus nested outlines (or compound-path holes), exact to 2 decimals. Under the 2% tolerance this changes only 1 of 372 English area answers in the preview. It is cheap and worth keeping, but it is not a major accuracy driver."
+  },
+  {
+   "finding_id": "F8",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. Room polygon fills: white 1,226, all inside a unit outline. Common grey 0.953: 212, of which 211 are outside every unit outline under my assignment and 1 is inside one. Outdoor grey 0.894: 180, including all 152 rooms with outdoor labels and 28 unlabelled rooms. 0.812: 407 unnumbered shafts. DXF, all 65 files: the 2,083 closed ROOM_OUTLINE polylines have identical attributes (flags=1 and layer only, no xdata, no extension dictionary), and HATCH entities exist only on layer WALL. The DXF therefore has no room-category attribute.",
+   "corrected_claim": "Substance confirmed. One correction: the analyst checked one file (site2150) and said every ROOM_OUTLINE entity has flags=1. Across all 65 files there are also 876 open 2-vertex ROOM_OUTLINE lines, 39 of them with linetype DASHED inside stairwells (Treppenhaus, Vano scala, Cage d'escalier). They do not encode room category either."
+  },
+  {
+   "finding_id": "F15",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured, two ways. (1) Own run of the 1-pixel formula: the error exceeds 2% for 85/130 asked rooms at 150 dpi (69/114 at 1:100, 16/16 at 1:200) and 20/130 at 300 dpi, the same numbers the analyst reported. (2) A real measurement the analyst did not run: flood fill on the actual 150-dpi PNGs, helped by the true scale and a seed taken from the PDF room-number position. It covered all 42 asked rooms on the 21 PNGs that were downloaded locally. Only 2/42 are within 2% (0/10 on 1:200 sheets), and the median error is -11.4% (worst -89%). The flood fill cuts out door-swing sectors and fixtures that touch walls. Overlay: verify/img/raster_floodfill_example.png.",
+   "corrected_claim": "Raster-only area measurement fails the tolerance even more clearly than the 1-pixel bound suggests: 2/42 pass with a naive flood fill even when given the scale and seed."
+  },
+  {
+   "finding_id": "F3",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 23/65 PDFs print areas, covering 550 of 1,618 numbered rooms. 93 rooms are unlabelled and none of them has a printed area. Printed-only lookup answers area_room 46/130 and area_label_total 23/65.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. All numbered rooms except outdoor-filled ones: 65/65. Excluding lift labels: 60/65 (5 floors fail). Excluding common-fill rooms: 8/65. Excluding unlabelled rooms: 59/65. Only rooms inside unit outlines: 9/65. Label-based outdoor detection: 62/65. Adding the 18 unnumbered common or white polygons (on 8 floors) breaks 3/65.",
+   "corrected_claim": "No correction. Note that the word 'numbered' in the question carries weight."
+  },
+  {
+   "finding_id": "F9",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. Rooms in the smallest enclosing tagged unit, excluding outdoor-filled rooms: 112/112 (111/112 equal at 2 decimals, max relative error 0.015%). Label-based outdoor: 107/112. Including outdoor rooms: 30/112. Also excluding unlabelled rooms: 105/112. The integer prefix of the room number maps to a single unit on only 3/65 floors, so number ranges cannot stand in for unit outlines.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F12",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. Exact floor-wide label match: 405/405. Case-folded prefix match: 401/405. Counting only rooms inside unit outlines: 319/405.",
+   "corrected_claim": "No correction. Matching must be literal and floor-wide."
+  },
+  {
+   "finding_id": "F11",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. Residential tags (App./Whg. + letter): 65/65. All tags: 64/65. All red unit outlines: 55/65. Tagged outlines: 64/65. Tag prefixes: App. 132, Whg. 52, Gewerbe 1, so non-residential tags rest on a single example.",
+   "corrected_claim": "No correction. Medium confidence is right, since there is only one commercial example."
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My own frame-content classifier (47-segment ellipse plus a line = WC, ellipse plus circle = washbasin, 68-segment tub = bathtub, square plus circle = shower) gives WC 65/65, washbasins 65/65, bathtubs 56/56 and showers 21/21. Raw counts equal de-duplicated counts on every floor.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 2,358 swiss rows, all .pdf: 1,614 count and 744 area. 1,179 English/local pairs have equal answers, both as consecutive lines and when matched regardless of order. Local language per file: de 22, fr 22, it 21. Area answers have 1 or 2 decimals.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 65 one-page PDFs: 51 landscape and 14 portrait A3. Producer Matplotlib 3.11.2, 0 images, 71-313 words, 118-1,448 paths. Scale text '1:100 (A3)' on 57 and '1:200 (A3)' on 8. All 5,698 text lines are horizontal.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F14",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured on a different sample: seed 1, 8 of the 21 locally available PNGs. Sizes 2480x1753 or 1753x2480, RGBA, 150 dpi. 1.65-2.65% of pixels differ by more than 64 grey levels from a PDF render at the same size, and ink coverage is within 0.12 points. PDF and DXF have identical room sets (65/65), labels, printed areas and net areas for all 1,618 rooms (differences under 0.005 m2).",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F18",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My classifier finds 0 bathtubs on all 9 floors without a bathtub question and 0 showers on all 44 floors without a shower question.",
+   "corrected_claim": "No correction."
+  },
+  {
+   "finding_id": "F17",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured in part. The plan-area style census found 19 path styles (type, stroke, fill, width). The room, door, unit, frame and wall styles appear in 65/65 files, and the rarest style still appears in 17/65. I did not recheck the rotated plan in site4267.",
+   "corrected_claim": "Confirmed, and no singleton styles exist. The style set looks closed within this generator."
+  },
+  {
+   "finding_id": "key_stat: PDF text layer only + perfect visual symbol counts = 604/1,179",
+   "verdict": "corrected",
+   "independent_evidence": "Measured from the analyst's own accuracy_by_approach.csv: that column scores WC, washbasins, bathtubs and showers 0 (207 questions), yet I measured that fixtures are never duplicated (raw count = distinct count on 65/65 floors). A perfect visual count therefore gets all 207. Misses would then be doors 61, windows 14 and areas without printed values 293 (area_room 84, area_label_total 42, area_total_indoor 55, area_apartment 112).",
+   "corrected_claim": "Text layer plus perfect visual symbol counts = 811/1,179 (69%). The 604 figure assumes no fixture recognition at all."
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "count_label",
+   "analyst_result": "405/405 English, 810/810 all languages",
+   "independent_result": "405/405 English (exact floor-wide match); twins identical, so 810/810",
+   "notes": "Prefix match 401/405; in-unit only 319/405."
+  },
+  {
+   "question_family": "count_apartments",
+   "analyst_result": "65/65, 130/130",
+   "independent_result": "65/65 English; 130/130 via twins",
+   "notes": "All tags 64/65, all outlines 55/65."
+  },
+  {
+   "question_family": "count_doors",
+   "analyst_result": "65/65, 130/130",
+   "independent_result": "65/65 PDF and 65/65 DXF, duplicates kept",
+   "notes": "Distinct 4/65; arcs 37/65; duplicates are identical frames, arcs and leaves."
+  },
+  {
+   "question_family": "count_windows",
+   "analyst_result": "65/65, 130/130",
+   "independent_result": "65/65 PDF and 65/65 DXF, duplicates kept",
+   "notes": "Distinct 51/65."
+  },
+  {
+   "question_family": "count_wc / count_washbasins",
+   "analyst_result": "65/65 each",
+   "independent_result": "65/65 each (PDF only)",
+   "notes": "No duplicates. Not tested on DXF."
+  },
+  {
+   "question_family": "count_bathtubs / count_showers",
+   "analyst_result": "56/56, 21/21",
+   "independent_result": "56/56, 21/21 (PDF only)",
+   "notes": "Only asked when the count is at least 1."
+  },
+  {
+   "question_family": "area_room",
+   "analyst_result": "130/130, exact at 2 decimals",
+   "independent_result": "130/130, 130/130 equal at 2 decimals; DXF-only 130/130",
+   "notes": "Outer outline without holes also 130/130 at 2%. Printed lookup 46/130. Flood fill on PNG 2/42."
+  },
+  {
+   "question_family": "area_apartment",
+   "analyst_result": "112/112; max abs error 0.01",
+   "independent_result": "112/112 (111/112 equal at 2 decimals, max relative error 0.015%)",
+   "notes": "Label-based outdoor 107/112 (also the DXF-only result); including outdoor 30/112."
+  },
+  {
+   "question_family": "area_label_total",
+   "analyst_result": "65/65",
+   "independent_result": "65/65; DXF-only 65/65",
+   "notes": "Printed-only 23/65."
+  },
+  {
+   "question_family": "area_total_indoor",
+   "analyst_result": "65/65",
+   "independent_result": "65/65; DXF-only (label-based outdoor) 62/65",
+   "notes": "Excluding lifts 60/65, excluding common 8/65, without holes 64/65."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "Many dataset files are iCloud placeholders that are not on disk, so a batch pipeline can block or silently see fewer files.",
+   "evidence": "Measured with os.stat st_flags (SF_DATALESS) and `ls -lO`, which shows 'compressed,dataless'. swiss_dwellings: 44 of 65 PNGs are dataless now. Across the preview, 237 files are dataless: cubicasa5k 88, finna 54, europeana 42, wikimedia 7, habs 1, ifc_bench 1. The first pass of this verification could see only 30 of 65 PDFs. site1040's PNG was read earlier and is dataless again, so macOS can evict files after download.",
+   "implication": "Copy the dataset to a non-synced folder, or force a full download, before any batch run or benchmark. Make loaders fail loudly when a file is missing. This matters most for cubicasa5k, whose 4,270 questions all target PNGs."
+  },
+  {
+   "claim": "At the 2% tolerance, hole subtraction is almost irrelevant to the score. The conventions that actually decide answers are elsewhere.",
+   "evidence": "Measured on all 65 floors, English questions. Not subtracting holes costs 1 question. Ignoring duplicate door records costs 61/65 door questions, and ignoring duplicate windows 14/65. Label-based instead of fill-based outdoor detection costs 8 questions on 3 floors. Excluding lifts costs 5 floor totals and excluding common areas 57. Counting labels only inside units costs 86/405 label questions. Including unnumbered spaces costs 3 floor totals.",
+   "implication": "Spend engineering and evidence-overlay effort on duplicate badges, outdoor-by-fill, floor-wide literal label counting and lift/common inclusion. Keep hole subtraction because it is cheap."
+  },
+  {
+   "claim": "Out-of-sample evidence is better than the analyst reported: rules generalized to floors they had not seen, and the PDF style set looks closed.",
+   "evidence": "Measured. My PDF rules for rooms, areas, labels, units and doors were frozen while only 30 PDFs were local. The 35 floors that downloaded later score 641/641 (493/493 for families whose code did not change). All 19 plan-area path styles appear in at least 17/65 files, with no singletons. Room-label vocabulary: 41 labels, 6 of which appear on only one floor, a Good-Turing estimate of about 1.2% new labels per floor. Unit tags: Gewerbe appears once.",
+   "implication": "A deterministic PDF-vector parser is a sound primary route for this generator. The residual risk is concentrated in rare vocabulary (non-residential unit tags) and in a possible change of renderer, not in geometry. Keep the unknown-style detector and abstain on unknown tags."
+  },
+  {
+   "claim": "The floor-total rule depends on the word 'numbered': unnumbered common or white spaces exist and must be left out.",
+   "evidence": "Measured. Besides the 407 unnumbered shafts, there are 17 unnumbered common-fill polygons and 1 unnumbered white polygon, on 8 floors. Adding them to the total breaks 3/65 floor-total answers.",
+   "implication": "Build totals from rooms that carry a number, not from every room-styled polygon. Show excluded unnumbered spaces in the evidence overlay so the engineer can see why they were left out."
+  },
+  {
+   "claim": "No question in the whole preview targets a DXF, and swiss_dwellings questions target only PDFs.",
+   "evidence": "Measured over questions.jsonl (7,990 rows): swiss_dwellings 2,358 pdf; cubicasa5k 4,270 png; ifc_models 827 ifc + 222 pdf; ifc_bench 249 ifc; opening_design 64 pdf; 0 dxf.",
+   "implication": "The DXF is at most a sibling cross-check. Build the PDF vector path first. A DXF parser should not be on the critical path unless Stoa says hidden questions can target DXF or that siblings ship at test time."
+  }
+ ],
+ "overall_reliability": "High. Code I wrote myself reproduced every answerability result the analyst tested on all 65 floors: PDF-only 1,179/1,179 English and 2,358/2,358 with twins. The door and window duplicate convention also reproduced (65/65 vs 4/65 and 51/65), as did the fill-colour categories, the apartment-membership rule, the floor-total conventions, printed-area coverage (23/65), PDF-DXF agreement and the PNG-PDF match. The corrections concern emphasis and labelling rather than conclusions: (1) under the 2% tolerance, hole subtraction changes only 1 of 372 area answers; (2) the claim that the DXF lacks category attributes was checked on one file and the entity description was incomplete, but the conclusion holds across all 65; (3) the '604/1,179 text-only + perfect visual counts' figure should be 811/1,179; (4) a real raster test is worse than the analyst's formula (2/42 within 2%). The in-sample risk the analyst flagged is real but smaller than feared: 35 floors my rules had not seen scored 641/641 and no singleton styles exist. Not checked: fixture counts from the DXF, the rotated plan (site4267), analyst speed figures, and any data beyond this preview. 44 of 65 PNGs were not on disk, so the PNG checks used the 21 local files only."
+}

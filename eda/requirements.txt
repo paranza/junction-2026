@@ -1,0 +1,14 @@
+# EDA scripts, Python 3.12. Versions used on 13-14 November 2026.
+ezdxf==1.4.5
+ifcopenshell==0.9.0.post1
+matplotlib==3.11.2
+numpy==2.5.4
+opencv-python-headless==5.0.0.93
+pandas==3.1.1
+pillow==13.0.0
+pymupdf==2.1
+shapely==2.2.0
+# Only for the Gemini snippet checks under research/
+google-genai==3.3.0
+httpx2==2.16.0
+pydantic==2.14.3

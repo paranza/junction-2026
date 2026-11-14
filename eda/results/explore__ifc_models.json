@@ -1,0 +1,285 @@
+{
+ "slice": "ifc_models (data/ifc_models: 4 IFC, 3 PDF plans, 3 SVG plans; 1,049 questions)",
+ "summary": "The ifc_models slice has 1,049 questions on 7 files. Three IFC2X3 models carry questions: Esplanades (12 MB, ArchiCAD 22), Molio (74 MB, ArchiCAD 25) and Clinic plumbing (56 MB, Revit). There is also an empty ResBIM IFC4 shell with 0 questions, plus three single-storey PDF plans (each with an identical SVG) that were rendered from the IFCs at 1:100. The questions come from 525 template intents. Each intent is asked twice, once in English and once in the model's local language (Estonian, Danish or German), and both copies have the same answer. 81% of the questions ask for room net floor area, and every IfcSpace in each model gets one such question. Using ifcopenshell and a few conventions, I reproduced all 1,025 questions whose parent IFC is in the preview, exact after rounding. That includes 145/145 in a seed-0 random sample of 150 and 44/44 length and volume questions. The 24 FZK-Haus questions cannot be checked because AC20-FZK-Haus.ifc is not in the preview. These are the conventions: area is the Qto NetFloorArea when present, otherwise the area of the space body's floor face, rounded to 2 dp. Storey totals are the rounded sum of the unrounded room areas. Counts follow IFC spatial containment, include subtypes and exclude nested parts (Molio has 579 IfcStair entities but only 15 stairs). Wall and slab quantities are sums of BaseQuantities Length, NetSideArea and NetVolume, rounded to 3 dp. Choosing a plausible alternative silently fails a share of questions: gross values, reference-line length, the hand-typed pset area or the projected footprint. The PDFs have a clean text layer with room names and numbers but no printed areas. Measuring the filled room polygons at the printed 1:100 scale answers all 148 PDF room-area questions within 2%. However, 50 of the 222 PDF questions (whole-model counts and 3D wall/slab quantities) can only be answered from the parent IFC. The SVG siblings tag every drawn element with its IFC class and GlobalId, and their coordinates map exactly to PDF coordinates, so the elements behind an answer can be highlighted on the sheet. For this slice the product should be an IFC tool layer (Qto first, unit-aware, containment-based) with a multilingual question parser and GUID-based highlighting, rather than vision on the rendered page.",
+ "key_stats": [
+  {
+   "metric": "Questions in slice",
+   "value": "1,049 (827 on .ifc paths, 222 on .pdf paths); 13.1% of the preview's 7,990"
+  },
+  {
+   "metric": "Unique intents",
+   "value": "525; 524 asked as EN + local-language pair (et 315 rows, da 197, de 12), Clinic EN only; 0 pairs with differing answers"
+  },
+  {
+   "metric": "Type mix",
+   "value": "area 846 (80.6%), count 153 (14.6%), volume 34 (3.2%), length 16 (1.5%)"
+  },
+  {
+   "metric": "Families",
+   "value": "room_area 804, storey_count 112, model_count 41, storey_space_area 26, slab_volume 18, wall_length 16, wall_side_area 16, wall_volume 16"
+  },
+  {
+   "metric": "Reproduction, all questions with IFC available",
+   "value": "1025/1025 within official tolerance, 1025/1025 exact after rounding (counts integer, areas 2 dp, wall/slab quantities 3 dp)"
+  },
+  {
+   "metric": "Random sample n=150 (pandas sample, random_state=0)",
+   "value": "145/150; 145/145 excluding 5 FZK-Haus questions whose IFC is missing from the preview"
+  },
+  {
+   "metric": "All length + volume questions",
+   "value": "44/50; 44/44 where the IFC is available (6 FZK-Haus untestable)"
+  },
+  {
+   "metric": "PDF questions answerable from the PDF alone",
+   "value": "158/222 attempted and correct (room areas 148/148, storey totals 4/4, room counts 6/6); 14 more need SVG class tags or IFC; 50 need the parent IFC"
+  },
+  {
+   "metric": "Room area answers (402 unique EN)",
+   "value": "min 2.17, median 6.82, max 220.45 m2; 80 rooms under 5 m2 (2% band is only about +/-0.04 to 0.1 m2)"
+  },
+  {
+   "metric": "Biggest model (Molio, 74 MB, 969,835 entities)",
+   "value": "open 1.0 s, 482 MB RSS after load, 604 MB peak with pset extraction; full tessellation of 3,860 products 22.9 s on 8 threads, 660 MB"
+  },
+  {
+   "metric": "Other models",
+   "value": "Clinic 56 MB: open 0.9 s, 456 MB, tessellation 14.9 s / 931 MB; Esplanades 12 MB: open 0.4 s, 126 MB, tessellation 9.9 s"
+  },
+  {
+   "metric": "End-to-end solver run",
+   "value": "5.2 s and 774 MB peak RSS for all 1,049 questions with 3 cached models"
+  },
+  {
+   "metric": "Entity counts Esplanades / Molio",
+   "value": "storeys 7/10, spaces 285/117, doors 211/119, windows 297/119, walls 846 (99 IfcWall + 747 IfcWallStandardCase)/189, slabs 15/53, columns 37/14, beams 37/7, IfcStair 4/579 (15 top-level)"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "A small set of fixed conventions reproduces every question whose parent IFC is in the preview, exactly after rounding.",
+   "evidence": "final_eval.py over all 1,049 questions: 1025/1025 within tolerance and exact after rounding; per family room_area 804/804, storey_count 108/108, model_count 29/29, storey_space_area 26/26, slab_volume 16/16, wall_length 14/14, wall_side_area 14/14, wall_volume 14/14; same result in both languages of every pair. The 24 FZK-Haus PDF questions are untestable because kit-fzk-haus_ac20-fzk-haus.ifc is not in the preview. Seed-0 random sample of 150: 145/150 (145/145 with IFC).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "For IFC-derived questions, accuracy depends on deterministic tool code (ifcopenshell queries), not on model reasoning. An LLM should only parse the question and call a small set of typed IFC operations."
+  },
+  {
+   "id": "F2",
+   "claim": "Room net floor area = Qto NetFloorArea if the space has one, else the area of the space body's floor face; the hand-entered pset area and the projected footprint are wrong in some cases.",
+   "evidence": "Molio (BaseQuantities present): BaseQuantities.NetFloorArea 234/234. Esplanades (ArchiCAD export with 'IFC Base Quantities: Off', no space Qto): geometry 570/570 exact at 2 dp. AR_Ruum.120_Pindala is a string with 0.1 precision and is 0.0 for 10 of 285 spaces, giving 548/570. Projected footprint (util.shape.get_footprint_area) fails 3 Molio rooms on '6. sal' (2.53 vs 2.17, 10.08 vs 8.70, 24.53 vs 23.21 m2). Area of the lowest down-facing faces matches Qto on 117/117 within 2% (116/117 exact). FootPrint curve representation differs from Qto on 11/117.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Implement area lookup as qtos_only search for NetFloorArea (works for BaseQuantities and IFC4 Qto_SpaceBaseQuantities) with unit scaling, then a floor-face geometry fallback. Show the user which source was used."
+  },
+  {
+   "id": "F3",
+   "claim": "Storey total area is the rounded sum of unrounded areas of all IfcSpace aggregated to the storey, including overlapping spaces.",
+   "evidence": "26/26 with round(sum,2). Summing values already rounded to 2 dp differs from the answer in 7 of 13 storeys (by up to 0.08 m2). In Molio Kaelder, 'Skakt (Rum nr. K04.1)' 2.20 m2 sits inside 'Teknikrum (Rum nr. K04)' 10.38 m2 (IFC 'Colliding Zones: Teknikrum'), and both count toward 523.74.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Do not union polygons or drop overlapping zones. To keep the total consistent with the room list shown, round only at the end."
+  },
+  {
+   "id": "F4",
+   "claim": "Counts use IFC spatial containment with subtypes. Nested parts are excluded, so a naive by_type count is wrong for stairs.",
+   "evidence": "Storey counts = elements of the class (incl. subtypes, e.g. walls = IfcWall + IfcWallStandardCase, 846 = 99 + 747) in IfcRelContainedInSpatialStructure of the storey, or IfcRelAggregates for spaces: 108/108. Model counts: 29/29 when counting instances directly in the spatial structure. Molio has 579 IfcStair entities, 15 contained in storeys and 564 aggregated inside other IfcStair; answer 15 (by_type gives 579). ifcopenshell get_container() defaults to the parent's container; should_get_direct=True is needed. Clinic 'sanitary fixtures' = 119 IfcFlowTerminal, all typed by IfcSanitaryTerminalType (IFC2X3).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Count via spatial-structure relationships, never by_type alone. Map natural-language element words to IFC classes per schema (IFC2X3 FlowTerminal + type vs IFC4 IfcSanitaryTerminal)."
+  },
+  {
+   "id": "F5",
+   "claim": "Wall and slab questions use summed BaseQuantities net values, and the obvious alternatives miss the 2% band.",
+   "evidence": "Sum over IfcWall/IfcSlab contained in the storey: Length (mm to m) 14/14, NetSideArea 14/14, NetVolume 14/14 and 16/16, all exact at 3 dp. Alternatives on the 7 Molio wall storeys / 8 slab storeys: GrossVolume +17.1% (0/7), slab GrossVolume +7.9% (0/8), GrossSideArea +13.7% (0/7), reference-line length +5.0% (0/7), inside/outside face length -/+1.2% (6/7), ArchiCAD 'Surface Area' +1.5% (6/7). Geometry fallback: 91/189 Molio walls fail to tessellate on their own and 16/53 slabs have no own representation (geometry sits in IfcBuildingElementPart children); even with parts summed, only 141/187 walls are within 2% of NetVolume.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Keep a fixed mapping from phrase to Qto name (net side area -> NetSideArea, length -> Length, net volume -> NetVolume) with unit conversion. Treat the geometric fallback as low-confidence and say so in the UI."
+  },
+  {
+   "id": "F6",
+   "claim": "Questions are template-generated, bilingual and exhaustive over spaces. Room labels follow 'LongName (Name)'.",
+   "evidence": "65 surface templates collapse to 8 families. 525 intents, each asked in EN plus the local language (Estonian for Esplanades, Danish for Molio, German for FZK), with identical answers. Every IfcSpace gets a room-area question (285/285, 117/117). Labels are unique per storey and model-wide, but LongNames repeat heavily (TUALETTRUUM 81, ESIK 80, ELUTUBA+KOOK 80 of 402 EN room questions). Name formats vary: '119', '3-1', 'Rum nr. K08', '7'. Quote characters vary by language: straight quotes in EN/DA, typographic quotes in ET/DE.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Room resolution must use both LongName and Name and report ambiguity instead of guessing. The parser must cope with typographic quotes and many languages. Expect the hidden set to cover every space of every IFC model."
+  },
+  {
+   "id": "F7",
+   "claim": "PDF paths also carry whole-model questions that the single-storey drawing cannot answer.",
+   "evidence": "Questions about the storey that has a rendered plan are attached to the PDF, and model-level counts are attached to the PDF whenever a plan exists: 40 of the 222 PDF questions. Example: 'How many doors are there in the model ...' on the 4.korrus plan expects 211 while the plan shows 42; Molio Kaelder plan expects 119 doors while it shows 14. Another 10 PDF questions ask 3D quantities (wall volume, side area, slab volume) that a plan cannot provide.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "A drawing-only pipeline caps out at about 77% on this slice and gets the traps confidently wrong. Resolve <model>_<level>.pdf to <model>.ifc (README convention) and route 'in the model' questions to the IFC."
+  },
+  {
+   "id": "F8",
+   "claim": "The plan PDFs are clean vectors at 1:100 with room labels in the text layer. Room areas can be measured from them reliably; counts and 3D quantities cannot.",
+   "evidence": "Single page, IfcConvert 0.9.0 via junction-dataset-builder, cut at 1.20 m, title block with model title, storey, scale and source IFC filename. Text layer has LongName and Name on two lines per room, no areas and no dimensions. Spaces are filled paths with fill (0.89, 0.929, 0.969). Measured at 1 pt = 35.28 mm real: 148/148 room areas within 2% (max error 0.14%, 130/148 exact at 2 dp), storey totals 4/4, room counts 6/6. Labels need assignment to the smallest containing polygon (one shaft sits inside another room). Label font is 5.67 pt, about 4.5 px tall in a 2000 px render of the Esplanades sheet. No bezier curves exist (door arcs are polylines), and dark-grey cut fills number 33 in Molio vs 27 walls.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "For drawing-side answers and highlighting, read the vector and text layers rather than OCR or vision. Vision at page scale cannot read the labels."
+  },
+  {
+   "id": "F9",
+   "claim": "The SVG siblings link every drawn element to its IFC GlobalId, and their coordinates map exactly to the PDF and to IFC world coordinates, so verifiable highlighting is straightforward.",
+   "evidence": "Each product is a <g class='IfcXxx' data-name=Name data-guid=GlobalId>. 74/74 space GUIDs exist in the IFC on the correct storey. SVG polygon area x 0.01 equals the IFC floor area (max relative error under 5e-5). PDF pt = (svg_mm - viewBox origin) x 72/25.4, bbox match within 0.1 pt. World XY (m) to SVG mm: x' = 10x + tx, y' = -10y + ty, residual 1.7e-13. SVG class counts answer 20/20 PDF storey-count questions if IfcStairFlight counts as a stair (18/20 with IfcStair only). The Kaelder SVG also draws 4 IfcStair belonging to another storey.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer from the IFC, then highlight the same GUIDs on the PDF through the SVG, which gives seconds-level verification for the engineer. Do not count stairs from drawings without checking storey ownership."
+  },
+  {
+   "id": "F10",
+   "claim": "Storey 'shown on the floor plan' counts appear only where the drawing and the IFC agree, so containment counts equal what is drawn.",
+   "evidence": "cut_test.py checks whether each contained element's z-range crosses storey elevation + 1.20 m. It reproduces the SVG's 53 drawn windows vs 60 contained on Esplanades 4.korrus. All 54 asked (storey, class) pairs have n_cut == n_ifc > 0. Of 48 unasked pairs, 45 have a mismatch or zero count; 3 exceptions (Vundament walls, Molio 1. Sal spaces and windows) look like subsampling.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Containment counting is safe for this phrasing. Wording about what is 'shown' does not need a separate drawing-based count, though a drawing-based count can serve as a cross-check."
+  },
+  {
+   "id": "F11",
+   "claim": "Load is fast but geometry is expensive and memory-heavy, so precompute.",
+   "evidence": "Molio 74 MB: open 1.0 s, 482 MB RSS, 604 MB peak with pset extraction, full tessellation 22.9 s / 660 MB on 8 threads. Clinic 56 MB: open 0.9 s, 456 MB, tessellation 14.9 s / 931 MB. Esplanades: open 0.4 s, 126 MB, tessellation 9.9 s. Answering all 1,049 questions took 5.2 s and 774 MB peak.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Build a per-model index offline (storeys, spaces, labels, Qto values, fallback areas, GUID-to-SVG paths) and serve answers from it. Avoid tessellating on request and avoid keeping many large models resident."
+  },
+  {
+   "id": "F12",
+   "claim": "Data quality varies by exporter, and the generator seems to skip questions where quantities are incomplete.",
+   "evidence": "Esplanades has no BaseQuantities (only 'Component Quantities' on 136 walls / 15 slabs) and no wall/slab questions. Molio Kaelder has 2 walls without BaseQuantities and no wall-quantity questions for Kaelder. Clinic units: AREAUNIT MILLISQUARE_METRE, VOLUMEUNIT MILLICUBIC_METRE, while lengths are mm in all models. resbim-388 is an IFC4 shell with 36 entities, 2 storeys, no elements and 0 questions. Question model names match LICENSE.md titles, not IfcProject.Name (Clinic project is '100001').",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Always apply unit scales from the file. Handle empty or partial models gracefully. When a Qto is missing, return the geometric estimate with an explicit lower-confidence flag rather than inventing a value."
+  },
+  {
+   "id": "F13",
+   "claim": "Templates seen here will not cover the hidden set's IFC models.",
+   "evidence": "LICENSE.md references models absent from the preview: Duplex, DigitalHub, Chesapeake Bay Bridge-Tunnel, further KIT models and the ResBIM series. The dataset spans about 30 languages. The Clinic shows that element families change per discipline ('sanitary fixtures'). My regex parser covers only the 65 seen surface templates.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Generalize at the operation level, not the template level: multilingual intent parsing into {count class in scope, sum Qto over class in scope, lookup space quantity by label}, plus a schema-aware class map (IFC2X3/IFC4/IFC4X3) and feet/metre units."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "room_area (net floor area of room 'LongName (Name)' on storey)",
+   "n_questions": 804,
+   "best_source_format": "IFC (Qto NetFloorArea, else floor-face geometry); PDF vector polygons as cross-check",
+   "method": "Match IfcSpace aggregated to the storey by f'{LongName} ({Name})'; qtos_only lookup of NetFloorArea x area unit scale; fallback = area of lowest down-facing faces; round 2 dp",
+   "tested": "804/804 within 2% and exact at 2 dp (Molio 234 via Qto, Esplanades 570 via geometry); PDF-only 148/148 within 2% (130/148 exact)",
+   "notes": "Projected footprint fails 6/234 Molio questions; AR_Ruum pset area 548/570. 148 of these questions are on PDF paths."
+  },
+  {
+   "question_family": "storey_space_area (total net floor area of all rooms on storey)",
+   "n_questions": 26,
+   "best_source_format": "IFC",
+   "method": "round(sum of unrounded per-space areas, 2) over all IfcSpace aggregated to the storey, overlaps included",
+   "tested": "26/26 exact; PDF-only 4/4 within 2%",
+   "notes": "Sum of rounded values is off by up to 0.08 m2 in 7/13 storeys (still within tolerance)."
+  },
+  {
+   "question_family": "storey_count (doors, rooms, walls, columns, stairs, windows shown on the floor plan of storey)",
+   "n_questions": 112,
+   "best_source_format": "IFC (spatial containment); SVG class tags as alternative",
+   "method": "Count elements of the class incl. subtypes directly contained in the storey (spaces via aggregation); walls = IfcWall + IfcWallStandardCase",
+   "tested": "108/108 via IFC; SVG class counts 20/20 on the PDF ones (with IfcStairFlight counted as stair); 4 FZK-Haus not testable via IFC",
+   "notes": "Asked only where drawn count equals contained count (F10). Room counts also come from the PDF text layer or polygons (6/6)."
+  },
+  {
+   "question_family": "model_count (doors, windows, rooms, walls, columns, beams, stairs, sanitary fixtures in the model)",
+   "n_questions": 41,
+   "best_source_format": "IFC only",
+   "method": "Instances of the class incl. subtypes that sit directly in the spatial structure (excludes parts nested in other elements); sanitary = IfcFlowTerminal typed IfcSanitaryTerminalType",
+   "tested": "29/29; 12 FZK-Haus untestable (IFC missing)",
+   "notes": "40 of these are attached to single-storey PDFs, so the drawing alone gives wrong answers. Molio stairs: 579 entities vs 15 answer."
+  },
+  {
+   "question_family": "wall_length (total length of all walls on storey, m)",
+   "n_questions": 16,
+   "best_source_format": "IFC only (BaseQuantities)",
+   "method": "Sum BaseQuantities.Length over IfcWall contained in storey x length unit scale (mm to m); round 3 dp",
+   "tested": "14/14 exact; 2 FZK-Haus untestable",
+   "notes": "Reference-line length is +5% (0/7); inside/outside face lengths are about 1.2% off (6/7)."
+  },
+  {
+   "question_family": "wall_side_area (total net side area of all walls on storey, m2)",
+   "n_questions": 16,
+   "best_source_format": "IFC only (BaseQuantities)",
+   "method": "Sum BaseQuantities.NetSideArea; round 3 dp",
+   "tested": "14/14 exact; 2 FZK-Haus untestable",
+   "notes": "GrossSideArea is +13.7% (0/7); geometric side areas are far off."
+  },
+  {
+   "question_family": "wall_volume (total net volume of all walls on storey, m3)",
+   "n_questions": 16,
+   "best_source_format": "IFC only (BaseQuantities)",
+   "method": "Sum BaseQuantities.NetVolume; round 3 dp",
+   "tested": "14/14 exact; 2 FZK-Haus untestable",
+   "notes": "GrossVolume is +17% (0/7). Geometry: 91/189 walls only have geometry in IfcBuildingElementPart children."
+  },
+  {
+   "question_family": "slab_volume (total net volume of all slabs on storey, m3)",
+   "n_questions": 18,
+   "best_source_format": "IFC only (BaseQuantities)",
+   "method": "Sum BaseQuantities.NetVolume over IfcSlab contained in storey; round 3 dp",
+   "tested": "16/16 exact; 2 FZK-Haus untestable",
+   "notes": "GrossVolume is +7.9% (0/8). 16/53 Molio slabs have no own representation (parts only)."
+  }
+ ],
+ "risks": [
+  "24 FZK-Haus questions (all on the PDF path) could not be verified because its parent IFC is not in the preview. I did not download the public AC20-FZK-Haus.ifc; the 3D quantities (42.8 m, 50.62 m2, 15.202 m3, 52.992 m3) cannot come from the plan.",
+  "The design assumes the evaluation lets the system read sibling files (<model>.ifc and .svg) for a PDF question. If it does not, 50 of 222 PDF questions in this slice are unanswerable.",
+  "Only 3 authoring exports (2 ArchiCAD, 1 Revit) were seen. Other models may use IFC4 Qto_* names, feet, missing Qto, or spaces without LongName, which would break exact 'LongName (Name)' matching.",
+  "The geometric fallback is slow (10 to 23 s per model to tessellate everything, up to 931 MB) and unreliable for walls and slabs whose geometry sits in IfcBuildingElementPart. Precompute it and flag its results as lower-confidence.",
+  "The regex parser covers only the 65 templates seen (EN/ET/DA/DE). The hidden set likely has other languages and element families, so an LLM-based or semantic parser with a schema-aware class map is needed.",
+  "The generator rules in F10 and F12 (count questions only where drawing and IFC agree; quantity questions only with complete Qto) are inferred from 2 models and may not hold elsewhere.",
+  "Drawing-side counting is fragile: stairs appear as IfcStairFlight or as stairs from other storeys, and wall fills do not map 1:1 to IfcWall (33 fills vs 27 walls in Molio).",
+  "Memory: large models need about 0.5 to 0.9 GB each when loaded, so caching many at once on a small instance can fail.",
+  "Not done: charts, testing IFC4 Qto naming on a real file (the only IFC4 file is empty), and fuzzy room matching."
+ ],
+ "questions_for_stoa": [
+  "At evaluation time, can our program open the parent <model>.ifc and the .svg sibling when a question's path is a rendered plan PDF? 40 PDF questions here ask about the whole model.",
+  "Does the full dataset include the IFC for every rendered plan (for example AC20-FZK-Haus.ifc), and how many IFC models does ifc_models contain in total?",
+  "Is the reference for 'net floor area' always the IFC quantity NetFloorArea when present, and otherwise IfcOpenShell geometry? Which geometric definition is used (projected footprint or floor face)?",
+  "Should whole-model counts exclude elements nested inside other elements (stair parts, railing parts, curtain-wall panels), as the stair answers suggest?",
+  "Is double-counting overlapping spaces in 'total net floor area of all rooms' intended?",
+  "Will hidden questions for IFC models use other phrasings, languages or element types (pipes, ducts, furniture), or only the families seen in the preview?",
+  "Will any IFC questions use imperial units, or text answers (room names, materials)?",
+  "For storey counts phrased 'shown on the floor plan', is the reference the IFC storey containment or what is drawn at the 1.20 m cut? In the preview they always agree."
+ ],
+ "artifacts": [
+  "eda/ifc_models/final_solver.py",
+  "eda/ifc_models/final_eval.py",
+  "eda/ifc_models/final_eval_results.csv",
+  "eda/ifc_models/template_kn.csv",
+  "eda/ifc_models/ifc_summary.csv",
+  "eda/ifc_models/parse_q.py",
+  "eda/ifc_models/q_load.py",
+  "eda/ifc_models/ifc_inventory.py",
+  "eda/ifc_models/inv_bsc-esplanades_1807-ep-ar-v18.json",
+  "eda/ifc_models/inv_bsc-molio_molio-with-uris.json",
+  "eda/ifc_models/inv_bsc-clinic_clinic-plumbing.json",
+  "eda/ifc_models/inv_resbim-388_model.json",
+  "eda/ifc_models/model_facts.py",
+  "eda/ifc_models/solve.py",
+  "eda/ifc_models/spaces_table.py",
+  "eda/ifc_models/spaces_bsc-esplanades_1807-ep-ar-v18.csv",
+  "eda/ifc_models/spaces_bsc-molio_molio-with-uris.csv",
+  "eda/ifc_models/pdf_rooms.py",
+  "eda/ifc_models/pdf_room_areas.csv",
+  "eda/ifc_models/eval_pdf_only.py",
+  "eda/ifc_models/pdf_only_results.csv",
+  "eda/ifc_models/svg_inventory.py",
+  "eda/ifc_models/svg_link.py",
+  "eda/ifc_models/eval_svg_counts.py",
+  "eda/ifc_models/cut_test.py",
+  "eda/ifc_models/cut_test_bsc-esplanades_1807-ep-ar-v18.csv",
+  "eda/ifc_models/cut_test_bsc-molio_molio-with-uris.csv",
+  "eda/ifc_models/geom_timing.py",
+  "eda/ifc_models/renders/bsc-esplanades_1807-ep-ar-v18_plan-04-4-korrus.png",
+  "eda/ifc_models/renders/bsc-molio_molio-with-uris_plan-02-klder.png",
+  "eda/ifc_models/renders/kit-fzk-haus_ac20-fzk-haus_plan-02-dachgeschoss.png",
+  "eda/ifc_models/renders/esplanades_crop_trepikoda.png"
+ ]
+}

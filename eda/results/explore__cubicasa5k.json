@@ -1,0 +1,329 @@
+{
+ "slice": "cubicasa5k (data/cubicasa5k: 241 PNG floor plans, 4,270 count questions, Finnish real-estate plans, CC BY-NC-SA 4.0)",
+ "summary": "All 4,270 cubicasa5k questions come from 12 fixed count templates. Each is asked twice, once in English and once in Finnish, and the two answers agree in 2,135 of 2,135 pairs. Every answer is an integer. They cover 241 PNGs in the three CubiCasa5K styles: 187 high_quality_architectural (mostly black-and-white CAD drawings and scans), 41 high_quality (clean real-estate plans) and 13 colorful (coloured brochure plans, some of them photos of paper).\n\nThe images are small. The median long side is 876 px, 39 are under 600 px and 15 are 2,000 px or more. No file has DPI metadata. Zoomed tiles are therefore needed both to enlarge small text and to keep detail on large sheets.\n\nAlways answering each template's most common value already scores 55.9% of questions (kitchens 95%, bathrooms 88%, floors 80.5%). Windows (14%) and doors (14%) need real counting.\n\nI counted blind on 7 images (fixed seed), using careful zoomed crops, and matched 56 of 64 answers. Windows matched only 4 of 10 across 10 blind images. The reasons:\n- The ground truth sometimes counts window openings and sometimes counts each pane separated by a vertical frame bar (a mullion).\n- On sheets with several apartments it counts only the target apartment.\n- Room types follow annotator judgement, not printed labels: a labelled Parveke (balcony) was counted as 0, TYÖH (study) is not a bedroom, and unlabelled rooms were counted in one plan.\nThese patterns suggest the answers came from the CubiCasa5K SVG annotations (inferred).\n\nPrinted text often gives a shortcut. Apartment-type codes such as 2H+K gave bedrooms = n-1 in 7 of 8 checks. Window size codes such as 15x18 matched the window answer in 6 of 7 architectural sheets that had them.\n\n8 of 20 sampled images have room labels rotated 90 or 180 degrees, and at least 5 of 29 earlier-viewed images have mirrored text. Label reading must therefore try rotations and flips.\n\nA classical computer-vision blob counter for floors got 202 of 241 right, against 194 of 241 for always answering 1.",
+ "key_stats": [
+  {
+   "metric": "Images / questions",
+   "value": "241 PNG / 4,270 questions (all type=count, unit=count, integer answers); 0 duplicate (path, question) rows"
+  },
+  {
+   "metric": "Style prefixes",
+   "value": "high_quality_architectural 187 (77.6%), high_quality 41 (17.0%), colorful 13 (5.4%)"
+  },
+  {
+   "metric": "Colour mode",
+   "value": "RGB 210, RGBA 30, L 1; no DPI metadata in any file"
+  },
+  {
+   "metric": "Size (long side)",
+   "value": "min 240, p10 538, median 876, p90 1715, max 4500 px; 39 under 600 px, 156 under 1000 px, 15 at 2000 px or more (incl. 3 at 4000x3000)"
+  },
+  {
+   "metric": "Median coloured-pixel share / unique colours",
+   "value": "colorful 4.2% / 15,574; high_quality 0.6% / 9,846; architectural 0.0% / 757"
+  },
+  {
+   "metric": "Distinct question strings",
+   "value": "24 = 12 templates x (EN, FI); EN/FI twins agree 2,135/2,135"
+  },
+  {
+   "metric": "Questions per template (EN+FI)",
+   "value": "windows 482, floors 482, toilets 480, sinks 478, shower_bath 454, doors 352, saunas 330, kitchens 322, bedrooms 308, wc_rooms 224, bathrooms 222, balconies 136"
+  },
+  {
+   "metric": "Templates per image",
+   "value": "4 to 12, median 10"
+  },
+  {
+   "metric": "Answer ranges",
+   "value": "windows 0-44 (median 6, mean 8.8); doors 2-26 (median 7); floors 1:194, 2:43, 3:3, 4:1; toilets 0-4 (1:152); sinks 0-6 (2:133); shower_bath 0-6 (1:165); saunas 0:72, 1:91, 2:2; kitchens 1:153 of 161; bedrooms 0-8; wc_rooms 0:68 of 112; bathrooms 1:98 of 111; balconies 0:39, 1:28, 2:1"
+  },
+  {
+   "metric": "Mode baseline (question-weighted)",
+   "value": "55.9%; windows 14.1%, doors 13.6%, bedrooms 27.9%, sinks 55.6%, saunas 55.2%, balconies 57.4%, wc_rooms 60.7%, toilets 63.3%, shower_bath 72.7%, floors 80.5%, bathrooms 88.3%, kitchens 95.0%"
+  },
+  {
+   "metric": "Blind manual counts (7 images, fixed list, all asked templates)",
+   "value": "56/64 exact first guess (60/64 if allowed one pre-registered alternative)"
+  },
+  {
+   "metric": "Blind window counts (10 images total)",
+   "value": "4/10 exact first guess; 8/10 when the alternative convention noted beforehand is accepted"
+  },
+  {
+   "metric": "Non-blind convention check (22 images, seeds 7 and 11)",
+   "value": "171/178 natural count, 174/178 best convention, 9 rows unverifiable (faint/hand-drawn)"
+  },
+  {
+   "metric": "Apartment-type code rule (bedrooms = n-1 from 'nH+K')",
+   "value": "7/8 correct where the code was legible and bedrooms asked; code legible in 5/20 sampled images (2 more illegible)"
+  },
+  {
+   "metric": "Window size code rule (count codes like 15x18)",
+   "value": "6/7 code-bearing architectural images matched (1 failure: 5006, 12 codes vs answer 8)"
+  },
+  {
+   "metric": "Rotated / mirrored labels",
+   "value": "8/20 sampled images rotated (7 at 90 deg, 1 at 180 deg); at least 5/29 earlier-viewed images mirrored"
+  },
+  {
+   "metric": "Floors CV baseline (blob count, in-sample tuned)",
+   "value": "202/241 = 83.8% vs always-1 194/241 = 80.5%; 2-floor recall 21/43"
+  },
+  {
+   "metric": "GT consistency",
+   "value": "toilets > wc_rooms + bathrooms: 0 images; doors < bedrooms+1: 0; wc_rooms > toilets: 2; toilets 0 while WC/bath room asked >=1: 3; corr(windows, doors) 0.758; corr(windows, megapixels) 0.029"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "The slice is 12 fixed count templates, each asked in English and Finnish with identical answers; questions can be mapped to an intent and answered once per image.",
+   "evidence": "02_questions.py and 03_templates.py: 24 distinct strings, 2,135 EN/FI pairs, 0 mismatches, 0 EN-only or FI-only, all answers int. Templates: windows, floors, toilet bowls, sinks+basins (double bowl = one), showers+bathtubs, doors (doorways with a leaf), saunas, kitchens (incl. kitchenettes), bedrooms (MH), separate WC rooms, bathrooms/washrooms (KH, KPH, PH, PESUH, SH, excl. WC), balconies (parveke, incl. glazed).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Build an intent classifier (not string matching) that maps any phrasing or language to these 12 counting intents plus a general fallback, so paraphrased hidden questions still route correctly. Cache per-image results so EN and FI twins can never disagree."
+  },
+  {
+   "id": "F2",
+   "claim": "Images are mostly small with no scale metadata, and a minority are large sheets; legibility of labels and codes depends on zoom.",
+   "evidence": "image_props.csv: median long side 876 px, 39 under 600 px, 15 at 2000 px or more, no DPI. Room labels were readable at 2-3x upscale; window codes in scanned architectural sheets are about 3-6 px tall (5906 about 3 px); two-plan sheets 504 and 4914 were illegible in a 1000 px cell.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Pipeline: upscale small images 2-3x before tiling; tile large images at native resolution with overlap; never send only a downscaled full image when counting small symbols."
+  },
+  {
+   "id": "F3",
+   "claim": "The three styles differ strongly and need style-aware handling.",
+   "evidence": "Contact sheets and 49 viewed images: colorful = coloured walls/fills, furniture, brochure renders and photos of printed sheets (perspective, logos such as RE/MAX and a CubiCasa watermark); high_quality = clean digital plans, grey/blue/black walls, simple fixture icons, light window segments, few colours; architectural = black-and-white CAD or scans with hatched walls, dimension lines (mm), level marks, fire classes (EI30), door codes (09, 010, O9) and window size codes in dm (15x18), multi-unit sheets with a highlighted unit, frequent blue-pen handwriting.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Architectural sheets (78%) carry machine-readable codes and need unit selection; high_quality and colorful rely on symbols and labels. Report style in the evidence panel so an engineer knows which cue was used."
+  },
+  {
+   "id": "F4",
+   "claim": "Priors are strong for room-type templates and useless for windows and doors.",
+   "evidence": "09_baselines.py: always-mode gives 55.9% question-weighted; kitchens 95.0%, bathrooms 88.3%, floors 80.5% but windows 14.1% and doors 13.6%.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Use the prior as a fallback and a sanity check (flag answers far from typical values), but effort must go into window and door counting, which are 834 of 4,270 questions (19.5%)."
+  },
+  {
+   "id": "F5",
+   "claim": "Careful zoomed visual counting reproduces most answers; windows are the main loss.",
+   "evidence": "10_score_blind.py on 7 images (seeded mix of styles): 56/64 exact. Per template first guess: floors 7/7, kitchens 5/5, saunas 6/6, shower_bath 6/6, bathrooms 3/3, balconies 2/2, toilets 6/7, sinks 6/7, bedrooms 5/6, doors 4/5, wc_rooms 2/3, windows 4/7. Extra blind windows (seed 21, 3 architectural images): 0/3 first guess, 2/3 alternative. Rough weighted projection from these rates: about 85% overall (inferred, small n).",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "A vision model with zoomed tiles is the right core for this slice; expect windows to dominate errors. Treat about 85% as an optimistic ceiling for careful visual counting until tested with the actual model."
+  },
+  {
+   "id": "F6",
+   "claim": "Window ground truth uses an inconsistent unit: sometimes the opening, sometimes each sash or pane split by a mullion or post.",
+   "evidence": "manual_counts.csv: colorful-2002 GT 7 = panes (4 openings); high_quality-11377 GT 11 = panes incl. vent sashes (6 openings); 7924 GT 11 = every IK and TL code (7 openings); 12617 GT 4 = two openings x two sashes; but colorful-1732 GT 2 = openings (4 panes). Unexplained: colorful-8389 GT 7 (3 openings, 6 panes), 7787 GT 5 (3 openings), 7731 GT 22 vs about 10 openings.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Exact window accuracy has an irreducible ceiling. Detect each window segment between mullions, report both 'openings' and 'segments' internally, default to segments separated by a visible mullion (fits more failures), and show every counted box so an engineer can re-count quickly."
+  },
+  {
+   "id": "F7",
+   "claim": "In architectural sheets, printed window size codes usually equal the window answer.",
+   "evidence": "Codes matched GT in 1368 (5), 10545 (6), 12454 (5), 14812 (10, blind), 7924 (11 incl. TL vents), 1524 (3 after excluding a likely neighbour room, blind alternative); failed in 5006 (12 codes in main unit vs GT 8). 6/7.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "When codes like 15x18, 21x14 or 'TLS+MS 21x14' are present, counting them is the most verifiable window method (each code is a clickable evidence box). Cross-check with the symbol count and flag disagreement. Needs good small-text reading (no OCR engine was available to measure this)."
+  },
+  {
+   "id": "F8",
+   "claim": "Apartment-type codes (e.g. 2H+K, 3H+KT, 5H+K+S, 1H+KK) give bedrooms = n-1 and sauna presence (+S).",
+   "evidence": "text_observations.csv and window_blind_scored.csv: 1153 5H+K+S -> 4 ok, 6001 2H+K -> 1 ok, 4711 3H+KE+S -> 2 ok (saunas 1 ok), 8321 2H+KK -> 1 ok, 1524 2H+K -> 1 ok, 12617 1H+KK -> 0 ok, 392 3H+KT -> 2 ok; failed 5602 2h+k -> GT 0 (cropped plan with no MH room drawn). 7/8. Code legible in 5/20 sampled images.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Use the code as a cross-check for bedroom and sauna answers, not as the sole source: GT counts rooms actually drawn and typed, so cropped plans break the rule. Show the code as supporting evidence."
+  },
+  {
+   "id": "F9",
+   "claim": "On multi-unit sheets the ground truth counts only the target (usually highlighted or central) apartment.",
+   "evidence": "11280: toilets, showers and windows match only when the partial neighbour is excluded (whole image gives 2, 2, 9 vs GT 1, 1, 7). 392 (blind): counting the WC/SUIHKU room gave doors 6, toilets 2, sinks 3 vs GT 5, 1, 2; excluding that one room makes all six fixture/room answers consistent. 1524: GT windows 3 = codes excluding the lower-right room.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Add an explicit unit-selection step (highlight colour, apartment label such as A7, largest complete unit) before counting, and show the chosen unit outline in the evidence view. Expect residual errors where the unit boundary is ambiguous."
+  },
+  {
+   "id": "F10",
+   "claim": "Room-type answers follow annotator room types, not printed text, which points to CubiCasa5K SVG annotations as the answer source.",
+   "evidence": "high_quality-13107 has no room labels yet GT bedrooms 2, kitchen 1, sauna 1 match unlabelled rooms; 10785 unlabelled sleeping alcove not counted; 1391 TYOH (study) not a bedroom; 1097 handwritten relabel ignored and an unlabelled balcony with a door counted 0; 4068 upper floor has a labelled 'Parveke' with railing and two doors but GT balconies 0; 7549 shows 2 MH labels but GT bedrooms 3. File prefixes equal the three CubiCasa5K subsets.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Edge cases will follow annotator habits (balconies and bedrooms are noisiest). Combine labels with geometry and fixture cues, keep a Finnish/Swedish label dictionary, and show the label or room outline used so an engineer can overrule it."
+  },
+  {
+   "id": "F11",
+   "claim": "Fixture answers count drawn symbols, not rooms.",
+   "evidence": "1903: WC, PH and KH rooms exist but no fixtures drawn, GT toilets/sinks/showers 0; 3 images have toilets 0 with a WC or bathroom asked >= 1; 10545 and 8177 count 2 shower heads in one bathroom; double-bowl kitchen sinks counted once in 11377, 4855, 6327 but 13107 GT 3 implies one counted as 2.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Detect symbols (toilet bowl, basin, kitchen sink, shower tray/head, bathtub) per tile and draw a box for each; never infer fixtures from room names."
+  },
+  {
+   "id": "F12",
+   "claim": "Many plans have rotated or mirrored text.",
+   "evidence": "text_observations.csv: 8/20 seeded images have main labels rotated (7 at 90 deg, 1 at 180 deg); earlier notes record mirrored text in at least 5/29 viewed images (7513, 11377, 729, 12454, 11553) and 180-degree rotation in 392 and 7787.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Label and code reading should run on 4 rotations plus a mirror, or ask the vision model to read rotated text explicitly; otherwise MH, KPH or apartment codes will be missed."
+  },
+  {
+   "id": "F13",
+   "claim": "Floors means separately drawn plans on the sheet, and a simple classical CV blob count barely beats the prior.",
+   "evidence": "11_floors_cv.py (re-run): best 202/241 = 83.8% vs always-1 80.5%, tuned on the same images; 2-floor recall 21/43. Manual and blind visual checks: floors 29/29. 6581 has a 'KRS 1-6' note but GT 1 (one drawn plan).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Ask the vision model to count distinct plan drawings on the whole image, with a box per plan as evidence; treat CV blobs only as a hint."
+  },
+  {
+   "id": "F14",
+   "claim": "Printed Finnish text is rich: room labels, areas, apartment codes, door and window codes, dimensions and handwriting.",
+   "evidence": "Labels seen: MH/MAKUUHUONE, OH/OLOHUONE, K/KT/KK/KE/KEITTIO/TUPAKEITTIO, KH/KPH/PH/PESUH, WC, S/SA/SAUNA/LH/LOYLYH, ET/ETEINEN, VH, VAR, TK, KHH, AULA, PARVEKE, TERASSI, KUISTI, TYOH, AUTOK; bilingual FI-SV (MH-SR, OH-VR); areas with decimal comma (MH 11,0); apartment area text (2H+KK 42,5 m2); window codes in dm; door codes; blue-pen notes such as '3 PIENTA IKKUNAA' (3 small windows) in 1357.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Text-first evidence (label or code boxes) is the fastest thing for an engineer to verify. Handwritten notes are not reliably reflected in answers, so present them as context, not as the answer."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "windows",
+   "n_questions": 482,
+   "best_source_format": "PNG (only format)",
+   "method": "Architectural sheets: count window size codes, cross-checked with symbol count. Other styles: vision model on overlapping zoomed tiles counting glazed wall segments between mullions; restricted to the target unit.",
+   "tested": "Blind 4/10 first guess, 8/10 with the alternative convention; non-blind 15/20 natural, 17/20 best convention; code rule 6/7",
+   "notes": "Hardest family; ground-truth unit (opening vs pane) is inconsistent, so exact accuracy has a ceiling. Show every counted segment as a box."
+  },
+  {
+   "question_family": "doors",
+   "n_questions": 352,
+   "best_source_format": "PNG",
+   "method": "Vision model on tiles counting door leaves (swing arcs, sliding leaves), double door = 1, doorless openings excluded; architectural door codes (09, 010, O9) as cross-check",
+   "tested": "Blind 4/5; non-blind 16/16",
+   "notes": "A double door can carry two codes but counts once (14812). Neighbour-unit doors must be excluded (392)."
+  },
+  {
+   "question_family": "floors",
+   "n_questions": 482,
+   "best_source_format": "PNG",
+   "method": "Vision model on the whole image counting separately drawn plans; CV blob count only as a hint",
+   "tested": "Manual + blind 29/29; CV 202/241 (in-sample) vs prior 194/241",
+   "notes": "Notes like 'KRS 1-6' do not change the answer (count drawn plans)."
+  },
+  {
+   "question_family": "toilets",
+   "n_questions": 480,
+   "best_source_format": "PNG",
+   "method": "Symbol detection in zoomed tiles (bowl + tank), target unit only",
+   "tested": "Blind 6/7; non-blind 20/20",
+   "notes": "Room labels without a drawn symbol count 0 (1903)."
+  },
+  {
+   "question_family": "sinks",
+   "n_questions": 478,
+   "best_source_format": "PNG",
+   "method": "Symbol detection: kitchen sinks + basins (+ utility sinks); double bowl = 1",
+   "tested": "Blind 6/7; non-blind 20/21 (21/21 best convention)",
+   "notes": "One case (13107) looks like a double bowl counted as 2."
+  },
+  {
+   "question_family": "shower_bath",
+   "n_questions": 454,
+   "best_source_format": "PNG",
+   "method": "Symbol detection of shower trays, shower heads and bathtubs",
+   "tested": "Blind 6/6; non-blind 21/21",
+   "notes": "Two shower heads in one room count 2 (10545, 8177)."
+  },
+  {
+   "question_family": "saunas",
+   "n_questions": 330,
+   "best_source_format": "PNG",
+   "method": "Labels S, SA, SAUNA, LH, LOYLYH plus bench symbol; '+S' in apartment code as cross-check",
+   "tested": "Blind 6/6; non-blind 14/14",
+   "notes": "Unlabelled saunas with benches count (8033); fireplace rooms do not (8177)."
+  },
+  {
+   "question_family": "kitchens",
+   "n_questions": 322,
+   "best_source_format": "PNG",
+   "method": "Labels K, KT, KK, KE, KEITTIO, TUPAKEITTIO, KT+R plus stove/sink run; default 1",
+   "tested": "Blind 5/5; non-blind 13/13; prior 95%",
+   "notes": "Rare 0 or 2 cases (3 and 5 images)."
+  },
+  {
+   "question_family": "bedrooms",
+   "n_questions": 308,
+   "best_source_format": "PNG",
+   "method": "Count MH / MAKUUHUONE / MH-SR rooms (not TYOH, OH, AULA); cross-check with apartment code nH -> n-1",
+   "tested": "Blind 5/6; non-blind 12/12; label count vs GT 16/17 in the 20-image text sample (not blind); code rule 7/8",
+   "notes": "Annotator room types can differ from labels (7549, 10785, 13107)."
+  },
+  {
+   "question_family": "wc_rooms",
+   "n_questions": 224,
+   "best_source_format": "PNG",
+   "method": "Count rooms labelled WC (separate toilet rooms) in the target unit",
+   "tested": "Blind 2/3; non-blind 6/6",
+   "notes": "Combined rooms such as WC/SUIHKU are ambiguous; wc_rooms > toilets in 2 images."
+  },
+  {
+   "question_family": "bathrooms",
+   "n_questions": 222,
+   "best_source_format": "PNG",
+   "method": "Count rooms labelled KH, KPH, PH, PESUH, SH (not KHH utility, not WC)",
+   "tested": "Blind 3/3; non-blind 7/7; prior 88%",
+   "notes": "Mirrored or rotated labels must be read correctly (729, 4855)."
+  },
+  {
+   "question_family": "balconies",
+   "n_questions": 136,
+   "best_source_format": "PNG",
+   "method": "Label PARVEKE / PARV / LASITETTU PARVEKE plus railing geometry; exclude TERASSI and KUISTI",
+   "tested": "Blind 2/2; non-blind 5/6; extra observed counterexample 4068 (labelled Parveke, GT 0)",
+   "notes": "Noisiest ground truth relative to the drawing; keep confidence low and show the label."
+  }
+ ],
+ "risks": [
+  "Small samples: 7 blind images (64 answers), 3 extra blind window images, 22 non-blind convention images and a 20-image text sample. Per-template rates have wide uncertainty.",
+  "My own zoomed visual counts stand in for a vision model; a production model call (fewer crops, no human patience) will likely score lower. Untested with any actual model or API.",
+  "The SVG-annotation hypothesis is inferred. The original CubiCasa5K annotations were not downloaded (no external access was allowed), so conventions like window panes and unit selection are inferred from mismatches only.",
+  "No OCR engine is installed, so automated reading of room labels, apartment codes and window codes was not measured; the text-based rules depend on reading small, rotated or mirrored text.",
+  "Floors CV parameters were tuned on all 241 images (no held-out split), so 83.8% is optimistic.",
+  "Unresolved mismatches: 7731 windows (GT 22 vs about 10 openings), 7787 windows (GT 5 vs 3), 8389 windows (GT 7), 5006 windows (GT 8 vs 12 codes), 7549 bedrooms (GT 3 vs 2 MH labels), 4068 balconies (labelled Parveke, GT 0); 9 rows in faint or hand-drawn images unverified.",
+  "Not done: classical colour/line detection for windows in the high_quality style, and a systematic count of how many sheets contain several apartments.",
+  "Licence: CC BY-NC-SA 4.0 (non-commercial, share-alike); credit CubiCasa5K when showing these plans in the demo or video.",
+  "Tooling pitfall: the venv has pandas 3.1.1; a column named 'gt' must be accessed as df['gt'] because df.gt is the comparison method (this silently broke one of my quick checks before I fixed it)."
+ ],
+ "questions_for_stoa": [
+  "Were the cubicasa5k answers generated from the original CubiCasa5K SVG annotations? If so, should we match annotator conventions (for example each window pane between mullions) or real-world counts?",
+  "May we use the public CubiCasa5K images and SVG annotations to train or calibrate models, given that hidden test images may come from the same public dataset?",
+  "On sheets showing several apartments, should counts cover only the highlighted or target apartment, or everything drawn?",
+  "For windows, is one window an opening in the wall, or each sash or pane separated by a mullion?",
+  "Will hidden questions for this source use the same 12 templates in English and Finnish, or paraphrases and new question types (for example areas from printed m2 text)?",
+  "How is the 'where in the drawing' evidence judged (boxes, points, highlighted text), and is there a time or cost limit per question?"
+ ],
+ "artifacts": [
+  "eda/cubicasa5k/questions_cubicasa5k.csv",
+  "eda/cubicasa5k/answers_wide.csv",
+  "eda/cubicasa5k/image_props.csv",
+  "eda/cubicasa5k/mode_baseline.csv",
+  "eda/cubicasa5k/manual_counts.csv",
+  "eda/cubicasa5k/manual_counts_summary.csv",
+  "eda/cubicasa5k/blind_counts_scored.csv",
+  "eda/cubicasa5k/window_blind_scored.csv",
+  "eda/cubicasa5k/text_observations.csv",
+  "eda/cubicasa5k/floors_cv_out.txt",
+  "eda/cubicasa5k/scripts",
+  "eda/cubicasa5k/contact/sheet_high_quality_architectural.png",
+  "eda/cubicasa5k/views/textsample_grid0.png",
+  "eda/cubicasa5k/views/textsample2_grid1.png",
+  "eda/cubicasa5k/views/high_quality_architectural-4068_crop_540_0_1010_470.png",
+  "eda/cubicasa5k/views/high_quality_architectural-392_full.png",
+  "eda/cubicasa5k/views/high_quality_architectural-1368_r0c0.png",
+  "eda/cubicasa5k/views/7731_wall_strips.png"
+ ]
+}
