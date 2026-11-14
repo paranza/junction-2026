@@ -16,6 +16,8 @@ The unchanged source-provided licence and attribution notices for all nine colle
 - **IFC models and IFC-Bench:** model-specific CC BY 4.0, CC BY-ND 3.0, MIT, KIT unrestricted-use and GPL terms are identified in the supplied notices. IFC-Bench questions are credited to Sylvain Hellin (2025), CC BY 4.0. Original model files are not distributed here.
 - **Wikimedia, Finna, HABS and Europeana:** per-file licences and source credits are in the retained notices and in the separately downloaded dataset.
 
+`server/question_templates.json` holds sentence templates derived from the wording of the preview questions (no answers and no drawing labels). Those templates retain the terms of their source collections.
+
 ## Software dependencies
 
 Dependencies are installed from their package registries and are not vendored into this source repository. Preserve their included notices when distributing an installed application or container. The pinned Python packages include FastAPI (MIT), Uvicorn (BSD-3-Clause), python-multipart (Apache-2.0), PyMuPDF (GNU AGPL 3.0 or an Artifex commercial licence), Pillow (MIT-CMU), ezdxf, IfcOpenShell (LGPL-3.0-or-later), Shapely (BSD-3-Clause), httpx (BSD-3-Clause) and python-dotenv (BSD-3-Clause). Consult the installed distributions for complete notices and transitive dependencies.
