@@ -137,7 +137,9 @@ def printed_number(token, unit):
 
 def _text_candidates(text, operation):
     if operation == 'length':
+        compound_spans = []
         for match in _IMPERIAL.finditer(text):
+            compound_spans.append(match.span())
             try:
                 parts = match.group(2).split()
                 last = parts[-1]
@@ -150,6 +152,13 @@ def _text_candidates(text, operation):
             except (ValueError, ZeroDivisionError):
                 continue
             yield {'value': value, 'unit': 'in', 'property_path': 'native_text', 'role': None}
+        # Graphic scales and many imperial dimensions show feet alone. Do not
+        # reinterpret the feet component of a combined feet-and-inches value.
+        for match in re.finditer(r'(?<![\w.,])(' + _NUMBER + r')\s*[\'′’]', text):
+            if any(start <= match.start() < end for start,end in compound_spans):continue
+            value=printed_number(match.group(1),'ft')
+            if value is not None:
+                yield {'value':value,'unit':'ft','property_path':'native_text','role':None}
     for match in _SCALAR.finditer(text):
         unit = re.sub(r'[.\s]', '', match.group(2).lower())
         if unit in {'metres', 'meters'}:

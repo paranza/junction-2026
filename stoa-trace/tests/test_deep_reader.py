@@ -71,6 +71,27 @@ class SourceInspection(unittest.TestCase):
         self.assertEqual(result['value'], 225)
         self.assertFalse(result['evidence'][0]['source_verified'])
 
+    def test_located_table_header_can_qualify_a_bare_numeric_cell(self):
+        raw=self.raw([self.evidence('140',140,'ft',[.4,.5,.45,.53],unit_basis_index=1),
+                      self.evidence('HEAD (FT.)',None,None,[.4,.42,.45,.46])],operation='length',unit='m')
+        result=self.finish(raw,'What is the specified head?')
+        self.assertAlmostEqual(result['value'],42.672)
+        self.assertFalse(result['evidence'][0]['source_verified'])
+        raw['evidence'][1]['bbox']=[.7,.42,.75,.46]
+        self.assertIsNone(self.finish(raw,'What is the specified head?')['value'])
+
+    def test_named_area_scope_does_not_change_a_diameter_to_square_units(self):
+        self.assertEqual(llm.requested_quantity('What is the pipe diameter in Area A?'),'length')
+        self.assertEqual(llm.requested_quantity('What is the area of room A?'),'area')
+        self.assertEqual(llm.requested_quantity('How many doors in Area B?'),'count')
+
+    def test_feet_only_scale_marks_are_typed_without_truncating_combined_dimensions(self):
+        from server.verification import _text_candidates,convert_quantity
+        self.assertEqual([r['value'] for r in _text_candidates("0' 4' 8'",'length')],[0,4,8])
+        values=[convert_quantity(r['value'],r['unit'],'ft') for r in _text_candidates("12' - 1 1/2\"",'length')]
+        self.assertIn(12.125,values)
+        self.assertNotIn(12,values)
+
     def test_missing_or_wrong_quotes_and_units_do_not_supply_operands(self):
         for item in [self.evidence('85 SF', 900, 'SF'), self.evidence('SLAB', 225, 'mm'),
                      self.evidence('225 mm', 225, 'mm')]:
@@ -129,6 +150,17 @@ class SourceInspection(unittest.TestCase):
             result = deep_reader.answer('What is the area?', self.document, Path('unknown.png'))
         self.assertEqual(request.call_count, 3)
         self.assertIsNone(result['value'])
+
+    def test_exhausted_crop_budget_requests_an_answer_from_existing_views(self):
+        item=self.evidence('',None,None,label='Door',image_index=1)
+        decisions=[{'action':'inspect','regions':[[.01,.01,.08,.08],[.12,.12,.18,.18],[.2,.2,.28,.28]],'reason':'Inspect details'},
+                   {'action':'answer','result':self.raw([item],operation='count',unit='count',expression=None)}]
+        with patch.dict(os.environ,{'STOA_COMPLEX_READER':'auto'}),patch.object(llm,'PROVIDER','gemini'),\
+             patch.object(llm,'_request',side_effect=decisions) as request,\
+             patch('server.rendering.render_region',return_value=Image.new('RGB',(32,32))):
+            result=deep_reader.answer('How many doors?',self.document,Path('unknown.png'))
+        self.assertEqual(result['value'],1)
+        self.assertNotIn('inspect',request.call_args.kwargs['schema']['properties']['action']['enum'])
 
     def test_global_counts_start_with_complete_source_tiles(self):
         item = self.evidence('', None, None, label='Door', image_index=1)

@@ -319,6 +319,10 @@ def _scoped_context(document, path, page, scope, region, selected_pages):
 def requested_quantity(question):
     """High-confidence task intent is independent of the model's answer type."""
     q = question.casefold()
+    # Named drawing zones are scope labels, not a request for square units.
+    # Keep the original question for inference and remove labels only for this
+    # conservative type check, e.g. "diameter in Area A" versus "area of A".
+    q = re.sub(r'\barea\s+[a-z](?:[-.]?\d+)?\b', ' ', q)
     # The object after "how many" may itself be a measurement unit.
     # A later threshold, as in "how many doors wider than 2 m", stays a count.
     measured_count=re.search(r'\b(?:how many|quanti|quante)\s+(?:(square|cubic)\s+)?(met(?:er|re)s?|(?:milli|centi)?metr[io]|feet|foot|pied[ei]|inches|pollici|m[²³23]|sq\.?\s*(?:m|ft))(?:\s+(quadrati|quadri|cubi))?\b',q)

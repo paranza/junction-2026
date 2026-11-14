@@ -43,3 +43,10 @@ Implementation used the official [Cloudinary Skills Pack](https://github.com/clo
 ## Metria interface styling
 
 The integrated interface preserves Antonio’s team-authored Metria implementation and its visual reference to [Vercel UI](https://github.com/vercel-labs/ui). No `vercel-labs/ui` component source or separate UI library is bundled or required by this application. Existing adapted BoardUI primitives and their MIT notice remain above.
+# CPU drawing tools
+
+RapidOCR ONNX Runtime 1.4.4 and OpenCV Python 4.11.0.86 are installed through
+their published Python packages. Their package licences and bundled model
+notices remain with the installed distributions. No competitor source code is
+vendored by the drawing tools. Zhang-Suen thinning and graph traversal are
+implemented locally; their outputs do not establish semantic network accuracy.

@@ -10,7 +10,7 @@ The primary interface contains Chats, Dataset and Spending. Start a chat with th
 
 Unknown wording over native quantities can use a Gemini-planned query executed by Python over source records. Supported operations include counts, aggregates, grouped results, comparisons, exact source text attributes and per-object typed measurement tables. IFC property sets, declared material layers and opening dimensions are retained with their units. Shared field catalogues bound the model prompt while calculation uses all selected source records. Missing operands or incompatible units reject the calculation. This does not establish arbitrary-question or arbitrary-drawing accuracy. See the [chat and region recovery verification](../docs/delivery/chat-and-region-recovery.md) for earlier checks and limits.
 
-Complex PDF/image fallback now uses an inspection agent: it requests original-resolution source regions, maps evidence back to the page and executes a dimensional expression over quoted operands. Counts start with overlapping coverage of the entire requested page or selection. `STOA_COMPLEX_READER=auto` and `STOA_COMPLEX_MODEL=gemini-4-argon` are the defaults for PDFs and images of at least 4 MP. The inspection stage has at most three requests and eight detail views; other enabled tools may make additional requests, all within the same cumulative model cap. `off` retains the old reader. This supports new combinations of source quantities without per-question answer rules; it does not establish arbitrary geometry or network reconstruction. See [the live complex-drawing comparison and limits](../docs/evaluation/complex-source-inspection.md).
+Complex PDF/image fallback uses an inspection agent: it requests original-resolution source regions, maps evidence back to the page and executes dimensional expressions over source operands. It can request persistent positional OCR, explicit source calibration, polygon/path measurements, closed-room regions, colored or monochrome centerline graphs, legend-template proposals and original PDF vector segments. The backend computes geometry and replaces asserted tool values with stored source-bound results. Counts start with overlapping coverage of the requested page or selection. `STOA_COMPLEX_READER=auto` and `STOA_COMPLEX_MODEL=gemini-4-argon` are defaults for PDFs and images of at least 4 MP. The stage allows three visual decisions plus three tool rounds, at most eight detail views and ten local tool attempts; other enabled tools can make additional requests under the same cumulative cap. `off` retains the older reader. Geometry, calibration and system selection remain provisional; a detected ink graph does not establish complete installed pipe lengths. See [source inspection](../docs/evaluation/complex-source-inspection.md) and [the geometry release](../docs/evaluation/drawing-geometry-tools.md).
 
 Antonio’s Metria branding and interactive drawing workspace are integrated with the current native parsers and question handling. Saved conversations, inference accounting, Cloudinary close-ups, source focus and review history use the existing backend. Calibration and inspector APIs remain available for integrations. Display conversion does not alter source quantities.
 
@@ -46,6 +46,19 @@ cp .env.example .env
 Keep an existing private `.env` when updating. `refresh_local.py` always installs the pinned Python requirements, runs `npm ci`, and rebuilds the frontend. `start_local.py` reads `.env` before choosing the host and port; exported environment variables take precedence. On Windows, use `.venv\\Scripts\\python.exe` and `Copy-Item` as documented in the handoff. `run.sh` is the macOS/Linux convenience wrapper and does not refresh dependencies on every launch.
 
 For UI development, run the backend and `npm --prefix frontend run dev`. Vite proxies `/api` to port 8787.
+
+The geometry tools use OpenCV and bundled RapidOCR ONNX models on CPU. Install
+the pinned requirements when updating; no GPU, external OCR account or new
+credential is needed. Content-addressed OCR tiles live under the existing
+runtime's `drawing-index/` directory and contain source text and coordinates,
+never reference answers. Missing dependencies produce an explicit tool error.
+The existing Docker image includes the required system libraries.
+
+For complex drawing practice, use the [48-question source-linked bank](../docs/evaluation/complex-practice-questions.md).
+`ops/complex_eval.py --help` documents an isolated paired development runner.
+It requires a private, independently audited case file and a fresh output
+directory. Raw responses and expected answers stay outside Git and application
+retrieval. Never point it at a reserved evaluation merely to debug a feature.
 
 ## How answers work
 
