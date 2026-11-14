@@ -72,8 +72,8 @@ class GemmaRequestRouting(unittest.TestCase):
         self.assertEqual(usage['input_tokens'], 200)
         self.assertEqual(usage['output_tokens'], 40)
         self.assertEqual(usage['models'], ['gemini/gemini-4-carbon', 'gemini/gemma-4-31b-it'])
-        self.assertIsNone(usage['cost_estimate_usd'])
-        self.assertEqual(usage['cost_basis'], 'mixed_models')
+        self.assertEqual(usage['cost_estimate_usd'], .00014)
+        self.assertEqual(usage['cost_basis'], 'model_rates')
         self.assertEqual(self.reserve.call_count, 2)
 
     def test_parallel_model_selection_is_local_and_usage_scopes_do_not_mix(self):

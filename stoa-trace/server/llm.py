@@ -8,13 +8,14 @@ import os
 import re
 import time
 import contextvars
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
 
 from .rendering import image_inputs, png_bytes
-from . import gemini_provider, store
+from . import costs, gemini_provider, store
 
 PROVIDER = os.environ.get('STOA_PROVIDER', 'openai').strip().lower()
 MODEL = os.environ.get('STOA_MODEL', gemini_provider.DEFAULT_MODEL if PROVIDER == 'gemini' else 'gpt-6-astra')
@@ -26,8 +27,10 @@ _usage = contextvars.ContextVar('trace_model_usage', default=None)
 
 
 @contextmanager
-def usage_scope():
-    token = _usage.set({'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0, 'unknown_usage': False, 'models': []})
+def usage_scope(*, session_id=None, message_id=None):
+    token = _usage.set({'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0,
+                        'unknown_usage': False, 'models': [], '_calls': [],
+                        '_session_id': session_id, '_message_id': message_id})
     try:
         yield
     finally:
@@ -36,6 +39,10 @@ def usage_scope():
 
 def usage_snapshot(cache_hit=False):
     current = dict(_usage.get() or {'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0})
+    calls = current.get('_calls') or []
+    if calls or not current['model_calls']:
+        return costs.summarize_calls(calls, cache_hit=cache_hit)
+    # Compatibility for imported/manual ledgers without individual request records.
     unknown = current.pop('unknown_usage', False)
     current.update(cache_hit=bool(cache_hit), cost_estimate_usd=0.0 if not current['model_calls'] else None,
                    cost_basis='native' if not current['model_calls'] else 'unconfigured')
@@ -58,7 +65,7 @@ def usage_snapshot(cache_hit=False):
             pass
     if unknown:
         current['usage_incomplete'] = True
-    return current
+    return {key: value for key, value in current.items() if not key.startswith('_')}
 
 EVIDENCE_SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
     'label': {'type': 'string'}, 'object_id': {'type': ['string', 'null']},
@@ -116,10 +123,16 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
         payload = {'model': selected_model, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
                    'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
                    'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
-    if not store.reserve_model_request(MAX_CALLS, {'provider': PROVIDER, 'model': selected_model, 'images': sum(x.get('type') == 'input_image' for x in content)}):
-        raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
     ledger = _usage.get()
+    request_id = uuid.uuid4().hex
+    tracking = ({'request_id': request_id, 'session_id': ledger['_session_id'], 'message_id': ledger['_message_id']}
+                if ledger is not None and ledger.get('_session_id') and ledger.get('_message_id') else {})
+    detail = {'provider': PROVIDER, 'model': selected_model, 'images': sum(x.get('type') == 'input_image' for x in content), **tracking}
+    if not store.reserve_model_request(MAX_CALLS, detail):
+        raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
+    call = {'model': PROVIDER + '/' + selected_model, 'usage': None, 'created': time.time()}
     if ledger is not None:
+        ledger.setdefault('_calls', []).append(call)
         ledger['model_calls'] += 1
         ledger['unknown_usage'] += 1
         identity = PROVIDER + '/' + selected_model
@@ -146,12 +159,13 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
         if not isinstance(body, dict):
             raise ModelError('The model returned an unreadable response.')
     usage = body.get('usage')
-    if ledger is not None and isinstance(usage, dict):
-        ledger['input_tokens'] += int(usage.get('input_tokens', 0))
-        ledger['output_tokens'] += int(usage.get('output_tokens', 0))
-        ledger['cached_input_tokens'] += int(usage.get('input_tokens_details', {}).get('cached_tokens', 0))
+    call['usage'] = usage
+    normalized_usage = costs.normalize_usage(usage)
+    if ledger is not None and normalized_usage is not None:
+        for field in costs.TOKEN_FIELDS:
+            ledger[field] += normalized_usage[field]
         ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
-    store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status')})
+    store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status'), **tracking})
     if body.get('status') != 'completed':
         raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
     text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')

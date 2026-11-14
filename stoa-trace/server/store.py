@@ -202,6 +202,74 @@ def record_event(kind, detail):
         db.execute('INSERT INTO events(kind,detail,created) VALUES(?,?,?)', (kind, json.dumps(detail), time.time()))
 
 
+def record_message_usage(session_id, message_id, usage, question, status, answer_id=None):
+    """Record lifecycle metadata once per state change, never another model charge."""
+    if not session_id or not message_id:
+        return
+    record_event('message_usage', {'session_id': session_id, 'message_id': message_id,
+                                 'question': str(question)[:2500], 'status': str(status)[:50],
+                                 'answer_id': answer_id, 'cache_hit': bool((usage or {}).get('cache_hit'))})
+
+
+def session_usage(session_id):
+    """Rebuild actual attempt usage; duplicate metadata/responses are idempotent.
+
+    A missing response remains unknown, including while a request is running.
+    Cached-analysis ingestion costs belong to the original attempt, not each
+    later answer. Legacy events without tracking cannot be assigned to a session.
+    """
+    from .costs import summarize_calls
+    with connection() as db:
+        rows = db.execute("SELECT id,kind,detail,created FROM events WHERE kind IN ('model_request','model_response','message_usage') ORDER BY id").fetchall()
+    requests, responses, messages = {}, {}, {}
+    revision = 0
+    for row in rows:
+        try:
+            detail = json.loads(row['detail'])
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(detail, dict) or detail.get('session_id') != session_id:
+            continue
+        message_id = detail.get('message_id')
+        if not isinstance(message_id, str) or not message_id:
+            continue
+        revision = max(revision, row['id'])
+        message = messages.setdefault(message_id, {'message_id': message_id, 'question': '',
+                                                  'status': 'pending', 'answer_id': None,
+                                                  'created_at': row['created'], 'cache_hit': False})
+        if row['kind'] == 'message_usage':
+            for key in ('question', 'status', 'answer_id', 'cache_hit'):
+                if key in detail:
+                    message[key] = detail[key]
+            message['updated_at'] = row['created']
+            continue
+        request_id = detail.get('request_id')
+        if not isinstance(request_id, str) or not request_id:
+            continue
+        if row['kind'] == 'model_request':
+            # One reservation is one attempt. A duplicated event cannot charge twice.
+            requests.setdefault(request_id, {'message_id': message_id,
+                                             'model': str(detail.get('provider') or 'unknown') + '/' + str(detail.get('model') or 'unknown'),
+                                             'created': row['created']})
+        else:
+            responses[request_id] = detail
+    calls = []
+    per_message = {message_id: [] for message_id in messages}
+    for request_id, request in requests.items():
+        response = responses.get(request_id, {})
+        # A mismatched response cannot supply another message/model's usage.
+        valid = (response.get('message_id') == request['message_id']
+                 and str(response.get('provider')) + '/' + str(response.get('model')) == request['model'])
+        call = {'model': request['model'], 'created': request['created'],
+                'usage': response.get('usage') if valid else None}
+        calls.append(call)
+        per_message[request['message_id']].append(call)
+    for message_id, message in messages.items():
+        message['usage'] = summarize_calls(per_message[message_id], cache_hit=message.pop('cache_hit'))
+    return {'session_id': session_id, 'revision': revision, 'usage': summarize_calls(calls),
+            'messages': list(messages.values()), 'message_count': len(messages)}
+
+
 def attribution(doc):
     if doc['source'] == 'uploads':
         return 'Uploaded project drawing. Source rights remain with its owner.'
