@@ -9,8 +9,9 @@ import pymupdf
 from PIL import Image, ImageOps
 
 # Enlarged overlapping crops for small plans (most CubiCasa images are under 1,000 px).
-# Off until the cubicasa comparison shows it helps; part of the inventory cache key.
-SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '') == '1'
+# On 40 dev plans they raised correct answers from 290 to 297 of 344 (windows 18 to 23 of 39).
+# Part of the inventory cache key; STOA_SMALL_IMAGE_CROPS=0 turns them off.
+SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '1') == '1'
 
 
 def natural_key(path):

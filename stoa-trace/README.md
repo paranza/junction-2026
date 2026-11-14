@@ -14,7 +14,7 @@ chmod +x run.sh
 ./run.sh
 ```
 
-Open <http://127.0.0.1:8787>. Set `STOA_DATA_ROOT` in `.env` to the folder containing `data/` and `questions.jsonl`. To use vision, set `OPENAI_API_KEY` in a private `.env` or `~/.config/stoa-junction-2026/secrets.env`. Native mode needs no API key. Uploads also work without the preview dataset.
+Open <http://127.0.0.1:8787>. Set `STOA_DATA_ROOT` in `.env` to the folder containing `data/` and `questions.jsonl`. To use vision, set `OPENAI_API_KEY` in a private `.env` or `~/.config/stoa-junction-2026/secrets.env`. Visual inventories can also use Gemini (`GEMINI_API_KEY`, see `.env.example`); `ops/cubicasa_eval.py` scores them on CubiCasa plans with a hard cap on calls. Native mode needs no API key. Uploads also work without the preview dataset.
 
 The portable default dataset location is `datasets/junction-dataset-preview/`, which is ignored by Git. Download the preview separately using the URL in `HANDOFF.md` and retain its licence files. Set a fresh local `STOA_RUNTIME_DIR`; credentials and the existing shared runtime are not part of the handoff.
 

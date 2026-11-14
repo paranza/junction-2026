@@ -34,10 +34,11 @@ def main(argv=None):
     parser.add_argument('--images', type=int, default=40)
     parser.add_argument('--seed', default='cubicasa-dev-v1')
     parser.add_argument('--holdout', action='store_true', help='Score the holdout images instead of the dev images')
-    parser.add_argument('--small-crops', action='store_true', help='Arm b: enlarged overlapping crops for small plans')
+    parser.add_argument('--no-small-crops', action='store_true', help='Turn off the enlarged crops for small plans')
     parser.add_argument('--allow-paid', action='store_true', help='Make model calls (one per image, cached)')
     parser.add_argument('--max-calls', type=int, default=40, help='Hard cap on recorded model attempts in this run')
     parser.add_argument('--runtime', type=Path, help='Runtime folder for caches (default: a new temporary folder)')
+    parser.add_argument('--workers', type=int, default=6, help='Images analysed in parallel')
     parser.add_argument('--output', type=Path, help='JSON report path')
     args = parser.parse_args(argv)
     root = args.dataset_root.expanduser().resolve()
@@ -63,43 +64,52 @@ def main(argv=None):
     # Configure Trace before importing it.
     runtime = args.runtime or Path(tempfile.mkdtemp(prefix='trace-cubicasa-'))
     os.environ.update(STOA_DATA_ROOT=str(root), STOA_RUNTIME_DIR=str(runtime), STOA_MAX_MODEL_CALLS=str(args.max_calls))
-    if args.small_crops:
-        os.environ['STOA_SMALL_IMAGE_CROPS'] = '1'
+    if args.no_small_crops:
+        os.environ['STOA_SMALL_IMAGE_CROPS'] = '0'
     sys.path.insert(0, str(HERE.parent))
     from server import inventory, llm, store
-    if not llm.model_available():
-        print('No model key configured (OPENAI_API_KEY).', file=sys.stderr)
+    if not (llm.GEMINI_KEY if llm.VISION_PROVIDER == 'gemini' else llm.KEY):
+        print('No key configured for the vision provider (OPENAI_API_KEY or GEMINI_API_KEY).', file=sys.stderr)
         return 2
     store.initialize()
 
-    results, by_template, failures = [], collections.defaultdict(lambda: [0, 0]), 0
-    usage = collections.Counter()
-    started = time.perf_counter()
-    for index, path in enumerate(chosen, 1):
+    def score_image(path):
         source = root / path
         doc = store.register(source)
         data = store.extract(doc['id'])
+        rows, spent = [], collections.Counter()
         for row in asked[path]:
             try:
                 with llm.usage_scope():
                     answer = inventory.answer_inventory(row['question'], data, source)
             except llm.ModelError as exc:
-                failures += 1
                 answer = {'value': None, 'error': str(exc)}
             value = answer.get('value') if answer else None
-            ok = value is not None and value == row['answer']
-            by_template[row['question']][0] += ok
-            by_template[row['question']][1] += 1
             if answer and not answer.get('inventory_cache_hit'):
-                usage.update({k: v for k, v in (answer.get('ingestion_usage') or {}).items() if isinstance(v, (int, float)) and not isinstance(v, bool)})
-            results.append({'path': path, 'question': row['question'], 'expected': row['answer'], 'value': value,
-                            'correct': ok, 'category': (answer or {}).get('category'), 'error': (answer or {}).get('error')})
-        print(f'[{index}/{len(chosen)}] {path}: {sum(r["correct"] for r in results if r["path"] == path)}/{len(asked[path])}', file=sys.stderr)
+                spent.update({k: v for k, v in (answer.get('ingestion_usage') or {}).items()
+                              if isinstance(v, (int, float)) and not isinstance(v, bool)})
+            rows.append({'path': path, 'question': row['question'], 'expected': row['answer'], 'value': value,
+                         'correct': value is not None and value == row['answer'],
+                         'category': (answer or {}).get('category'), 'error': (answer or {}).get('error')})
+        print(f'{path}: {sum(r["correct"] for r in rows)}/{len(rows)}', file=sys.stderr, flush=True)
+        return rows, spent
+
+    from concurrent.futures import ThreadPoolExecutor
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        scored = list(pool.map(score_image, chosen))
+    results = [r for rows, _ in scored for r in rows]
+    usage = sum((spent for _, spent in scored), collections.Counter())
+    failures = sum(bool(r['error']) for r in results)
+    by_template = collections.defaultdict(lambda: [0, 0])
+    for r in results:
+        by_template[r['question']][0] += r['correct']
+        by_template[r['question']][1] += 1
 
     correct = sum(r['correct'] for r in results)
     report = {'split': 'holdout' if args.holdout else 'dev', 'images': len(chosen), 'questions': len(results),
               'correct': correct, 'accuracy': round(correct / len(results), 4) if results else None,
-              'prior_baseline': f'{prior_correct}/{total}', 'model': llm.MODEL, 'small_image_crops': args.small_crops,
+              'prior_baseline': f'{prior_correct}/{total}', 'model': llm.vision_model(), 'small_image_crops': not args.no_small_crops,
               'model_errors': failures, 'usage': dict(usage), 'seconds': round(time.perf_counter() - started, 1),
               'by_template': {q: f'{c}/{n}' for q, (c, n) in sorted(by_template.items())}, 'results': results}
     output = args.output or runtime / 'cubicasa-eval.json'

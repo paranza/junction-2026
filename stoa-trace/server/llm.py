@@ -19,6 +19,15 @@ from . import store
 MODEL = os.environ.get('STOA_MODEL', 'gpt-6-astra')
 KEY = os.environ.get('OPENAI_API_KEY', '')
 MAX_CALLS = int(os.environ.get('STOA_MAX_MODEL_CALLS', '500'))
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.environ.get('STOA_GEMINI_MODEL', 'gemini-4-hydrogen')
+GEMINI_THINKING = os.environ.get('STOA_GEMINI_THINKING', 'high')
+# Service that builds visual inventories: an explicit choice, else whichever key exists.
+VISION_PROVIDER = os.environ.get('STOA_VISION_PROVIDER') or ('gemini' if GEMINI_KEY and not KEY else 'openai')
+
+
+def vision_model():
+    return GEMINI_MODEL if VISION_PROVIDER == 'gemini' else MODEL
 PROMPT_REVISION = 'trace-evidence-inventory-v2'
 _usage = contextvars.ContextVar('trace_model_usage', default=None)
 
@@ -79,7 +88,7 @@ class ModelError(Exception):
 
 
 def model_available():
-    return bool(KEY)
+    return bool(KEY) or (VISION_PROVIDER == 'gemini' and bool(GEMINI_KEY))
 
 
 def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
@@ -118,6 +127,63 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
     except (ValueError, TypeError):
         raise ModelError('The model returned an unreadable result.') from None
     result['_usage'] = body.get('usage', {})
+    return result
+
+
+def gemini_json(parts, system, schema, max_tokens=65536):
+    """One Gemini generateContent call returning parsed JSON. Uses the same attempt cap,
+    usage ledger and event log as _request; retries rate limits and overloads twice."""
+    if not GEMINI_KEY:
+        raise ModelError('Gemini is not configured on this server. Native drawing tools remain available.')
+    if not store.reserve_model_request(MAX_CALLS, {'model': GEMINI_MODEL, 'images': sum('inline_data' in p for p in parts)}):
+        raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
+    ledger = _usage.get()
+    if ledger is not None:
+        ledger['model_calls'] += 1
+        ledger['unknown_usage'] += 1
+    body = {'system_instruction': {'parts': [{'text': system}]},
+            'contents': [{'role': 'user', 'parts': parts}],
+            'generationConfig': {'responseMimeType': 'application/json', 'responseJsonSchema': schema,
+                                 'maxOutputTokens': max_tokens, 'thinkingConfig': {'thinkingLevel': GEMINI_THINKING},
+                                 'mediaResolution': 'MEDIA_RESOLUTION_HIGH'}}
+    url = f'https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent'
+    response = None
+    with httpx.Client(timeout=httpx.Timeout(300, connect=15), follow_redirects=False) as client:
+        for attempt in range(3):
+            try:
+                response = client.post(url, headers={'x-goog-api-key': GEMINI_KEY}, json=body)
+            except httpx.HTTPError:
+                response = None
+            if response is not None and response.status_code not in (429, 500, 503):
+                break
+            time.sleep(4 * (attempt + 1))
+    if response is None:
+        raise ModelError('The model service could not be reached. Please retry or use native tools.')
+    if response.status_code != 200:
+        reason = {400: 'The model rejected the request.', 401: 'Model authentication failed.', 403: 'This model is not enabled for this project.',
+                  429: 'The model account reached a rate or spend limit.'}.get(response.status_code, 'The model service could not complete this request.')
+        store.record_event('model_error', {'model': GEMINI_MODEL, 'status': response.status_code, 'detail': response.text[:300]})
+        raise ModelError(reason)
+    data = response.json()
+    meta = data.get('usageMetadata') or {}
+    usage = {'input_tokens': int(meta.get('promptTokenCount', 0)),
+             'output_tokens': int(meta.get('candidatesTokenCount', 0)) + int(meta.get('thoughtsTokenCount', 0)),
+             'input_tokens_details': {'cached_tokens': int(meta.get('cachedContentTokenCount', 0))}}
+    if ledger is not None:
+        ledger['input_tokens'] += usage['input_tokens']
+        ledger['output_tokens'] += usage['output_tokens']
+        ledger['cached_input_tokens'] += usage['input_tokens_details']['cached_tokens']
+        ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
+    candidate = (data.get('candidates') or [{}])[0]
+    store.record_event('model_response', {'model': GEMINI_MODEL, 'usage': meta, 'status': candidate.get('finishReason')})
+    if candidate.get('finishReason') != 'STOP':
+        raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
+    text = ''.join(p.get('text', '') for p in (candidate.get('content') or {}).get('parts', []) if not p.get('thought'))
+    try:
+        result = json.loads(text)
+    except (ValueError, TypeError):
+        raise ModelError('The model returned an unreadable result.') from None
+    result['_usage'] = usage
     return result
 
 
