@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import base64
+import collections
 import copy
 import hashlib
 import json
 import math
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -153,13 +155,75 @@ def answer_category(question, result):
     return next(iter(categories)) if len(categories) == 1 else None
 
 
+# One call per page by default. 'focused' asks for each group of categories in its own
+# call; VOTES > 1 repeats the inventory with differently cut crops and keeps, for each
+# category, the run whose count is the median.
+PASSES = os.environ.get('STOA_INVENTORY_PASSES', 'single')
+VOTES = max(1, int(os.environ.get('STOA_INVENTORY_VOTES', '1')))
+FOCUSED_GROUPS = (('window',), ('door',), ('toilet', 'sink', 'shower', 'bathtub'),
+                  ('bedroom', 'kitchen', 'bathroom', 'wc_room', 'sauna', 'balcony', 'apartment'), ('floor',))
+
+
 def _key(document, page, system=SYSTEM):
+    gemini = llm.VISION_PROVIDER == 'gemini'
     return store.analysis_key('inventory', {'source': document.get('source_fingerprint') or document.get('source_sha256'),
                               'document_id': document.get('document_id'), 'page': page, 'model': llm.vision_model(),
                               'extractor': store.EXTRACTOR_REVISION, 'inventory': REVISION,
                               'render': hashlib.sha256((Path(__file__).parent / 'rendering.py').read_bytes()).hexdigest(),
-                              'small_image_crops': rendering.SMALL_IMAGE_CROPS,
-                              'schema': hashlib.sha256((system + json.dumps(GEMINI_SCHEMA if llm.VISION_PROVIDER == 'gemini' else SCHEMA, sort_keys=True)).encode()).hexdigest()})
+                              'small_image_crops': rendering.SMALL_IMAGE_CROPS, 'passes': PASSES, 'votes': VOTES,
+                              'gemini': [llm.GEMINI_THINKING, llm.GEMINI_RESOLUTION] if gemini else None,
+                              'schema': hashlib.sha256((system + json.dumps(GEMINI_SCHEMA if gemini else SCHEMA, sort_keys=True)).encode()).hexdigest()})
+
+
+def _only(schema, categories):
+    limited = copy.deepcopy(schema)
+    limited['properties']['objects']['items']['properties']['category']['enum'] = list(categories)
+    return limited
+
+
+def _inventory_call(images, page, system, categories):
+    """One model call over the page images for `categories`; returns located rows."""
+    intro = 'Inspect this one drawing page and return the located category inventory. No reference answers or native counts are supplied.'
+    if tuple(categories) != CATEGORIES:
+        intro += ' Inventory only these categories: ' + ', '.join(categories) + '.'
+    encoded = [base64.b64encode(png_bytes(image['image'])).decode() for image in images]
+    if llm.VISION_PROVIDER == 'gemini':
+        parts = [{'text': intro}]
+        for index, image in enumerate(images):
+            parts += [{'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes use this image\'s own 0-1000 scale.'},
+                      {'inline_data': {'mime_type': 'image/png', 'data': encoded[index]}}]
+        result = llm.gemini_json(parts, system, _only(GEMINI_SCHEMA, categories))
+        for row in result.get('objects', []):
+            b = row.pop('box_2d', None)
+            ok = isinstance(b, list) and len(b) == 4 and all(type(v) in (int, float) for v in b)
+            row['bbox'] = [b[1] / 1000, b[0] / 1000, b[3] / 1000, b[2] / 1000] if ok else None
+    else:
+        content = [{'type': 'input_text', 'text': intro}]
+        for index, image in enumerate(images):
+            content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
+                        {'type': 'input_image', 'image_url': 'data:image/png;base64,' + encoded[index], 'detail': 'high'}]
+        result = llm._request(content, system=system, schema=_only(SCHEMA, categories), max_tokens=14000)
+    located, discarded = [], 0
+    for row in result.get('objects', []):
+        index = row.get('image_index')
+        if type(index) is not int or not 0 <= index < len(images) or row.get('category') not in categories:
+            discarded += 1
+            continue
+        box = llm._mapped_box(row.get('bbox'), images[index]['region'])
+        if box is None:
+            discarded += 1
+            continue
+        located.append((row, box))
+    # A symbol cut by a crop edge leaves a partial box inside the full one, so merge by
+    # intersection over the smaller box and keep the smaller box. Whole floors and
+    # apartments keep the larger box instead.
+    area = lambda b: (b[2] - b[0]) * (b[3] - b[1])
+    located.sort(key=lambda item: -area(item[1]) if item[0]['category'] in ('floor', 'apartment') else area(item[1]))
+    kept = []
+    for row, box in located:
+        if not any(r['category'] == row['category'] and _ios(b, box) > .6 for r, b in kept):
+            kept.append((row, box))
+    return kept, discarded, bool(result.get('complete')), list(result.get('warnings', [])), result.get('_usage') or {}
 
 
 def page_inventory(document, path, page):
@@ -170,52 +234,29 @@ def page_inventory(document, path, page):
         if cached:
             cached['cache_hit'] = True
             return cached
-        images = image_inputs(path, [page])
-        intro = 'Inspect this one drawing page and return the located category inventory. No reference answers or native counts are supplied.'
-        encoded = [base64.b64encode(png_bytes(image['image'])).decode() for image in images]
         before = llm.usage_snapshot()
-        if llm.VISION_PROVIDER == 'gemini':
-            parts = [{'text': intro}]
-            for index, image in enumerate(images):
-                parts += [{'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes use this image\'s own 0-1000 scale.'},
-                          {'inline_data': {'mime_type': 'image/png', 'data': encoded[index]}}]
-            result = llm.gemini_json(parts, system, GEMINI_SCHEMA)
-            for row in result.get('objects', []):
-                b = row.pop('box_2d', None)
-                ok = isinstance(b, list) and len(b) == 4 and all(type(v) in (int, float) for v in b)
-                row['bbox'] = [b[1] / 1000, b[0] / 1000, b[3] / 1000, b[2] / 1000] if ok else None
-        else:
-            content = [{'type': 'input_text', 'text': intro}]
-            for index, image in enumerate(images):
-                content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
-                            {'type': 'input_image', 'image_url': 'data:image/png;base64,' + encoded[index], 'detail': 'high'}]
-            result = llm._request(content, system=system, schema=SCHEMA, max_tokens=14000)
-        objects, discarded, located = [], 0, []
-        for row in result.get('objects', []):
-            index = row.get('image_index')
-            if type(index) is not int or not 0 <= index < len(images) or row.get('category') not in CATEGORIES:
-                discarded += 1
-                continue
-            box = llm._mapped_box(row.get('bbox'), images[index]['region'])
-            if box is None:
-                discarded += 1
-                continue
-            located.append((row, box))
-        # A symbol cut by a crop edge leaves a partial box inside the full one, so merge
-        # by intersection over the smaller box and keep the smaller box. Whole floors and
-        # apartments keep the larger box instead.
-        area = lambda b: (b[2] - b[0]) * (b[3] - b[1])
-        located.sort(key=lambda item: -area(item[1]) if item[0]['category'] in ('floor', 'apartment') else area(item[1]))
-        for row, box in located:
-            category = row['category']
-            if any(o['category'] == category and _ios(o['bbox'], box) > .6 for o in objects):
-                continue
-            identity = hashlib.sha256(json.dumps([key, category, [round(v, 5) for v in box]]).encode()).hexdigest()[:18]
-            objects.append({'id': 'visual-' + identity, 'label': row.get('label') or category.title(),
-                            'category': category, 'type': category, 'page': page, 'bbox': box,
-                            'document_id': document.get('document_id'), 'evidence_kind': 'visual',
-                            'source_verified': False, 'ambiguous': bool(row.get('ambiguous'))})
-        usage = result.get('_usage', {})
+        groups = FOCUSED_GROUPS if PASSES == 'focused' else (CATEGORIES,)
+        runs, discarded, complete, warnings, usage = [], 0, True, [], collections.Counter()
+        for vote in range(VOTES):
+            images = image_inputs(path, [page], layout=vote)
+            found = collections.defaultdict(list)
+            for group in groups:
+                kept, lost, done, notes, spent = _inventory_call(images, page, system, group)
+                discarded, complete, warnings = discarded + lost, complete and done, warnings + notes
+                usage.update({k: v for k, v in spent.items() if isinstance(v, int)})
+                for row, box in kept:
+                    found[row['category']].append((row, box))
+            runs.append(found)
+        objects = []
+        for category in CATEGORIES:
+            counts = [len(run[category]) for run in runs]
+            median = sorted(counts)[len(counts) // 2]
+            for row, box in runs[counts.index(median)][category]:
+                identity = hashlib.sha256(json.dumps([key, category, [round(v, 5) for v in box]]).encode()).hexdigest()[:18]
+                objects.append({'id': 'visual-' + identity, 'label': row.get('label') or category.title(),
+                                'category': category, 'type': category, 'page': page, 'bbox': box,
+                                'document_id': document.get('document_id'), 'evidence_kind': 'visual',
+                                'source_verified': False, 'ambiguous': bool(row.get('ambiguous'))})
         snapshot = llm.usage_snapshot()
         # The snapshot delta records this ingest separately from future free lookups.
         ingestion = {k: max(0, snapshot.get(k, 0) - before.get(k, 0)) for k in ('model_calls', 'input_tokens', 'output_tokens', 'cached_input_tokens')}
@@ -224,11 +265,11 @@ def page_inventory(document, path, page):
         ingestion.update(cost_estimate_usd=round(max(0, initial_cost - prior_cost), 8) if initial_cost is not None and prior_cost is not None else None,
                          cost_basis=snapshot.get('cost_basis', 'unconfigured'), cache_hit=False)
         if not ingestion['model_calls'] and usage:
-            ingestion.update(model_calls=1, input_tokens=usage.get('input_tokens', 0), output_tokens=usage.get('output_tokens', 0),
-                             cached_input_tokens=usage.get('input_tokens_details', {}).get('cached_tokens', 0))
-        inventory = {'objects': objects, 'page': page, 'complete_scope_claimed': bool(result.get('complete')),
-                     'discarded_candidates': discarded, 'warnings': result.get('warnings', []),
-                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.vision_model()}
+            ingestion.update(model_calls=VOTES * len(groups), input_tokens=usage.get('input_tokens', 0), output_tokens=usage.get('output_tokens', 0))
+        inventory = {'objects': objects, 'page': page, 'complete_scope_claimed': complete,
+                     'discarded_candidates': discarded, 'warnings': list(dict.fromkeys(warnings)),
+                     'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.vision_model(),
+                     'passes': PASSES, 'votes': VOTES}
         if discarded:
             inventory['warnings'] = list(inventory['warnings']) + [f'{discarded} invalid candidate locations were discarded; the inventory needs review.']
         store.save_analysis(key, 'inventory', inventory)

@@ -112,5 +112,31 @@ class Inventory(unittest.TestCase):
         self.assertAlmostEqual(floors['evidence'][0]['bbox'][2] - floors['evidence'][0]['bbox'][0], .9)
 
 
+    def test_focused_passes_ask_each_group_once(self):
+        def reply(content, system, schema, max_tokens):
+            allowed = schema['properties']['objects']['items']['properties']['category']['enum']
+            return {**self.model_output(), 'objects': [o for o in self.model_output()['objects'] if o['category'] in allowed]}
+        with patch.object(inventory, 'PASSES', 'focused'), patch('server.native_qa.answer_native', return_value=None), \
+                patch.object(inventory, 'image_inputs', return_value=self.images), patch.object(llm, '_request', side_effect=reply) as model, \
+                patch.object(llm, 'KEY', 'test'):
+            showers = self.ask('How many showers and bathtubs are drawn on this floor plan in total?')
+            floors = self.ask('How many floors (storeys) does this floor plan show?')
+        self.assertEqual(model.call_count, len(inventory.FOCUSED_GROUPS))
+        self.assertEqual((showers['value'], floors['value']), (2, 1))
+
+    def test_votes_keep_the_median_run(self):
+        toilet = lambda x: {'category': 'toilet', 'label': 'WC', 'image_index': 0, 'bbox': [x, .1, x + .04, .14], 'ambiguous': False}
+        runs = iter([[toilet(.1)], [toilet(.1), toilet(.3), toilet(.5)], [toilet(.1), toilet(.3)]])
+        reply = lambda *args, **kwargs: {'complete': True, 'warnings': [], 'objects': next(runs)}
+        with patch.object(inventory, 'VOTES', 3), patch('server.native_qa.answer_native', return_value=None), \
+                patch.object(inventory, 'image_inputs', return_value=self.images) as crops, patch.object(llm, '_request', side_effect=reply) as model, \
+                patch.object(llm, 'KEY', 'test'):
+            toilets = self.ask('How many toilet bowls (WC seats) are drawn on this floor plan?')
+        self.assertEqual(model.call_count, 3)
+        self.assertEqual([c.kwargs.get('layout') for c in crops.call_args_list], [0, 1, 2])
+        self.assertEqual(toilets['value'], 2)
+        self.assertEqual(len(toilets['evidence']), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

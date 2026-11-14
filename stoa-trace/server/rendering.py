@@ -87,7 +87,13 @@ def png_bytes(image: Image.Image):
     return out.getvalue()
 
 
-def image_inputs(path: Path, pages: list[int], region=None):
+# Crop layouts; voting runs use different ones so each sees the plan cut differently.
+LAYOUTS = (((0, 0, .55, .55), (.45, 0, 1, .55), (0, .45, .55, 1), (.45, .45, 1, 1)),
+           ((0, 0, .65, .65), (.35, 0, 1, .65), (0, .35, .65, 1), (.35, .35, 1, 1)),
+           ((0, 0, 1, .4), (0, .3, 1, .7), (0, .6, 1, 1), (.2, .15, .8, .85)))
+
+
+def image_inputs(path: Path, pages: list[int], region=None, layout=0):
     """Overview plus detail crops, with invertible image-to-page coordinates."""
     inputs = []
     for page in pages:
@@ -104,7 +110,7 @@ def image_inputs(path: Path, pages: list[int], region=None):
         small = SMALL_IMAGE_CROPS and max(image.size) <= 1600
         if (max(image.size) > 1600 or small) and len(pages) <= 2:
             # Overlap makes tiny symbols crossing a crop boundary inspectable.
-            for x0, y0, x1, y1 in ((0, 0, .55, .55), (.45, 0, 1, .55), (0, .45, .55, 1), (.45, .45, 1, 1)):
+            for x0, y0, x1, y1 in LAYOUTS[layout % len(LAYOUTS)]:
                 crop = image.crop((int(x0 * image.width), int(y0 * image.height), int(x1 * image.width), int(y1 * image.height)))
                 if small:  # enlarge small plans so their symbols cover more pixels
                     crop = crop.resize((crop.width * 2, crop.height * 2), Image.Resampling.LANCZOS)

@@ -22,6 +22,7 @@ MAX_CALLS = int(os.environ.get('STOA_MAX_MODEL_CALLS', '500'))
 GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
 GEMINI_MODEL = os.environ.get('STOA_GEMINI_MODEL', 'gemini-4-hydrogen')
 GEMINI_THINKING = os.environ.get('STOA_GEMINI_THINKING', 'high')
+GEMINI_RESOLUTION = os.environ.get('STOA_GEMINI_RESOLUTION', 'high')  # low, medium, high or ultra_high (per image)
 # Service that builds visual inventories: an explicit choice, else whichever key exists.
 VISION_PROVIDER = os.environ.get('STOA_VISION_PROVIDER') or ('gemini' if GEMINI_KEY and not KEY else 'openai')
 
@@ -132,7 +133,7 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
 
 def gemini_json(parts, system, schema, max_tokens=65536):
     """One Gemini generateContent call returning parsed JSON. Uses the same attempt cap,
-    usage ledger and event log as _request; retries rate limits and overloads twice."""
+    usage ledger and event log as _request; retries rate limits and overloads for about two minutes."""
     if not GEMINI_KEY:
         raise ModelError('Gemini is not configured on this server. Native drawing tools remain available.')
     if not store.reserve_model_request(MAX_CALLS, {'model': GEMINI_MODEL, 'images': sum('inline_data' in p for p in parts)}):
@@ -141,22 +142,26 @@ def gemini_json(parts, system, schema, max_tokens=65536):
     if ledger is not None:
         ledger['model_calls'] += 1
         ledger['unknown_usage'] += 1
+    level = 'MEDIA_RESOLUTION_' + GEMINI_RESOLUTION.upper()
+    config = {'responseMimeType': 'application/json', 'responseJsonSchema': schema,
+              'maxOutputTokens': max_tokens, 'thinkingConfig': {'thinkingLevel': GEMINI_THINKING}}
+    if GEMINI_RESOLUTION == 'ultra_high':  # only settable per image part
+        parts = [{**p, 'mediaResolution': {'level': level}} if 'inline_data' in p else p for p in parts]
+    else:
+        config['mediaResolution'] = level
     body = {'system_instruction': {'parts': [{'text': system}]},
-            'contents': [{'role': 'user', 'parts': parts}],
-            'generationConfig': {'responseMimeType': 'application/json', 'responseJsonSchema': schema,
-                                 'maxOutputTokens': max_tokens, 'thinkingConfig': {'thinkingLevel': GEMINI_THINKING},
-                                 'mediaResolution': 'MEDIA_RESOLUTION_HIGH'}}
+            'contents': [{'role': 'user', 'parts': parts}], 'generationConfig': config}
     url = f'https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent'
     response = None
     with httpx.Client(timeout=httpx.Timeout(300, connect=15), follow_redirects=False) as client:
-        for attempt in range(3):
+        for wait in (5, 10, 20, 40, 60, None):  # spend and rate limits clear within minutes
             try:
                 response = client.post(url, headers={'x-goog-api-key': GEMINI_KEY}, json=body)
             except httpx.HTTPError:
                 response = None
-            if response is not None and response.status_code not in (429, 500, 503):
+            if (response is not None and response.status_code not in (429, 500, 503)) or wait is None:
                 break
-            time.sleep(4 * (attempt + 1))
+            time.sleep(wait)
     if response is None:
         raise ModelError('The model service could not be reached. Please retry or use native tools.')
     if response.status_code != 200:
