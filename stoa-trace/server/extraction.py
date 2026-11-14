@@ -74,6 +74,7 @@ def _pdf(path, root):
     import fitz
     result = _empty(path, root)
     prefix = _uid(path, root)
+    fill_regions = {}
     with fitz.open(path) as pdf:
         result["page_count"] = len(pdf)
         result["metadata"].update({"pdf_metadata": _safe(pdf.metadata), "tables": []})
@@ -92,6 +93,9 @@ def _pdf(path, root):
                     "text": page.get_text("text"), "words": words}
             try:
                 drawings = page.get_drawings()
+                fills = _room_fill_regions(drawings, width, height)
+                if fills:
+                    fill_regions[index + 1] = fills
                 item["vector_count"] = len(drawings)
                 item["vectors"] = [{"bbox": _box(d["rect"], width, height),
                                     "type": d.get("type", "path")}
@@ -137,6 +141,7 @@ def _pdf(path, root):
         try:
             cad = _dxf(sibling, root)
             projected = _project_dxf_to_pdf(cad, result)
+            _apply_fill_categories(projected, result, fill_regions.get(1, []))
             result["objects"].extend(projected)
             result["metadata"]["semantic_dxf"] = relative_path(sibling, root)
             result["metadata"]["dxf_layers"] = cad["metadata"].get("layers", {})
@@ -151,6 +156,74 @@ def _pdf(path, root):
     if model:
         result["metadata"]["linked_model"] = relative_path(model, root)
     return result
+
+
+# Swiss sheet room fills (stroke grey 0.541) encode the room category; learned by
+# registering DXF rooms onto PDF paths in the EDA (eda/swiss_dwellings/pdf_solver.py).
+_FILL_CATEGORY = {(1.0, 1.0, 1.0): "room", (0.894, 0.894, 0.894): "outdoor",
+                  (0.953, 0.953, 0.953): "common", (0.812, 0.812, 0.812): "shaft_or_void"}
+
+
+def _room_fill_regions(drawings, width, height):
+    """Closed filled room paths with their category, in normalized page coordinates."""
+    from shapely.geometry import Polygon
+    out = []
+    for d in drawings:
+        color, fill = d.get("color"), d.get("fill")
+        if d.get("type") != "fs" or not color or not fill:
+            continue
+        if tuple(round(v, 3) for v in color) != (0.541, 0.541, 0.541):
+            continue
+        category = _FILL_CATEGORY.get(tuple(round(v, 3) for v in fill))
+        if category is None:
+            continue
+        points = []
+        for it in d["items"]:
+            if it[0] == "l":
+                points += [it[1], it[2]]
+            elif it[0] == "c":
+                points += [it[1], it[4]]
+            elif it[0] == "re":
+                r = it[1]; points += [r.tl, r.tr, r.br, r.bl]
+            elif it[0] == "qu":
+                q = it[1]; points += [q.ul, q.ur, q.lr, q.ll]
+        if len(points) >= 3:
+            polygon = Polygon([(pt.x / width, pt.y / height) for pt in points]).buffer(0)
+            if polygon.area > 0:
+                out.append((polygon, category))
+    return out
+
+
+def _apply_fill_categories(objects, document, regions):
+    """Mark projected rooms as shaft/void or outdoor from the sheet's room fill, located by
+    the room's printed number. Keeps the basis on the record for inspection."""
+    if not regions or not document.get("pages"):
+        return
+    from shapely.geometry import Point
+    words = {}
+    for w in document["pages"][0].get("words", []):
+        words.setdefault(w["text"], []).append(w)
+    for obj in objects:
+        if obj.get("type") != "room":
+            continue
+        number = obj["properties"].get("room_number")
+        found = words.get(number, []) if number else []
+        if len(found) != 1:
+            continue
+        b = found[0]["bbox"]
+        point = Point((b[0] + b[2]) / 2, (b[1] + b[3]) / 2)
+        covering = [(polygon.area, category) for polygon, category in regions if polygon.covers(point)]
+        if not covering:
+            continue
+        category = min(covering)[1]
+        obj["properties"]["sheet_fill_category"] = category
+        obj["properties"]["spatial_kind_basis"] = "room fill colour on the paired PDF sheet"
+        if category in ("shaft_or_void", "outdoor"):
+            obj["properties"]["spatial_kind"] = category
+        else:
+            # The fill is authoritative: a stairwell's treads cross its outline but it is
+            # a common indoor room, not a shaft.
+            obj["properties"].pop("spatial_kind", None)
 
 
 def _word_schedules(document, prefix):
@@ -415,12 +488,35 @@ def _dxf(path, root):
                                   "page": 1, "bbox": _bbox(poly), "polygon": poly,
                                   "source_path": relative_path(path, root),
                                   "properties": {"layer": "UNIT_OUTLINE", "cad_handle": handle}})
+    # Nested outlines (a lift inside its shaft, a niche inside a room) all cover the same
+    # label texts. A room number belongs to the smallest outline that contains it, and the
+    # name and area are the texts stacked on that number, so no outline inherits a label twice.
+    number_re = r"[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?"
+    tag_re = r"(?:app\.?|apt\.?|wohnung|whg\.?|appart\.?)\s+[A-Z]"
+    room_texts = [t for t in text_items if t["layer"] == "ROOM_TEXT"]
+    owner = {}
+    for t in room_texts:
+        if re.fullmatch(number_re, t["text"]):
+            covering = [(polygon.area, handle) for handle, _, polygon in outlines if polygon.covers(Point(t["point"]))]
+            if covering:
+                owner.setdefault(min(covering)[1], []).append(t)
+
+    def _stack(number):
+        x, y = number["point"]
+        return [t for t in room_texts if t is not number and abs(t["point"][0]-x) < 1e-6 and abs(t["point"][1]-y) < 1.2]
     for handle, points, polygon in outlines:
-        inside = [t for t in text_items if t["layer"] == "ROOM_TEXT" and polygon.covers(Point(t["point"]))]
-        areas = [t for t in inside if re.search(r"\d[\d.,]*\s*m[²2]", t["text"], re.I)]
-        numbers = [t for t in inside if re.fullmatch(r"[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?", t["text"])]
-        names = [t for t in inside if t not in areas + numbers and not re.fullmatch(
-            r"(?:app\.?|apt\.?|wohnung|whg\.?)\s+[A-Z]", t["text"], re.I)]
+        numbers = owner.get(handle, [])
+        if numbers:
+            stack = _stack(numbers[0])
+            areas = [t for t in stack if t["point"][1] < numbers[0]["point"][1] and re.search(r"\d[\d.,]*\s*m[²2]", t["text"], re.I)]
+            names = [t for t in sorted(stack, key=lambda t: t["point"][1]) if t["point"][1] > numbers[0]["point"][1]
+                     and not re.search(r"\d[\d.,]*\s*m[²2]", t["text"], re.I) and not re.fullmatch(tag_re, t["text"], re.I)]
+        else:
+            inside = [t for t in room_texts if polygon.covers(Point(t["point"]))]
+            owned = {id(t) for ts in owner.values() for n in ts for t in [n] + _stack(n)}
+            free = [t for t in inside if id(t) not in owned]
+            areas = [t for t in free if re.search(r"\d[\d.,]*\s*m[²2]", t["text"], re.I)]
+            names = [t for t in free if t not in areas and not re.fullmatch(tag_re, t["text"], re.I)]
         label = names[0]["text"] if names else "Room"
         props = {"layer": "ROOM_OUTLINE", "cad_handle": handle,
                  "room_number": numbers[0]["text"] if numbers else None,

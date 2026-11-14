@@ -531,6 +531,10 @@ def _native_cad(question, document):
                 return result
     labels = {_normal(o["label"]):o["label"] for o in rooms if o["label"] != "Room"}
     mentioned = [label for label in labels if re.search(r"(?<!\w)"+re.escape(label)+r"(?!\w)", q)]
+    # A quoted label is exact: 'Wohnen/Essen' must not also select rooms named Wohnen or Essen.
+    quoted = [_normal(m[1:-1]).strip() for m in re.findall(_QUOTED_TEXT, question)]
+    if any(label in labels for label in quoted):
+        mentioned = [label for label in quoted if label in labels]
     chosen = [o for o in rooms if _normal(o["label"]) in mentioned] if mentioned else []
     numbers = re.findall(r"\b[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?\b", question)
     if numbers:
@@ -561,7 +565,7 @@ def _native_cad(question, document):
     if re.search(r"indoor|interior|interne|interni|net floor area of apartment|netta dell'appartamento|excluding|exclus|esclus|ohne", q):
         outdoors = r"balcon|balkon|loggia|terrass|outdoor|shaft|void|schacht|caved|vuoto|luftraum"
         chosen = [o for o in chosen if not re.search(outdoors, _normal(o["label"]))
-                  and o["properties"].get("spatial_kind") != "shaft_or_void"]
+                  and o["properties"].get("spatial_kind") not in ("shaft_or_void", "outdoor")]
     if not chosen or not all("net_area_m2" in o["properties"] for o in chosen):
         return None
     if len(chosen) > 1 and not re.search(r"\b(?:all|total|sum|summing|combined|apartment|wohnung|appartamento|rooms labelled|rooms labeled|rooms named)\b", q):

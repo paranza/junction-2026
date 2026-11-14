@@ -316,6 +316,29 @@ class SwissExporterCompatibility(unittest.TestCase):
             self.assertEqual(answer_native('How many apartments (residential units) are shown on this floor plan?',doc,path,root)['value'],1)
             self.assertEqual(answer_native('How many doors (interior doors and entrance doors together) are drawn on this floor plan?',doc,path,root)['value'],2)
 
+    def test_nested_outlines_do_not_duplicate_labels_and_quotes_are_exact(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            root=Path(folder); path=root/'fixture.dxf'
+            drawing=ezdxf.new(); drawing.units=6; model=drawing.modelspace()
+            model.add_lwpolyline([(0,0),(10,0),(10,10),(0,10),(0,0)],dxfattribs={'layer':'UNIT_OUTLINE'})
+            # a lift outline nested inside a larger shaft outline: one room, not two
+            model.add_lwpolyline([(0,0),(4,0),(4,4),(0,4),(0,0)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            model.add_lwpolyline([(1,1),(3,1),(3,3),(1,3),(1,1)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            model.add_lwpolyline([(5,0),(9,0),(9,4),(5,4),(5,0)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            model.add_lwpolyline([(5,5),(9,5),(9,9),(5,9),(5,5)],dxfattribs={'layer':'ROOM_OUTLINE'})
+            texts=[('Whg. A',(9.5,9.5)),('Lift',(2,2.4)),('1.01',(2,2)),('4 m²',(2,1.6)),
+                   ('Wohnen/Essen',(7,2.4)),('1.02',(7,2)),('16 m²',(7,1.6)),
+                   ('Wohnen',(7,7.4)),('1.03',(7,7)),('16 m²',(7,6.6))]
+            for text,point in texts:
+                model.add_text(text,dxfattribs={'layer':'ROOM_TEXT','insert':point})
+            drawing.saveas(path)
+            doc=extract_document(path,root)
+            self.assertEqual(sum(o['label']=='Lift' for o in doc['objects'] if o['type']=='room'),1)
+            self.assertEqual(answer_native("How many rooms labelled 'Lift' are there on this floor?",doc,path,root)['value'],1)
+            self.assertEqual(answer_native("How many rooms labelled 'Wohnen/Essen' are there on this floor?",doc,path,root)['value'],1)
+            self.assertEqual(answer_native("How many rooms labelled 'Wohnen' are there on this floor?",doc,path,root)['value'],1)
+
     def test_fixture_requires_semantic_export_signature(self):
         for semantic in (True,False):
             with self.subTest(semantic=semantic),tempfile.TemporaryDirectory() as folder:
