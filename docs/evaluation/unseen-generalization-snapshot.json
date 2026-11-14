@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "frozen_at": "2026-11-14T08:36:20.593797+00:00",
+  "scope": "App-unseen inputs, not a claim that foundation models never saw public sources.",
+  "inputs": [
+    {
+      "group_id": "17bf24c9a3104453fde4",
+      "kind": "procedural",
+      "format": "png",
+      "split": "development",
+      "sha256": "2d6bd150b65e6ddedfe56a3d4abb426855abbc8a4b7dd076847a9908f8b57c07"
+    },
+    {
+      "group_id": "22615314e97a520f40ae",
+      "kind": "procedural",
+      "format": "jpg",
+      "split": "development",
+      "sha256": "c151118421a52c82255481955c2563d8062cc1578964ba45599083dd420325e6"
+    },
+    {
+      "group_id": "a68049ece2f02f073cef",
+      "kind": "procedural",
+      "format": "pdf",
+      "split": "development",
+      "sha256": "c386218620f29e080758dc5c8edc0560cad8573cea3bcf94812c053c2eb9ecd9"
+    },
+    {
+      "group_id": "6cc42726620b7823d431",
+      "kind": "procedural",
+      "format": "svg",
+      "split": "development",
+      "sha256": "6c1d571ce0a8985b073a8bd243e43c3dd9af72ab57e55531691383b88a6047e7"
+    },
+    {
+      "group_id": "fe2d9829eb75cdd21515",
+      "kind": "procedural",
+      "format": "tiff",
+      "split": "development",
+      "sha256": "1954722a5d2a2a74c2cd9b510789333c9d7328e97729a7af4baf94152bb9dde5"
+    },
+    {
+      "group_id": "2e122e4d0b54588ba0a2",
+      "kind": "procedural",
+      "format": "webp",
+      "split": "development",
+      "sha256": "9ad25e356d2e8534a84634a83ff5ca30b11c3f013fbf2addc6e0f1c0d4c2ff34"
+    },
+    {
+      "group_id": "bb5f612bde95fded33c8",
+      "kind": "procedural",
+      "format": "png",
+      "split": "reserved",
+      "sha256": "abe4f018cc35e1041ee4753e86ffe4e033fe60be3cc2ee6f5caa6259b9a6a3d8"
+    },
+    {
+      "group_id": "febee015b7ab53a1f7f9",
+      "kind": "procedural",
+      "format": "jpg",
+      "split": "reserved",
+      "sha256": "00314d5de13da11b015f2dc2eea3afe5aa7a1a5a6d8c49399d380e09db0fe21f"
+    },
+    {
+      "group_id": "f59550d25951264c6006",
+      "kind": "procedural",
+      "format": "pdf",
+      "split": "reserved",
+      "sha256": "b5e65f6593abc82fd447f8f0aa7cf0beeb3fa3d53bf7232ff5a7c950463958e6"
+    },
+    {
+      "group_id": "d869ea0ddf9fe1b78d72",
+      "kind": "procedural",
+      "format": "svg",
+      "split": "reserved",
+      "sha256": "595832375662b1b5463c35ea7826ed64f97228ee622cd2c7b8a6397e4782703c"
+    },
+    {
+      "group_id": "a3fe122eed9ef9e9710c",
+      "kind": "procedural",
+      "format": "tiff",
+      "split": "reserved",
+      "sha256": "0ca5f3832a3e526bc695f268b4af94942afc64e65981110d6c20e1bd72c6ffcf"
+    },
+    {
+      "group_id": "731642f3422cb78b1035",
+      "kind": "procedural",
+      "format": "webp",
+      "split": "reserved",
+      "sha256": "7b2b6c78dfefe5972061f6fd37b086a62bd5e35c07cb21964885761aaf18e41d"
+    },
+    {
+      "source_id": "5396977b5f877ffc",
+      "source_title": "File:Edgerton House Floor Plan.png",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Edgerton_House_Floor_Plan.png",
+      "original_url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/Edgerton_House_Floor_Plan.png",
+      "license": "Public domain",
+      "license_url": null,
+      "author": "Richard H. Dana, Jr.",
+      "sha256": "a951d8302d9911e3e874117c6c145b5350ed52fa5d682dd5b737be6d9b6e3a6e",
+      "split": "reserved"
+    },
+    {
+      "source_id": "fe94d57ecd499660",
+      "source_title": "File:Fallingwaterfloorplan.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Fallingwaterfloorplan.jpg",
+      "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Fallingwaterfloorplan.jpg",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "author": "Arsenalbubs",
+      "sha256": "11cd5a188f891aa7a7842cc89d57f2f02ce057c8d472259e651700191d758bef",
+      "split": "reserved"
+    },
+    {
+      "source_id": "6430c6c988b9edcd",
+      "source_title": "File:Floor plan1.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Floor_plan1.jpg",
+      "original_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Floor_plan1.jpg",
+      "license": "Public domain",
+      "license_url": null,
+      "author": "Ashlynn Schindler",
+      "sha256": "7d7451bc575f0076fa5c5e181b232c2e096e17b30da9124a0215ef0208efdafd",
+      "split": "reserved"
+    },
+    {
+      "source_id": "23e15fb908c13e33",
+      "source_title": "File:George Kinnear plan.png",
+      "source_url": "https://commons.wikimedia.org/wiki/File:George_Kinnear_plan.png",
+      "original_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/George_Kinnear_plan.png",
+      "license": "Public domain",
+      "license_url": null,
+      "author": "Kirby and Randall",
+      "sha256": "e109907862fcebbc795282123a0eb19dda5d22b4fc16b10ec13fb3474c616fdf",
+      "split": "reserved"
+    }
+  ],
+  "splits": {
+    "development": {
+      "groups": 6,
+      "questions": 18,
+      "request_sha256": "1df019b74dfd26b1f5502f4cf993c6d08d6dd4a1dd73cd67075a16b5399710c2",
+      "private_gold_sha256": "37c5d5bacd00a4d0a51f99c5b47ba7f8a966a1e3499c4a81ccfd125fb3ae950d"
+    },
+    "reserved": {
+      "groups": 10,
+      "questions": 26,
+      "request_sha256": "61048efa6267448d9f6495e3a3753e982bec3bf4843339535c4c2e6fd63f101d",
+      "private_gold_sha256": "09e7c982e57275794eb5f770b6b6e70cdee0181978d35afd02b7e464b2325d0d"
+    }
+  },
+  "private_seed_hash": "4930db032db38cb1efd09bd1a8958731aa61ad0a09ca70add81c55928491264b",
+  "policy": "Use development for changes. Release reserved cases only after a code freeze. Do not train on either set; inspect reserved errors only after scoring the frozen code."
+}
