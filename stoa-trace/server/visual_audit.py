@@ -17,7 +17,7 @@ from pathlib import Path
 from . import inventory, llm, rendering
 
 
-REVISION = 'visual-count-audit-v3'
+REVISION = 'visual-count-audit-v4'
 MAX_PAGES = 6
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
     'usable_plan': {'type': 'boolean'},
@@ -54,6 +54,18 @@ def config_signature():
         model = 'invalid'
     signature = llm.gemini_provider.config_signature(model) if llm.PROVIDER == 'gemini' else 'responses-v1'
     return {'revision': REVISION, 'provider': llm.PROVIDER, 'model': model, 'model_signature': signature}
+
+
+def _response_schema(images, model):
+    if model not in llm.gemini_provider.GEMMA_MODELS:
+        return SCHEMA
+    schema = copy.deepcopy(SCHEMA)
+    fields = schema['properties']['objects']['items']['properties']
+    fields['image_index'] = {'type': 'integer', 'enum': list(range(len(images))),
+                             'description': 'Exact zero-based IMAGE index from this request.'}
+    fields['bbox']['description'] = 'Normalized [left, top, right, bottom] in the referenced image; every coordinate is between 0 and 1.'
+    fields['bbox']['items'].update(minimum=0, maximum=1)
+    return schema
 
 
 def _audit_identity(result, model=None):
@@ -207,7 +219,7 @@ def audit_visual_count(question, result, document, path, page=1, scope='document
                 {'type': 'input_text', 'text': f'IMAGE {index}: original page {image["page"]}, {image.get("kind", "drawing")}, source-page region {image["region"]}. Return image-local normalized boxes.'},
                 {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(rendering.png_bytes(image['image'])).decode(), 'detail': 'high'},
             ])
-        response = llm._request(content, system=SYSTEM, schema=SCHEMA, max_tokens=12000,
+        response = llm._request(content, system=SYSTEM, schema=_response_schema(images, selected_model), max_tokens=12000,
                                 **({'model': selected_model} if selected_model != llm.MODEL else {}))
         source_identity = _source_identity(document, path)
     except (llm.ModelError, ValueError, OSError) as exc:

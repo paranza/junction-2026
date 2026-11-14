@@ -189,5 +189,18 @@ class GemmaVisualReview(unittest.TestCase):
             self.assertIn(visual_audit.REVIEW_WARNING, result['warnings'])
 
 
+class GroundingSchema(unittest.TestCase):
+    def test_gemma_coordinates_and_image_references_are_bounded_without_global_mutation(self):
+        schema = visual_audit._response_schema([{'page': 1}], 'gemma-4-31b-it')
+        fields = schema['properties']['objects']['items']['properties']
+        self.assertEqual(fields['image_index']['enum'], [0])
+        self.assertEqual(fields['bbox']['items']['minimum'], 0)
+        self.assertEqual(fields['bbox']['items']['maximum'], 1)
+        other = visual_audit._response_schema([{'page': 1}, {'page': 2}], 'gemma-4-31b-it')
+        self.assertEqual(other['properties']['objects']['items']['properties']['image_index']['enum'], [0, 1])
+        self.assertNotIn('enum', visual_audit.SCHEMA['properties']['objects']['items']['properties']['image_index'])
+        self.assertIs(visual_audit._response_schema([{'page': 1}], 'gemini-4-carbon'), visual_audit.SCHEMA)
+
+
 if __name__ == '__main__':
     unittest.main()
