@@ -46,8 +46,8 @@ OBJECT_PATTERNS = [
     (r"\bdoors?\b|\bturen\b|\bportes\b|\bporte\b|\bovea\b", ["door"]),
 ]
 ROOM_PATTERNS = [  # counted as room categories (cubicasa-style plans)
-    (r"separate wc|erillist[a-z]* wc", "wc_room"),
     (r"bathroom|washroom|kylpy- tai pesuhuone", "bathroom"),
+    (r"separate wc|erillist[a-z]* wc", "wc_room"),
     (r"bedroom|makuuhuone", "bedroom"),
     (r"kitchen|keitti", "kitchen"),
     (r"sauna", "sauna"),
@@ -98,8 +98,12 @@ def answer(question: str, facts: dict):
         if re.search(r"floors \(storeys\)|kerrosta", q):
             return _res(facts.get("storeys", 1), "count", "Separate floor drawings on the sheet", [])
         for pat, cat in ROOM_PATTERNS:
-            if re.search(pat, q) and not re.search(r"toilet bowl|wc seat|wc-istuin|drawn", q):
+            if re.search(pat, q) and not re.search(r"toilet bowl|wc seat|wc-istuin|drawn|piirretty", q):
                 rs = [r for r in rooms if r.get("category") == cat]
+                if cat == "sauna":  # a sauna stove is the unambiguous marker of a sauna
+                    st = [o for o in objs if o["type"] == "sauna_stove"]
+                    if len(st) > len(rs):
+                        return _res(len(st), "count", "Sauna stoves detected", [o["id"] for o in st])
                 return _res(len(rs), "count", f"Rooms of type {cat}", ids(rs))
         for pat, types in OBJECT_PATTERNS:
             if re.search(pat, q):
