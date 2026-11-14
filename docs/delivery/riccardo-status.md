@@ -1,8 +1,28 @@
 # Riccardo delivery status
 
-14 November 2026. Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
+15 November 2026. Metria/Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
-Latest final-evaluation update: application `24b7a66` is on main, deployed and
+Latest complex-reader release: application `21f452f` is on main, deployed and
+loaded in both local apps. Its default complex PDF/large-raster fallback uses
+question-driven original-resolution inspection with Argon and checked typed
+expressions. Source-aware visual follow-ups re-read prior evidence locations
+instead of accepting previous answer values. A frozen seven-check public scan
+comparison improved from 5/7 on the previous Carbon path to 7/7; this is a small
+development comparison, not general accuracy. The follow-up API check passed.
+
+428 backend tests passed. The previous 59 frontend tests/build apply to identical
+source and asset hashes. Native solver files and the native-reachable analysis
+prefix are unchanged; at the user's direction the 7,066-case native benchmark
+was not repeated. Authentication, native answer, preview, review/export and
+restart persistence passed. Production remains 17/1,000 attempts, and both local
+counters remain 4/1,000 and 140/200. The base provider policy is preserved; the
+complex inspection stage has a separately documented Argon override. Neither
+reserved evaluation was rerun. Full network tracing remains unsupported and a
+recorded provider timeout remains a reliability limit. See
+[complex source inspection](../evaluation/complex-source-inspection.md) and
+[deployment verification](deployment-verification.md).
+
+Earlier final-evaluation update: application `24b7a66` is on main, deployed and
 loaded in both local apps. It accepts larger scans, inspects selected source
 regions at original resolution and fixes generic engineering quantity notation
 and unit checks. 412 backend tests, 59 frontend tests/build and the 7,066-case
@@ -54,7 +74,12 @@ and disk were removed, with the application VM preserved. See [the full study](.
 
 The quality target is 99.9% on questions supported by the input. Abstentions on answerable questions are failures. This target has not been achieved or established by the current tests. Reserved reference values never enter application prompts, extraction, caches or normalizer tables.
 
-The user requested committing and pushing the current changes, then waiting and staying within Riccardo's assigned work. Competitor monitoring is paused. Scheduled deployment tasks remain within the existing Riccardo assignment. No further unsolicited product or competitor work should start after this delivery.
+The user subsequently explicitly requested complex-scan improvements and a new
+public competitor investigation. The latest
+[plumbing and complex-scan research](../research/stoa-plumbing-complex-2026-11-15.md)
+records inspected source revisions and observed public-site limitations. This
+does not authorize unrelated work or contacting other teams. Scheduled
+deployment tasks remain within the existing Riccardo assignment.
 
 ## Local chat-history recovery, 14 November
 

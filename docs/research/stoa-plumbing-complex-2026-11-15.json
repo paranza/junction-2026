@@ -1,0 +1,313 @@
+{
+  "generated_at_utc": "2026-11-14 22:53:54 UTC",
+  "focus": "Public plumbing/MEP and complex scanned drawing techniques. Repository presence is not registered-team confirmation.",
+  "repositories": [
+    {
+      "repository": "Hour49/Junction26",
+      "url": "https://github.com/Hour49/Junction26",
+      "classification": "challenge",
+      "inspection_scope": "code",
+      "head": "3e5d5eeb2cb52a2fe1b4bcf44cdad626918d91c6",
+      "pushed_at": "2026-11-14T22:37:39Z",
+      "homepage": "junction.hour49.com",
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "markmannion/leargas",
+      "url": "https://github.com/markmannion/leargas",
+      "classification": "challenge",
+      "inspection_scope": "code",
+      "head": "73b23fbd9198cfa0511c93749b69f086d7037dbb",
+      "pushed_at": "2026-11-14T22:29:30Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "lorikjashari/stoa",
+      "url": "https://github.com/lorikjashari/stoa",
+      "classification": "challenge",
+      "inspection_scope": "code",
+      "head": "0df652cdf3f85ee9eab381640bac3ddca87ed95b",
+      "pushed_at": "2026-11-14T22:20:41Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "13032585789-spec/Trace",
+      "url": "https://github.com/13032585789-spec/Trace",
+      "classification": "challenge",
+      "inspection_scope": "code",
+      "head": "4084fb0e3d424c0b9d39067e4e5436a4f20dbd59",
+      "pushed_at": "2026-11-14T21:52:23Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "NiceK1/stoa-spike",
+      "url": "https://github.com/NiceK1/stoa-spike",
+      "classification": "challenge",
+      "inspection_scope": "readme",
+      "head": "40ef1b3737df85df57e886d8542416dd3cfb8d1e",
+      "pushed_at": "2026-11-14T22:19:23Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "Willi-CQ/Planproof",
+      "url": "https://github.com/Willi-CQ/Planproof",
+      "classification": "challenge-new",
+      "inspection_scope": "code",
+      "head": "bf64999bb7980a09a2be591e06a8a4d9b9c14731",
+      "pushed_at": "2026-11-14T22:03:14Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "PianoPiston/trilobyte",
+      "url": "https://github.com/PianoPiston/trilobyte",
+      "classification": "challenge-new",
+      "inspection_scope": "code",
+      "head": "10fa79cb3afbcb2d870b858c99d8b1542e5effcb",
+      "pushed_at": "2026-11-14T22:14:36Z",
+      "homepage": null,
+      "license": "NOASSERTION",
+      "public": true
+    },
+    {
+      "repository": "Paulsg777/blueline-stoa",
+      "url": "https://github.com/Paulsg777/blueline-stoa",
+      "classification": "challenge-new",
+      "inspection_scope": "frontend/readme",
+      "head": "e67333cf0482fb3369452c7b8ea3e406f7d93c7c",
+      "pushed_at": "2026-11-14T21:32:42Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "Akshaz7/junction",
+      "url": "https://github.com/Akshaz7/junction",
+      "classification": "challenge",
+      "inspection_scope": "readme/live",
+      "head": "cf4fb93b80b3ff486bc2236b386591eb92a926ce",
+      "pushed_at": "2026-11-14T22:41:08Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "AistisV/yolo-segmentation-testing",
+      "url": "https://github.com/AistisV/yolo-segmentation-testing",
+      "classification": "challenge-experiment",
+      "inspection_scope": "metadata",
+      "head": null,
+      "pushed_at": "2026-11-14T19:07:11Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "AistisV/reinforcement-testing",
+      "url": "https://github.com/AistisV/reinforcement-testing",
+      "classification": "challenge-experiment",
+      "inspection_scope": "metadata",
+      "head": null,
+      "pushed_at": "2026-11-14T10:17:38Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "tusbuh/junction-hackathon-2",
+      "url": "https://github.com/tusbuh/junction-hackathon-2",
+      "classification": "challenge",
+      "inspection_scope": "metadata",
+      "head": null,
+      "pushed_at": "2026-11-14T16:09:34Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "Yuvrajys2512/earned-trust",
+      "url": "https://github.com/Yuvrajys2512/earned-trust",
+      "classification": "excluded-other-challenge",
+      "inspection_scope": "readme",
+      "head": "1b6cd4c1dcf6595763c07551345e570899a8f2f3",
+      "pushed_at": "2026-11-14T22:24:21Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "Hugo510/junction-2026",
+      "url": "https://github.com/Hugo510/junction-2026",
+      "classification": "excluded-other-challenge",
+      "inspection_scope": "readme",
+      "head": "02b7863f36af2f9712bdb284042593a909962405",
+      "pushed_at": "2026-11-14T22:36:30Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "mchalszczepan-png/vitruvian",
+      "url": "https://github.com/mchalszczepan-png/vitruvian",
+      "classification": "excluded-other-challenge",
+      "inspection_scope": "readme",
+      "head": "32cac608fc546f504e321eb2d447b67a8cc80640",
+      "pushed_at": "2026-11-14T22:45:56Z",
+      "homepage": "https://vitruvian-three.vercel.app",
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "KunalDev6/junction-project",
+      "url": "https://github.com/KunalDev6/junction-project",
+      "classification": "excluded-other-product",
+      "inspection_scope": "readme",
+      "head": "097f19f76dc2275fd6b0aeed7c3f5af201af7375",
+      "pushed_at": "2026-11-14T22:12:08Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "zabrodsk/meebo",
+      "url": "https://github.com/zabrodsk/meebo",
+      "classification": "excluded-other-challenge",
+      "inspection_scope": "readme",
+      "head": "5abf999fdf578172686984fe64b35da80098d2a2",
+      "pushed_at": "2026-11-14T22:26:55Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "devprjl/stoa",
+      "url": "https://github.com/devprjl/stoa",
+      "classification": "excluded-neovim",
+      "inspection_scope": "readme",
+      "head": "6f1c73cc0de4acd9c4d3cee3ad16fda2d52f8140",
+      "pushed_at": "2026-11-14T10:33:00Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "nilsgrosdesormeaux-png/Stoa",
+      "url": "https://github.com/nilsgrosdesormeaux-png/Stoa",
+      "classification": "excluded-fitness",
+      "inspection_scope": "readme",
+      "head": "f3038e8bda6ee7782f512a6f536ee6dd074c2e1e",
+      "pushed_at": "2026-11-14T20:38:17Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "viton13com/stoa-architecture",
+      "url": "https://github.com/viton13com/stoa-architecture",
+      "classification": "excluded-architecture-portfolio",
+      "inspection_scope": "readme",
+      "head": "271b843034c156ddf336d289731e7bfd03cfa098",
+      "pushed_at": "2026-11-13T04:27:43Z",
+      "homepage": "https://tarasovvitalii.com/demos/stoa/",
+      "license": "NOASSERTION",
+      "public": true
+    },
+    {
+      "repository": "liorkr98/STOA",
+      "url": "https://github.com/liorkr98/STOA",
+      "classification": "excluded-older-unrelated-app",
+      "inspection_scope": "readme",
+      "head": "e2831db97a104ef878f35785c101fc4f96f3a541",
+      "pushed_at": "2026-09-23T12:59:51Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "chocoliticekreem/junction26",
+      "url": "https://github.com/chocoliticekreem/junction26",
+      "classification": "unqualified-starter",
+      "inspection_scope": "metadata",
+      "head": "51c87645dd11eb59a4083938f83846b8879d92c3",
+      "pushed_at": "2026-11-13T19:36:08Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "Azure-Samples/digitization-of-piping-and-instrument-diagrams",
+      "url": "https://github.com/Azure-Samples/digitization-of-piping-and-instrument-diagrams",
+      "classification": "external-reference",
+      "inspection_scope": "code",
+      "head": "c51302e3ec34147c676ef6eedbdd7551ea908b05",
+      "pushed_at": "2026-01-27T00:10:08Z",
+      "homepage": null,
+      "license": "MIT",
+      "public": true
+    },
+    {
+      "repository": "deepkick/pid2graph-vlm-eval",
+      "url": "https://github.com/deepkick/pid2graph-vlm-eval",
+      "classification": "external-reference",
+      "inspection_scope": "readme",
+      "head": "7b3a08d290d29d41c3d82bd79f5d98af47154824",
+      "pushed_at": "2026-04-11T14:49:32Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    },
+    {
+      "repository": "dsmithnh3/PID2Graph",
+      "url": "https://github.com/dsmithnh3/PID2Graph",
+      "classification": "external-reference-symbol-detection",
+      "inspection_scope": "readme",
+      "head": "eea1beb881ddf9d2a8a46c3ca179454816e1b953",
+      "pushed_at": "2025-05-30T16:53:51Z",
+      "homepage": null,
+      "license": null,
+      "public": true
+    }
+  ],
+  "live": [
+    {
+      "url": "https://junction.hour49.com/stoa/",
+      "product": "Vellum, formerly Countersign",
+      "observed": "Public clickable sample, explicitly says every upload/choice plays its fixed sample; full app requires an access code. No code attempted."
+    },
+    {
+      "url": "https://leargas-blue.vercel.app/",
+      "product": "Leargas",
+      "observed": "Drawing register 5943 sheets; original 10200 x 6600 public organizer piping sample image loaded. Model readiness shown by UI only. No question or upload submitted."
+    },
+    {
+      "url": "https://hologram-khaki.vercel.app/",
+      "product": "Hologram / Stoa Pro",
+      "observed": "Chat shell and connected-workspace state loaded. No new-file/model-answer check."
+    }
+  ],
+  "methods": [
+    "GitHub repository searches: Stoa/Junction, exact challenge title, blueprints/Junction, plumbing/Junction, date and fork filters.",
+    "GitHub code searches across 17 prior/new public seeds: plumbing, piping, skeleton, pipe length.",
+    "Global exact challenge title code search returned 39 files across 13 repositories, including unrelated teams with challenge research.",
+    "Read pinned repository files, source trees, implementation functions and deployment URLs.",
+    "Web search excluded unrelated companies, software junctions and plumbing businesses.",
+    "Browser checks of public demos; no competitor inference, uploads, authentication bypass or repository execution."
+  ],
+  "limits": [
+    "Default-branch search index can lag and does not enumerate private or unindexed repositories.",
+    "Not every repository in the earlier 21-repo landscape was re-audited in full.",
+    "Published model numbers were not independently reproduced.",
+    "Native IFC network capabilities do not establish scanned-image pipe measurement.",
+    "Source declarations and prototypes are distinguished from verified public live behavior."
+  ]
+}

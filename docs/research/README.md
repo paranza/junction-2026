@@ -2,6 +2,7 @@
 
 Research for Junction 2026, Stoa's Make Blueprints Talk challenge. All times in the current report are explicit; Europe/Helsinki is UTC+02:00 during this event.
 
+- [Plumbing and complex scans, early Sunday](stoa-plumbing-complex-2026-11-15.md): source-level comparison of OCR, scale, geometry, P&ID candidates and network graphs, with verified public-site limitations and concrete Metria priorities.
 - [Current competitor assessment, Saturday evening](stoa-competitors-2026-11-14-evening.md): refreshed public repositories, three browser-verified demo sites, comparison with current Metria and prioritized improvements.
 - [Morning differentiation assessment](stoa-differentiation.md): historical feature counts and recommendations. Its claims about unoccupied task areas are superseded by the evening refresh.
 - [Morning competitor assessment](stoa-competitors.md): preserved overnight findings and pinned sources, with a dated pointer to the evening update.

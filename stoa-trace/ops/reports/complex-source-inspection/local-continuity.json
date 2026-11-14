@@ -1,0 +1,44 @@
+{
+  "8791": {
+    "model_requests_before": 4,
+    "model_requests_after": 4,
+    "all_answers_events_documents_uploads_identical": true,
+    "previous_health_available": true,
+    "provider": "gemini",
+    "model": "gemini-4-argon",
+    "provider_signature": "gemini:gemini-4-argon:gemini-interactions-v3:2026-05-20:image_resolution=ultra_high:thinking_level=high:max_output_tokens=caller:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v7",
+      "small_image_crops": true,
+      "reading_policy": "repeat",
+      "symbol_reader": "standard",
+      "detector": null,
+      "failure_fallback": null,
+      "readings": 2
+    },
+    "solver_revision": "3cad56ee0b5ee6714a50",
+    "source_revision": "3cad56ee0b5ee6714a50",
+    "ceiling": 1000
+  },
+  "8798": {
+    "model_requests_before": 140,
+    "model_requests_after": 140,
+    "all_answers_events_documents_uploads_identical": true,
+    "previous_health_available": true,
+    "provider": "gemini",
+    "model": "gemini-4-carbon",
+    "provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v7",
+      "small_image_crops": false,
+      "reading_policy": "repeat",
+      "symbol_reader": "standard",
+      "detector": null,
+      "failure_fallback": null,
+      "readings": 2
+    },
+    "solver_revision": "3cad56ee0b5ee6714a50",
+    "source_revision": "3cad56ee0b5ee6714a50",
+    "ceiling": 200
+  }
+}

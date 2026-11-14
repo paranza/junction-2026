@@ -1,5 +1,38 @@
 # Deployment verification
 
+## Complex source inspection and visual follow-ups, early Sunday
+
+Reviewed main application `21f452f2003e3b709cbf003eb38dea1d1e84243c` is
+deployed on the existing protected VM, following the initial source-inspection
+release `6f46d2f`. SQLite backup integrity, retained previous image,
+authentication, native 211-door answer/evidence, PNG preview, review/export and
+restart persistence passed. Prior answers, uploads, event history and
+credentials are preserved. Production attempts remain **17/1,000**; deployment
+verification made zero model requests. Both local apps load the same source
+with unchanged data and counters of **4/1,000** and **140/200**.
+
+428 backend tests passed. The 59 frontend tests and build apply to an identical
+source tree and compiled asset hashes. All 15 native solver files and the
+native-reachable analysis prefix are unchanged from the previous regression;
+the full 7,066-case native benchmark was not repeated at the user's direction.
+Neither reserved evaluation was used. A separate frozen development comparison
+on public complex scans scored 7/7 checks with the source-inspection path,
+compared with 5/7 for the prior Carbon path. API count/review/export, selected
+region, cached replay, missing-information and visual follow-up checks passed.
+One provider timeout is retained as a failure rather than removed from history.
+
+The explicit base Carbon configuration and 1,000-attempt cumulative ceiling
+remain unchanged. Complex inspection is now enabled by default after native
+tools, with its own Argon/high-reasoning/ultra-high-resolution override and
+bounded views/requests. It is not a claim of general network-length accuracy.
+See [behavior, costs and limits](../evaluation/complex-source-inspection.md).
+
+[Latest deployment and source hashes](../../stoa-trace/ops/reports/complex-source-inspection/deployment.json),
+[initial deployment](../../stoa-trace/ops/reports/complex-source-inspection/deployment-initial.json),
+[tests/build](../../stoa-trace/ops/reports/complex-source-inspection/build-checks-followup.json),
+[functional and compatibility checks](../../stoa-trace/ops/reports/complex-source-inspection/followup-validation.json),
+[local continuity](../../stoa-trace/ops/reports/complex-source-inspection/local-continuity.json).
+
 ## Complex scan and quantity notation release
 
 Reviewed main application revision `24b7a66596111bdb1fb95baf725898cbfc11f76b`
@@ -69,7 +102,7 @@ The old Docker image and SQLite backup were retained. Authentication, the 211-do
 
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
-The historical Saturday 13:00 release used main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed at **13:06 Europe/Helsinki**. The latest verified application revision is recorded in the source attribute release above. Documentation-only commits can follow a deployed application revision without requiring a rebuild. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
+The historical Saturday 13:00 release used main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed at **13:06 Europe/Helsinki**. The latest verified application revision is recorded at the top of this document. Documentation-only commits can follow a deployed application revision without requiring a rebuild. The explicitly configured base production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. The separately configured complex inspection stage now uses the documented Argon override.
 
 
 ## Saturday 13:00 deployment

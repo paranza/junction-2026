@@ -75,16 +75,29 @@ A missing-project network control returned no invented total and identified
 missing continuation sheets and vertical information. One later request failed
 with HTTP 503 after a transport wait of about 629 seconds. It remains a recorded
 failed attempt with unknown usage; a separately recorded retry succeeded. The
-isolated cumulative counter is 34/64, without resetting or replacing failures.
+isolated cumulative counter was 34/64 at that stage, without resetting or replacing failures.
 This provider reliability limit remains even when source reasoning succeeds.
 
-The final backend suite passed 427 tests, including dimensional-expression,
+Visual follow-ups at `21f452f` pass the previous question and located source
+labels/page coordinates, not previous numeric answers. The agent inspects the
+source again. An actual contextual equipment-tag follow-up passed using one
+additional request, leaving the isolated cumulative counter at 35/64. Original
+failed and successful records remain separate.
+
+The final backend suite passed 428 tests, including dimensional-expression,
 scope, duplicate and inspection-budget checks. The native solver source files
 and the native analysis prefix are unchanged from the last full regression.
 At the user's direction, the 7,066-case simple/native benchmark was not repeated
 for this model-path change. The prior frontend tests and build apply to the
 identical frontend source tree and compiled assets. No new interface controls
 or provenance panels were added.
+
+Application `21f452f` is deployed on the existing protected VM and loaded in
+both local apps. Backup, authentication, native preview/answer, review/export
+and restart persistence passed with production attempts unchanged at 17/1,000.
+The explicit base model policy, credentials and existing data were preserved;
+the new complex stage has the separate override described above. See
+[deployment records](../delivery/deployment-verification.md).
 
 ## Remaining limits
 
