@@ -56,3 +56,13 @@ After this reserved result is inspected, the set has been consumed for that mile
 ## Verification
 
 Six model-free tests cover six-format generation, split separation, source variation, immutable freezes, label-free requests, exact count scoring, unit conversion, non-error abstention, spatial evidence matching and missing/duplicate cases. No live model requests were made to prepare this corpus.
+
+## Frozen Gemini milestone, 14 November 2026
+
+The independent reserve was released once against runtime code `a8a8422` (recorded solver `8dd0564f1b9a9c16f9ad`), Gemini 4 Carbon with medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout, no small-image crops and no visual recheck. The separate 924-question preview reserve was not scored or inspected.
+
+All 26 questions across ten new drawing groups completed without request errors. Of 20 answerable numeric questions, **18 were correct and two were unanswered**, for **90% including abstentions as failures**. All 18 answered numeric questions were correct. Three required-abstention controls passed; three ambiguous external references remained unscored. The four external plans supplied four scoreable numeric questions, all correct, one abstention control and three unscored interpretations. The six procedural plans supplied 16 numeric questions, 14 correct, and two successful abstention controls.
+
+Twelve procedural localization cases had precision and recall 1.0 at the predeclared **0.3 box IoU** threshold. That lenient synthetic-location check is separate from real-world detection quality. The run used 26 actual model calls and an estimated **$0.653022** in provider tokens before credits. Counts are exact; compatible areas use 2% tolerance.
+
+[Aggregate result and policy identity](../../stoa-trace/ops/reports/gemini-release/independent-uploads.json). Raw files, responses and references remain private. This reserve is now consumed for this milestone; its errors must not be used for tuning followed by another blind claim on the same files. Subsequent Cloudinary close-ups operate on selected source regions and do not supply measurements or model answers. This result does not establish 99.9% accuracy or general reliability across arbitrary internet plans.
