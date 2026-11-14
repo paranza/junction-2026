@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start Trace using .env configuration before Uvicorn selects host and port.
+"""Start Metria using .env configuration before Uvicorn selects host and port.
 
 Run ops/refresh_local.py first on a fresh checkout or after dependency/UI updates.
 This helper never provisions services or makes model requests.

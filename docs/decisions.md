@@ -11,7 +11,7 @@
 | Collaboration default | Short task branches, pull requests, one task owner |
 | License | MIT for team-authored content, matching the supplied submission rules |
 | Challenge | Make Blueprints Talk, selected after discussion with the partner at the event |
-| Product and stack | Trace prototype in `stoa-trace/`: FastAPI/Python, React/Vite, SQLite, native PDF/DXF/IFC extraction and hosted OpenAI vision. See its handoff for implemented scope and measured limits. |
+| Product and stack | Metria (formerly Trace) in `stoa-trace/`: FastAPI/Python, React/Vite, SQLite, native PDF/DXF/IFC extraction and hosted OpenAI vision. See its handoff for implemented scope and measured limits. |
 | Deployment | Existing protected HTTPS deployment on one Verda CPU VM. Coordinate with its owner; credentials are outside Git. |
 | Credits | OpenAI inference and Verda funding were verified by the prototype owner. Account secrets and entitlements do not transfer with this repository. |
 | Team members and task owners | Assign together; personal contact details go in the event platform |
@@ -41,6 +41,12 @@ Implement typed source-operand checks, strict unresolved-constraint handling, Sw
 ### 2026-11-14: add a raster specialist app with our own PyTorch models (`Michele-testing/`)
 
 On branch `feat/blueprint-analyzer`, add a separate FastAPI app (port 9999) whose raster models are trained by us in plain PyTorch: PlanNet (U-Net segmentation plus CenterNet-style object heatmaps) and GlyphNet (CRNN text reader). Training labels come from the Swiss Dwellings DXF projected onto the PNGs and from CubiCasa5K SVG annotations; the preview's own plans stay held out. Questions are answered by deterministic multilingual templates over the extracted facts; Gemini flash-lite is a fallback over text facts only. Reason: the partner asked for accurate, visibly justified measurements at low inference cost, and `stoa-trace` reports 0 % coverage on CubiCasa raster plans. Details and measured results: `Michele-testing/docs/`. Owner: the teammate running the overnight build; integration with `stoa-trace` is a team decision.
+
+### 2026-11-14: name the product Metria
+
+Use **Metria** as the product name in the interface, documentation and submission material. Reason: it is short, comes from the Greek root for measurement, and reads as a measurement tool that suits drawing quantities and evidence. The name was chosen in a few minutes for the demo; trademark and domain checks were not completed, so treat it as provisional.
+
+Scope of the rename: the header wordmark, browser title and description, FastAPI title, README, handoff, demo script, friend prompt, data inventory, third-party notices and the app docstrings. Unchanged on purpose: the `stoa-trace/` folder, the `trace-drawing-workspace` package name, the `STOA_` environment prefix, the `X-Trace-Token` header, and the frozen evaluation manifests and reports under `stoa-trace/ops/`, because renaming those would break local setup and the recorded benchmark evidence. Trace remains the historical name in research notes that describe Stoa's own product or earlier work. Owner: the teammate renaming the interface.
 
 ### 2026-11-14: upgrade frontend with interactive plant shapes and Vercel design system
 

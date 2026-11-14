@@ -1,6 +1,6 @@
 # Third-party notices
 
-Team-authored Trace code is covered by `LICENSE` (MIT). Third-party datasets, source-derived questions/evidence, drawing imagery and dependencies retain their own licences. The MIT licence does not relicense those materials.
+Team-authored Metria code is covered by `LICENSE` (MIT). Third-party datasets, source-derived questions/evidence, drawing imagery and dependencies retain their own licences. The MIT licence does not relicense those materials.
 
 ## Challenge dataset and diagnostic artifacts
 
@@ -10,7 +10,7 @@ The original Stoa preview dataset is downloaded separately. No original PDF/DXF/
 
 The unchanged source-provided licence and attribution notices for all nine collections are retained in `third_party/dataset_licenses/`. Consult the per-file tables when reusing or distributing material:
 
-- **Swiss Dwellings v3.0.0:** Matthias Standfest, Michael Franzen, Yvonne Schroeder, Luis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck, Yen-Ling Tan, Milena Niedzwiecka and Rachele Colmegna (Archilyse AG), [doi:10.5281/zenodo.7788422](https://doi.org/10.5281/zenodo.7788422), CC BY 4.0. The challenge drawings were rendered from published geometry with labels, numbering and styling added by the dataset preparers. The screenshot `frontend/qa/reviewed-history.jpg` includes such a drawing with Trace's evidence/review interface overlaid. That underlying drawing remains CC BY 4.0; no endorsement is implied.
+- **Swiss Dwellings v3.0.0:** Matthias Standfest, Michael Franzen, Yvonne Schroeder, Luis Gonzalez Medina, Yarilo Villanueva Hernandez, Jan Hendrik Buck, Yen-Ling Tan, Milena Niedzwiecka and Rachele Colmegna (Archilyse AG), [doi:10.5281/zenodo.7788422](https://doi.org/10.5281/zenodo.7788422), CC BY 4.0. The challenge drawings were rendered from published geometry with labels, numbering and styling added by the dataset preparers. The screenshot `frontend/qa/reviewed-history.jpg` includes such a drawing with Metria's evidence/review interface overlaid. That underlying drawing remains CC BY 4.0; no endorsement is implied.
 - **CubiCasa5K:** Copyright 2019 CubiCasa; Kalervo, Ylioinas, Haikio, Karhu and Kannala, SCIA 2019. The source notice applies CC BY-NC-SA 4.0, including its questions. The relevant benchmark questions and source-derived portions retain those terms.
 - **OpeningDesign:** credit OpeningDesign and the project team named in each drawing's title block. Sports Complex and most supplied projects use CC BY-SA 4.0; the source table identifies MIT exceptions. Source-derived portions of those examples retain their respective terms.
 - **IFC models and IFC-Bench:** model-specific CC BY 4.0, CC BY-ND 3.0, MIT, KIT unrestricted-use and GPL terms are identified in the supplied notices. IFC-Bench questions are credited to Sylvain Hellin (2025), CC BY 4.0. Original model files are not distributed here.

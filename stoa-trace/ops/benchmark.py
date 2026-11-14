@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate Trace against frozen, evaluation-only Stoa preview questions.
+"""Evaluate Metria against frozen, evaluation-only Stoa preview questions.
 
 Native mode is the default and never requests an API model. Gold answers are
 read only by this process. The /api/ask request contains no labels or scores.

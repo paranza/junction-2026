@@ -846,15 +846,14 @@ function App() {
   const [activeTab, setActiveTab] = useState('evidence');
   const [refreshVersion, setRefreshVersion] = useState(0);
 
-  // Settings & Cost Telemetry State
-  const [sidebarTab, setSidebarTab] = useState('settings'); // 'settings' | 'drawings'
+  // Shell state. The drawings sidebar starts closed, like a chat history drawer.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sessionTracker, setSessionTracker] = useState(() => createSessionTracker());
   const [lastUsage, setLastUsage] = useState(null);
   const [engineMode, setEngineMode] = useState('fast'); // 'fast' | 'deep'
   const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' | 'imperial'
   const [confidenceThreshold, setConfidenceThreshold] = useState(75);
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -1053,6 +1052,7 @@ function App() {
 
   const selectDocument = useCallback(
     (id, keepAnswer = false, requestedPage = 1) => {
+      setSidebarOpen(false);
       cancelAsk();
       cancelHistory();
       cancelManual();
@@ -1368,329 +1368,187 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const lastCost = formatCostDetail(lastUsage);
-  const sessionCostText = sessionTracker.hasCostEstimate ? `$${sessionTracker.totalCostUsd.toFixed(4)}` : '$0.0000';
-  const sessionTokens = sessionTracker.inputTokens + sessionTracker.outputTokens;
-  const sessionModeText = `${sessionTracker.queriesCount} ${sessionTracker.queriesCount === 1 ? 'query' : 'queries'}`;
-  const lastModeText = lastUsage ? `${Number(lastUsage.model_calls || 0)} model calls` : 'No query yet';
-  const quickQuestions = suggestions.length
-    ? suggestions.slice(0, 4)
-    : ['Count the doors', 'Measure floor area', 'Locate fire exits', 'Verify wall perimeter'];
+  const quickQuestions = suggestions.slice(0, 3);
+
   const shownValue = answer?.value != null ? displayQuantity(answer.value, answer.unit, unitSystem) : null;
   const sampleItems = [
-    { doc: sampleSwiss, label: 'Swiss dwellings', desc: 'Apartment plans' },
-    { doc: sampleCubi, label: 'CubiCasa5K', desc: 'Annotated plans' },
-    { doc: sampleIfc, label: 'IFC model', desc: 'BIM element tree' },
+    { doc: sampleSwiss, label: 'Swiss dwellings' },
+    { doc: sampleCubi, label: 'CubiCasa5K' },
+    { doc: sampleIfc, label: 'IFC model' },
   ].filter((item, index, items) => item.doc && items.findIndex(other => String(other.doc?.id) === String(item.doc.id)) === index);
-
-  const resetSession = () => {
-    setSessionTracker(createSessionTracker());
-    setLastUsage(null);
-  };
+  const showAnswerPanel = Boolean(answer) || asking;
+  const panelIcon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+    </svg>
+  );
 
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="brand">
-          <div className="brand-icon">T</div>
-          <span className="brand-text">Trace</span>
-          <span className="brand-tag">CAD &amp; BIM Plant Workspace</span>
+        <div className="header-left">
+          <button
+            type="button"
+            className="header-icon-btn"
+            title={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
+            aria-label={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen(value => !value)}
+          >
+            {panelIcon}
+          </button>
+          <span className="brand-text">Metria</span>
+          {selectedDocument && (
+            <>
+              <span className="header-divider" />
+              <span className="header-doc">{documentName(selectedDocument)}</span>
+            </>
+          )}
         </div>
 
-        {selectedDocument && (
-          <div className="header-center">
-            <div className="doc-pill">
-              <span className={`format-tag format-${formatOf(selectedDocument).toLowerCase()}`}>
-                {formatOf(selectedDocument)}
-              </span>
-              <span>{documentName(selectedDocument)}</span>
-              {pageCount > 1 && <span>· Page {page}/{pageCount}</span>}
-            </div>
-          </div>
-        )}
-
         <div className="header-right">
-          <div className={`status-badge ${health?.status === 'offline' ? 'is-offline' : ''}`}>
-            <span className="pulse-dot" />
-            <span>{health?.status === 'offline' ? 'Reconnecting' : 'Workspace Ready'}</span>
-          </div>
-          <span className="kbd-badge">⌘K Search</span>
+          {health?.status === 'offline' && (
+            <span className="status-badge is-offline" title="Backend not reachable">
+              <span className="pulse-dot" />
+              Offline
+            </span>
+          )}
+          <button
+            type="button"
+            className="header-icon-btn"
+            title="Settings"
+            aria-label="Settings"
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen(value => !value)}
+          >
+            <Settings size={16} />
+          </button>
         </div>
       </header>
 
-      <div className={`workspace-layout ${selectedDocument ? 'has-drawing' : ''}`}>
-        {/* Pane 1: Settings, cost telemetry and the drawing library */}
-        <aside className="sidebar-panel" aria-label="Workspace settings and drawings">
-          <div className="sidebar-nav-tabs" role="tablist" aria-label="Sidebar sections">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sidebarTab === 'settings'}
-              className={`sidebar-nav-tab ${sidebarTab === 'settings' ? 'is-active' : ''}`}
-              onClick={() => setSidebarTab('settings')}
-            >
-              <Settings size={12} /> Settings
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sidebarTab === 'drawings'}
-              className={`sidebar-nav-tab ${sidebarTab === 'drawings' ? 'is-active' : ''}`}
-              onClick={() => setSidebarTab('drawings')}
-            >
-              <FolderOpen size={12} /> Drawings
-              <span className="count-chip">{total.toLocaleString()}</span>
+      {settingsOpen && (
+        <>
+          <div className="settings-scrim" onClick={() => setSettingsOpen(false)} />
+          <div className="settings-popover" role="dialog" aria-label="Settings">
+            <div className="settings-popover-title">Analysis</div>
+            <div className="setting-pill-group" role="group" aria-label="Analysis engine">
+              <button
+                type="button"
+                className={`setting-pill-btn ${engineMode === 'fast' ? 'is-active' : ''}`}
+                aria-pressed={engineMode === 'fast'}
+                onClick={() => setEngineMode('fast')}
+              >
+                Fast
+              </button>
+              <button
+                type="button"
+                className={`setting-pill-btn ${engineMode === 'deep' ? 'is-active' : ''}`}
+                aria-pressed={engineMode === 'deep'}
+                onClick={() => setEngineMode('deep')}
+              >
+                Deep
+              </button>
+            </div>
+
+            <div className="settings-popover-title">Units</div>
+            <div className="setting-pill-group" role="group" aria-label="Unit system">
+              <button
+                type="button"
+                className={`setting-pill-btn ${unitSystem === 'metric' ? 'is-active' : ''}`}
+                aria-pressed={unitSystem === 'metric'}
+                onClick={() => setUnitSystem('metric')}
+              >
+                Metric
+              </button>
+              <button
+                type="button"
+                className={`setting-pill-btn ${unitSystem === 'imperial' ? 'is-active' : ''}`}
+                aria-pressed={unitSystem === 'imperial'}
+                onClick={() => setUnitSystem('imperial')}
+              >
+                Imperial
+              </button>
+            </div>
+
+            <div className="settings-popover-title">Highlight confidence</div>
+            <div className="setting-slider-row">
+              <input
+                className="setting-slider"
+                type="range"
+                min="50"
+                max="95"
+                step="5"
+                value={confidenceThreshold}
+                aria-label="Minimum confidence for highlighted shapes"
+                onChange={event => setConfidenceThreshold(Number(event.target.value))}
+              />
+              <span className="setting-slider-val">{confidenceThreshold}%</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className={`workspace-layout ${sidebarOpen ? 'sidebar-open' : ''} ${showAnswerPanel ? 'has-answer' : ''}`}>
+        {sidebarOpen && <div className="sidebar-scrim" onClick={() => setSidebarOpen(false)} />}
+
+        <aside className="sidebar-panel" aria-label="Drawings" aria-hidden={!sidebarOpen}>
+          <div className="sidebar-header-row">
+            <span className="sidebar-title">
+              Drawings <span className="count-chip">{total.toLocaleString()}</span>
+            </span>
+            <button type="button" className="icon-btn" title="Close" aria-label="Close drawings" onClick={() => setSidebarOpen(false)}>
+              <X size={14} />
             </button>
           </div>
 
-          {sidebarTab === 'settings' ? (
-            <div className="sidebar-content">
-              <section className="telemetry-group" aria-label="Cost per message">
-                <div className="telemetry-card is-accent">
-                  <div className="telemetry-header">
-                    <span className="telemetry-label">
-                      <Coins size={11} /> Cost per message
-                    </span>
-                    <span className="telemetry-subbadge">{lastModeText}</span>
-                  </div>
-                  <div className="telemetry-value-row">
-                    <span className="telemetry-value">{lastCost.costStr}</span>
-                  </div>
-                  <div className="telemetry-breakdown">
-                    <div className="telemetry-breakdown-row">
-                      <span>Prompt tokens</span>
-                      <span>{Number(lastUsage?.input_tokens || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Completion tokens</span>
-                      <span>{Number(lastUsage?.output_tokens || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Cached tokens</span>
-                      <span>{Number(lastUsage?.cached_input_tokens || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Basis</span>
-                      <span>{readable(lastUsage?.cost_basis || 'no query yet')}</span>
-                    </div>
-                  </div>
-                </div>
+          <label className="search-field">
+            <Search size={14} />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              placeholder="Search drawings"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
+                <X size={12} />
+              </button>
+            )}
+          </label>
 
-                <div className="telemetry-card">
-                  <div className="telemetry-header">
-                    <span className="telemetry-label">
-                      <Clock3 size={11} /> Cost per session
-                    </span>
-                    <span className="telemetry-subbadge">{sessionModeText}</span>
-                  </div>
-                  <div className="telemetry-value-row">
-                    <span className="telemetry-value">{sessionCostText}</span>
-                  </div>
-                  <div className="telemetry-breakdown">
-                    <div className="telemetry-breakdown-row">
-                      <span>Total tokens</span>
-                      <span>{sessionTokens.toLocaleString()}</span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Prompt / completion</span>
-                      <span>
-                        {sessionTracker.inputTokens.toLocaleString()} / {sessionTracker.outputTokens.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Cached</span>
-                      <span>{sessionTracker.cachedTokens.toLocaleString()}</span>
-                    </div>
-                    <div className="telemetry-breakdown-row">
-                      <span>Model calls</span>
-                      <span>{sessionTracker.modelCalls}</span>
-                    </div>
-                  </div>
-                  <button type="button" className="telemetry-reset-btn" onClick={resetSession}>
-                    <RotateCcw size={10} /> Reset session
-                  </button>
+          <div className="document-list">
+            {documentsError && <p className="panel-note">Could not reach the drawing library.</p>}
+            {!documentsLoading && documents.length === 0 && !documentsError && (
+              <p className="panel-note">No drawings found.</p>
+            )}
+            {documents.map(doc => (
+              <button
+                key={doc.id}
+                type="button"
+                className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`}
+                onClick={() => selectDocument(doc.id)}
+              >
+                <div className="doc-icon">
+                  <DocumentIcon doc={doc} size={15} />
                 </div>
-              </section>
-
-              <section className="setting-section">
-                <div className="setting-section-title">
-                  <Cpu size={11} /> Engine
-                </div>
-                <div className="setting-pill-group" role="group" aria-label="Analysis engine">
-                  <button
-                    type="button"
-                    className={`setting-pill-btn ${engineMode === 'fast' ? 'is-active' : ''}`}
-                    aria-pressed={engineMode === 'fast'}
-                    onClick={() => setEngineMode('fast')}
-                  >
-                    Fast CAD
-                  </button>
-                  <button
-                    type="button"
-                    className={`setting-pill-btn ${engineMode === 'deep' ? 'is-active' : ''}`}
-                    aria-pressed={engineMode === 'deep'}
-                    onClick={() => setEngineMode('deep')}
-                  >
-                    Deep inspection
-                  </button>
-                </div>
-                <span className="setting-row-desc">
-                  {engineMode === 'deep'
-                    ? 'Runs a cross-check pass over the same cited sources.'
-                    : 'Reads the native sources in a single deterministic pass.'}
-                </span>
-              </section>
-
-              <section className="setting-section">
-                <div className="setting-section-title">
-                  <Sliders size={11} /> Units
-                </div>
-                <div className="setting-pill-group" role="group" aria-label="Unit system">
-                  <button
-                    type="button"
-                    className={`setting-pill-btn ${unitSystem === 'metric' ? 'is-active' : ''}`}
-                    aria-pressed={unitSystem === 'metric'}
-                    onClick={() => setUnitSystem('metric')}
-                  >
-                    Metric (m², mm)
-                  </button>
-                  <button
-                    type="button"
-                    className={`setting-pill-btn ${unitSystem === 'imperial' ? 'is-active' : ''}`}
-                    aria-pressed={unitSystem === 'imperial'}
-                    onClick={() => setUnitSystem('imperial')}
-                  >
-                    Imperial (ft², in)
-                  </button>
-                </div>
-                <span className="setting-row-desc">Converts display units. Source values stay unchanged.</span>
-              </section>
-
-              <section className="setting-section">
-                <div className="setting-section-title">
-                  <Crosshair size={11} /> Display
-                </div>
-                <div className="setting-slider-row">
-                  <div className="setting-slider-meta">
-                    <span>Highlight confidence</span>
-                    <span className="setting-slider-val">{confidenceThreshold}%</span>
-                  </div>
-                  <input
-                    className="setting-slider"
-                    type="range"
-                    min="50"
-                    max="95"
-                    step="5"
-                    value={confidenceThreshold}
-                    aria-label="Minimum confidence for highlighted shapes"
-                    onChange={event => setConfidenceThreshold(Number(event.target.value))}
-                  />
-                </div>
-                <label className="setting-switch-label">
-                  <span className="setting-row-label">
-                    <span className="setting-row-title">High-contrast canvas</span>
-                    <span className="setting-row-desc">Dark surround behind the drawing</span>
+                <div className="doc-info">
+                  <span className="doc-title">{documentName(doc)}</span>
+                  <span className="doc-meta">
+                    <span className={`format-tag format-${formatOf(doc).toLowerCase()}`}>{formatOf(doc)}</span>
+                    <span>{readable(doc.source || 'Uploaded')}</span>
                   </span>
-                  <input
-                    type="checkbox"
-                    className="setting-toggle-checkbox"
-                    checked={highContrastMode}
-                    onChange={event => setHighContrastMode(event.target.checked)}
-                  />
-                </label>
-                <label className="setting-switch-label">
-                  <span className="setting-row-label">
-                    <span className="setting-row-title">Shape labels</span>
-                    <span className="setting-row-desc">Names beside evidence markers</span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="setting-toggle-checkbox"
-                    checked={alwaysShowLabels}
-                    onChange={event => setAlwaysShowLabels(event.target.checked)}
-                  />
-                </label>
-              </section>
-            </div>
-          ) : (
-            <div className="drawings-view-container">
-              <div className="library-heading">
-                <div>
-                  <span className="eyebrow">Project library</span>
-                  <h1>
-                    Drawings <span className="count-chip">{total.toLocaleString()}</span>
-                  </h1>
                 </div>
-              </div>
-
-              <label className="search-field">
-                <Search size={14} />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  value={search}
-                  onChange={event => setSearch(event.target.value)}
-                  placeholder="Find drawing... (⌘K)"
-                />
-                {search && (
-                  <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
-                    <X size={12} />
-                  </button>
-                )}
-              </label>
-
-              <div className="collection-filter">
-                <select aria-label="Drawing collection" value={collection} onChange={event => setCollection(event.target.value)}>
-                  <option value="">All collections ({total.toLocaleString()})</option>
-                  {collections.map(source => (
-                    <option key={source.source} value={source.source}>
-                      {collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="library-list-heading">
-                <span>{searchTerm ? 'Matches' : collection ? collectionLabel(collection) : 'All drawings'}</span>
-                <span>{documentsLoading ? <LoaderCircle size={11} className="spin" /> : `${documents.length} shown`}</span>
-              </div>
-
-              <div className="document-list">
-                {documentsError && <div className="inline-error">{documentsError}</div>}
-                {documents.map(doc => (
-                  <button
-                    key={doc.id}
-                    type="button"
-                    className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`}
-                    onClick={() => selectDocument(doc.id)}
-                  >
-                    <div className="doc-icon">
-                      <DocumentIcon doc={doc} size={15} />
-                    </div>
-                    <div className="doc-info">
-                      <span className="doc-title">{documentName(doc)}</span>
-                      <span className="doc-meta">
-                        <span className={`format-tag format-${formatOf(doc).toLowerCase()}`}>{formatOf(doc)}</span>
-                        <span>{readable(doc.source || 'Uploaded')}</span>
-                      </span>
-                    </div>
-                  </button>
-                ))}
-                {documents.length < total && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ width: '100%', marginTop: 8, fontSize: 11 }}
-                    onClick={loadMore}
-                    disabled={documentsLoading}
-                  >
-                    {documentsLoading ? <LoaderCircle size={12} className="spin" /> : <ChevronDown size={12} />}
-                    Load more ({documents.length} / {total})
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+                {String(doc.id) === String(selectedId) && <Check size={13} />}
+              </button>
+            ))}
+            {documents.length < total && (
+              <button type="button" className="load-more-btn" onClick={loadMore} disabled={documentsLoading}>
+                {documentsLoading ? 'Loading...' : 'Show more'}
+              </button>
+            )}
+          </div>
 
           <div className="library-footer">
             <input
@@ -1701,28 +1559,21 @@ function App() {
               className="sr-only"
               onChange={event => uploadFiles(event.target.files)}
             />
-            {uploadMessage && <span className="setting-row-desc">{uploadMessage}</span>}
-            <button
-              type="button"
-              className="btn-upload"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
+            <button type="button" className="btn-upload" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               {uploading ? <LoaderCircle size={14} className="spin" /> : <Upload size={14} />}
-              {uploading ? 'Adding drawings...' : 'Upload drawing'}
+              {uploading ? 'Uploading...' : 'Upload drawing'}
             </button>
+            {uploadMessage && <span className="setting-row-desc">{uploadMessage}</span>}
           </div>
         </aside>
 
-        {/* Pane 2: Drawing canvas or dropzone, with the composer docked below */}
-        <main className={`main-drawing ${highContrastMode ? 'high-contrast-canvas' : ''}`} aria-label="Drawing workspace">
+        <main className="main-drawing" aria-label="Drawing workspace">
           {selectedDocument ? (
             <>
               <div className="drawing-topbar">
                 <div className="drawing-breadcrumbs">
-                  <span className="eyebrow">{readable(selectedDocument.source || 'Library')}</span>
-                  <ChevronRight size={12} color="#a1a1aa" />
                   <h2>{documentName(selectedDocument)}</h2>
+                  <span className="eyebrow">{readable(selectedDocument.source || 'Library')}</span>
                 </div>
 
                 <div className="topbar-actions">
@@ -1745,12 +1596,12 @@ function App() {
                     href={`/api/documents/${encodeURIComponent(selectedId)}/original`}
                     target="_blank"
                     rel="noreferrer"
-                    title="Download original file"
+                    title="Open original file"
                   >
                     <ArrowDownToLine size={15} />
                   </a>
 
-                  <button type="button" className="icon-btn" title="Close drawing" onClick={() => selectDocument(null)}>
+                  <button type="button" className="icon-btn" title="Close drawing" aria-label="Close drawing" onClick={() => selectDocument(null)}>
                     <X size={15} />
                   </button>
                 </div>
@@ -1775,8 +1626,6 @@ function App() {
                 }}
                 onCancelManual={cancelManual}
                 imageVersion={refreshVersion}
-                highContrast={highContrastMode}
-                showLabels={alwaysShowLabels}
                 unitSystem={unitSystem}
               />
             </>
@@ -1812,16 +1661,7 @@ function App() {
                   <Upload size={20} />
                 </div>
                 <h2 className="dropzone-title">Drop a drawing to start</h2>
-                <p className="dropzone-desc">
-                  Vector plans, scanned sheets and BIM models are read from the source file before anything is answered.
-                </p>
-                <div className="dropzone-format-tags">
-                  {['PDF', 'SVG', 'DXF', 'DWG', 'PNG', 'IFC'].map(format => (
-                    <span key={format} className="dropzone-format-tag">
-                      {format}
-                    </span>
-                  ))}
-                </div>
+                <p className="dropzone-desc">Plans, scans and BIM models. Ask about rooms, quantities or dimensions.</p>
                 <div className="dropzone-actions">
                   <button
                     type="button"
@@ -1831,79 +1671,63 @@ function App() {
                       fileInputRef.current?.click();
                     }}
                   >
-                    <Upload size={13} /> Upload file
+                    Upload drawing
                   </button>
                   <button
                     type="button"
                     className="btn-secondary"
                     onClick={event => {
                       event.stopPropagation();
-                      setSidebarTab('drawings');
-                      window.setTimeout(() => searchInputRef.current?.focus(), 0);
+                      setSidebarOpen(true);
                     }}
                   >
-                    <FolderOpen size={13} /> Browse drawings
+                    Browse library
                   </button>
                 </div>
-                {uploading && (
-                  <span className="setting-row-desc">
-                    <LoaderCircle size={12} className="spin" /> Adding drawings...
-                  </span>
-                )}
               </div>
 
               {sampleItems.length > 0 && (
-                <div className="sample-benchmarks">
-                  <span className="sample-benchmarks-title">Benchmark drawings</span>
-                  <div className="sample-benchmarks-grid">
-                    {sampleItems.map(item => (
-                      <button key={item.doc.id} type="button" className="sample-card" onClick={() => selectDocument(item.doc.id)}>
-                        <span className="sample-card-name">{item.label}</span>
-                        <span className="sample-card-desc">{item.desc}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="sample-links">
+                  <span>Try</span>
+                  {sampleItems.map(item => (
+                    <button key={item.doc.id} type="button" className="sample-link" onClick={() => selectDocument(item.doc.id)}>
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           )}
 
           <form className="docked-composer-container" onSubmit={event => ask(event, crossCheck)}>
-            <div className="composer-quick-actions">
-              {region && (
-                <button type="button" className="quick-chip" onClick={() => setRegion(null)}>
-                  <X size={10} /> Clear area selection
-                </button>
-              )}
-              {quickQuestions.map(item => (
-                <button
-                  key={item}
-                  type="button"
-                  className="quick-chip"
-                  disabled={!selectedId || asking}
-                  onClick={() => {
-                    setQuestion(item);
-                    ask(null, crossCheck, item);
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
+            {quickQuestions.length > 0 && (
+              <div className="composer-quick-actions">
+                {quickQuestions.map(item => (
+                  <button
+                    key={item}
+                    type="button"
+                    className="quick-chip"
+                    disabled={!selectedId || asking}
+                    onClick={() => {
+                      setQuestion(item);
+                      ask(null, crossCheck, item);
+                    }}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="docked-composer-box">
               <textarea
                 ref={questionRef}
                 className="docked-textarea"
-                rows={2}
+                rows={1}
                 value={question}
                 disabled={asking}
                 aria-label="Question about the drawing"
-                placeholder={
-                  selectedDocument
-                    ? 'Ask about rooms, quantities, dimensions or materials...'
-                    : 'Drop or select a drawing to ask a question'
-                }
+                placeholder={selectedDocument ? 'Ask about this drawing' : 'Select a drawing to ask a question'}
                 onChange={event => setQuestion(event.target.value)}
                 onKeyDown={event => {
                   if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck);
@@ -1911,46 +1735,42 @@ function App() {
               />
 
               <div className="docked-composer-footer">
-                <div className="composer-scope-pill">
-                  <select
-                    className="composer-scope-select"
-                    value={region ? 'region' : scope}
-                    disabled={asking || !selectedId}
-                    aria-label="Question scope"
-                    onChange={event => {
-                      if (event.target.value === 'region') return;
-                      setRegion(null);
-                      setScope(event.target.value);
-                    }}
-                  >
-                    <option value="document">Whole document</option>
-                    <option value="page">Current page</option>
-                    {region && <option value="region">Selected area</option>}
-                  </select>
-                  {pageCount > 1 && <span>· p.{page}</span>}
-                </div>
+                <select
+                  className="composer-scope-select"
+                  value={region ? 'region' : scope}
+                  disabled={asking || !selectedId}
+                  aria-label="Question scope"
+                  onChange={event => {
+                    if (event.target.value === 'region') return;
+                    setRegion(null);
+                    setScope(event.target.value);
+                  }}
+                >
+                  <option value="document">Whole document</option>
+                  <option value="page">This page</option>
+                  {region && <option value="region">Selected area</option>}
+                </select>
 
                 <div className="composer-actions-group">
+                  {region && (
+                    <button type="button" className="quick-chip" onClick={() => setRegion(null)}>
+                      <X size={10} /> Clear area
+                    </button>
+                  )}
                   {asking ? (
-                    <>
-                      <span className="setting-row-desc">{elapsed}s</span>
-                      <button type="button" className="btn-stop-ask" onClick={() => cancelAsk(true)}>
-                        <X size={11} /> Stop
-                      </button>
-                    </>
+                    <button type="button" className="btn-stop-ask" onClick={() => cancelAsk(true)}>
+                      <X size={11} /> Stop
+                    </button>
                   ) : (
-                    <>
-                      <span className="kbd-badge">⌘ + ↵</span>
-                      <button
-                        type="submit"
-                        className="btn-send"
-                        disabled={!question.trim() || !selectedId || asking}
-                        title="Run query (⌘ + Enter)"
-                        aria-label="Run query"
-                      >
-                        <ArrowUp size={14} />
-                      </button>
-                    </>
+                    <button
+                      type="submit"
+                      className="btn-send"
+                      disabled={!question.trim() || !selectedId}
+                      title="Send"
+                      aria-label="Send question"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
                   )}
                 </div>
               </div>
@@ -1965,15 +1785,11 @@ function App() {
           </form>
         </main>
 
-        {/* Pane 3: Analysis and quantities, sliding in when a drawing is active */}
-        <aside className="answer-panel" aria-label="Analysis and quantities">
+        <aside className="answer-panel" aria-label="Answer">
           <div className="answer-panel-heading">
-            <div className="panel-title">
-              <h2>Analysis &amp; quantities</h2>
-              {answer && <span className="telemetry-pill">{costText(answer.usage || lastUsage)}</span>}
-            </div>
+            <h2>Answer</h2>
             {answer && (
-              <button type="button" className="icon-btn" title="Download answer JSON" onClick={downloadAnswer}>
+              <button type="button" className="icon-btn" title="Download answer JSON" aria-label="Download answer JSON" onClick={downloadAnswer}>
                 <ArrowDownToLine size={15} />
               </button>
             )}
@@ -1986,26 +1802,18 @@ function App() {
               </p>
             )}
 
-            {!answer && !asking && (
-              <div className="panel-empty">
-                <Crosshair size={18} />
-                <strong>No analysis yet</strong>
-                <span>Ask a question below the drawing. Quantities, evidence and cited shapes appear here.</span>
-              </div>
-            )}
-
-            {asking && (
+            {asking && !answer && (
               <div className="panel-empty">
                 <LoaderCircle size={18} className="spin" />
-                <strong>Reading the source</strong>
+                <strong>Reading the drawing</strong>
                 <span>
-                  {answerQuestion || question || 'Working through the drawing'} · {elapsed}s
+                  {answerQuestion || question || 'Working'} · {elapsed}s
                 </span>
               </div>
             )}
 
             {answer && !asking && (
-              <div className="answer-card" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+              <>
                 <div className="result-status-row">
                   <span className={`status-pill status-${resultStatus}`}>
                     {['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}
@@ -2031,14 +1839,14 @@ function App() {
                     className={`tab-btn ${activeTab === 'evidence' ? 'is-active' : ''}`}
                     onClick={() => setActiveTab('evidence')}
                   >
-                    Evidence &amp; shapes ({evidence.length})
+                    Evidence ({evidence.length})
                   </button>
                   <button
                     type="button"
                     className={`tab-btn ${activeTab === 'analysis' ? 'is-active' : ''}`}
                     onClick={() => setActiveTab('analysis')}
                   >
-                    Formula
+                    Work
                   </button>
                   <button
                     type="button"
@@ -2092,7 +1900,7 @@ function App() {
                               <span>Include in count</span>
                             </label>
 
-                            <button type="button" className="icon-btn" title="Focus shape on drawing" onClick={() => selectEvidence(item)}>
+                            <button type="button" className="icon-btn" title="Focus shape on drawing" aria-label="Focus shape" onClick={() => selectEvidence(item)}>
                               <Crosshair size={12} />
                             </button>
                           </div>
@@ -2122,43 +1930,41 @@ function App() {
                 )}
 
                 {activeTab === 'analysis' && (
-                  <div style={{ marginTop: 12, fontSize: 11, color: '#52525b', lineHeight: 1.6 }}>
+                  <div className="answer-work">
                     {answer.calculation && (
-                      <div style={{ background: '#f4f4f5', padding: 10, borderRadius: 6, marginBottom: 12 }}>
-                        <span style={{ fontWeight: 600, display: 'block', marginBottom: 4 }}>Calculation</span>
+                      <div className="answer-work-block">
+                        <span className="answer-work-title">Calculation</span>
                         <code>{calculationText(answer.calculation, answer)}</code>
                       </div>
                     )}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="answer-work-rows">
                       <div>
-                        <strong>Engine:</strong> {readable(answer.method || 'Native CAD')}
+                        <strong>Engine</strong> {readable(answer.method || 'Native CAD')}
                       </div>
                       <div>
-                        <strong>Scope:</strong> {scopeText(answer.scope)}
+                        <strong>Scope</strong> {scopeText(answer.scope)}
                       </div>
                       <div>
-                        <strong>Usage:</strong> {usageLabel(answer)} ({costText(answer.usage || lastUsage)})
+                        <strong>Usage</strong> {usageLabel(answer)} ({costText(answer.usage || lastUsage)})
                       </div>
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'review' && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="telemetry-breakdown" style={{ borderTop: 'none', paddingTop: 0, marginTop: 0 }}>
-                      <div className="telemetry-breakdown-row">
-                        <span>Original</span>
-                        <span>{shortText(answer.original_value ?? answer.value)}</span>
+                  <div className="answer-work">
+                    <div className="answer-work-rows">
+                      <div>
+                        <strong>Original</strong> {shortText(answer.original_value ?? answer.value)}
                       </div>
-                      <div className="telemetry-breakdown-row">
-                        <span>Included after review</span>
-                        <span>{reviewedCount}</span>
+                      <div>
+                        <strong>Included after review</strong> {reviewedCount}
                       </div>
                     </div>
 
                     {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn-primary" style={{ flex: 1 }} onClick={startManual}>
+                      <div className="review-actions">
+                        <button type="button" className="btn-primary" onClick={startManual}>
                           <Plus size={13} /> Add missed object
                         </button>
                         <button type="button" className="btn-secondary" onClick={restoreOriginal}>
@@ -2168,34 +1974,19 @@ function App() {
                     )}
 
                     {pendingManual && (
-                      <form
-                        onSubmit={addManual}
-                        style={{
-                          padding: 12,
-                          background: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: 8,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                          fontSize: 11,
-                        }}
-                      >
-                        <strong style={{ color: '#166534' }}>Mark missing object</strong>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <span>Label:</span>
-                          <input
-                            type="text"
-                            value={manualLabel}
-                            onChange={event => setManualLabel(event.target.value)}
-                            placeholder="e.g. Window beside room 5.11"
-                            required
-                            style={{ padding: '6px 8px', border: '1px solid #d4d4d8', borderRadius: 4 }}
-                          />
-                        </label>
-                        {manualError && <span style={{ color: '#dc2626' }}>{manualError}</span>}
-                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                          <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+                      <form className="review-form" onSubmit={addManual}>
+                        <strong>Mark missing object</strong>
+                        <input
+                          type="text"
+                          value={manualLabel}
+                          onChange={event => setManualLabel(event.target.value)}
+                          placeholder="e.g. Window beside room 5.11"
+                          aria-label="Label for the missing object"
+                          required
+                        />
+                        {manualError && <span className="review-form-error">{manualError}</span>}
+                        <div className="review-actions">
+                          <button type="submit" className="btn-primary">
                             Add to count
                           </button>
                           <button type="button" className="btn-secondary" onClick={cancelManual}>
@@ -2206,24 +1997,14 @@ function App() {
                     )}
 
                     {answer.can_review && !answer.source_changed && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 11, color: '#71717a' }}>
-                          Review note:
-                          <input
-                            type="text"
-                            value={reviewNote}
-                            onChange={event => setReviewNote(event.target.value)}
-                            placeholder="Reason for count adjustments..."
-                            style={{
-                              width: '100%',
-                              marginTop: 4,
-                              padding: '6px 8px',
-                              border: '1px solid #d4d4d8',
-                              borderRadius: 4,
-                              fontSize: 11,
-                            }}
-                          />
-                        </label>
+                      <div className="review-form">
+                        <input
+                          type="text"
+                          value={reviewNote}
+                          onChange={event => setReviewNote(event.target.value)}
+                          placeholder="Review note"
+                          aria-label="Review note"
+                        />
                         <button
                           type="button"
                           className="btn-primary"
@@ -2237,21 +2018,19 @@ function App() {
                     )}
 
                     {history.length > 0 && (
-                      <div style={{ marginTop: 4, borderTop: '1px solid #e4e4e7', paddingTop: 10 }}>
-                        <div className="section-label">Recent questions ({history.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {history.map(item => (
-                            <button key={item.id || item.timestamp} type="button" className="suggestion-chip" onClick={() => restoreHistory(item)}>
-                              <span>{item.question}</span>
-                              <Clock3 size={11} color="#a1a1aa" />
-                            </button>
-                          ))}
-                        </div>
+                      <div className="review-history">
+                        <div className="section-label">Recent questions</div>
+                        {history.map(item => (
+                          <button key={item.id || item.timestamp} type="button" className="suggestion-chip" onClick={() => restoreHistory(item)}>
+                            <span>{item.question}</span>
+                            <Clock3 size={11} color="#a1a1aa" />
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </aside>

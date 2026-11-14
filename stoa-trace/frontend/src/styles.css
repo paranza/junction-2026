@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Trace - Vercel UI Design System & Interactive Blueprint Viewer
+   Metria - Vercel UI Design System & Interactive Blueprint Viewer
    ========================================================================== */
 
 :root {
@@ -2382,4 +2382,404 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ==========================================================================
+   Simplified shell: light header, closed drawer sidebar, focused workspace
+   ========================================================================== */
+
+.app-header {
+  background: var(--ui-surface);
+  color: var(--ui-fg);
+  border-bottom: 1px solid var(--ui-border);
+  padding: 0 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-text {
+  color: var(--ui-fg);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.header-divider {
+  width: 1px;
+  height: 15px;
+  background: var(--ui-border);
+  margin: 0 2px;
+}
+
+.header-doc {
+  font-size: 12px;
+  color: var(--ui-fg-muted);
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--ui-fg-muted);
+  background: transparent;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.header-icon-btn:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-fg);
+}
+
+.status-badge.is-offline {
+  color: #b45309;
+}
+
+/* Drawings drawer: closed on entry, slides over the workspace when opened */
+.sidebar-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 288px;
+  min-width: 288px;
+  max-width: 288px;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), visibility 220ms;
+  z-index: 25;
+  box-shadow: 0 12px 32px rgba(9, 9, 11, 0.12);
+}
+
+.workspace-layout.sidebar-open .sidebar-panel {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.sidebar-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(9, 9, 11, 0.16);
+}
+
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 10px 8px 14px;
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-fg);
+}
+
+.load-more-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  font-size: 11px;
+  color: var(--ui-fg-muted);
+  border-radius: var(--ui-radius-md);
+}
+
+.load-more-btn:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-fg);
+}
+
+/* Settings popover, opened from the header */
+.settings-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+}
+
+.settings-popover {
+  position: fixed;
+  top: calc(var(--ui-header-height) + 6px);
+  right: 12px;
+  width: 250px;
+  z-index: 46;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: 0 12px 32px rgba(9, 9, 11, 0.16);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-popover-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-fg-subtle);
+}
+
+.setting-slider-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-slider {
+  flex: 1;
+}
+
+/* White, uncluttered working surface */
+.workspace-layout,
+.main-drawing {
+  background: #ffffff;
+}
+
+.dropzone-container {
+  padding: 24px;
+  gap: 16px;
+}
+
+.dropzone-box {
+  max-width: 560px;
+  padding: 40px 28px;
+}
+
+.dropzone-desc {
+  max-width: 330px;
+}
+
+.sample-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ui-fg-subtle);
+}
+
+.sample-link {
+  font-size: 11px;
+  color: var(--ui-fg-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sample-link:hover {
+  color: var(--ui-fg);
+}
+
+/* Centered composer, closer to a chat input */
+.docked-composer-container {
+  background: #ffffff;
+  border-top: none;
+  padding: 6px 16px 18px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.docked-composer-box {
+  border: 1px solid var(--ui-border-hover);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(9, 9, 11, 0.04);
+  padding: 4px;
+}
+
+.docked-composer-box:focus-within {
+  border-color: var(--ui-fg-muted);
+  box-shadow: 0 2px 12px rgba(9, 9, 11, 0.08);
+}
+
+.docked-textarea {
+  font-size: 14px;
+  padding: 10px 12px 2px;
+  min-height: 44px;
+}
+
+.docked-composer-footer {
+  padding: 2px 6px 4px;
+}
+
+.composer-scope-select {
+  font-size: 11px;
+  color: var(--ui-fg-muted);
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+
+.composer-scope-select:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-fg);
+}
+
+.btn-send {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+/* Answer panel appears only once a question is running or answered */
+.workspace-layout.has-answer .answer-panel {
+  visibility: visible;
+  width: 380px;
+  min-width: 380px;
+  max-width: 380px;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+  border-left: 1px solid var(--ui-border);
+}
+
+.answer-panel-heading h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.answer-panel-scroll {
+  padding: 16px;
+}
+
+.answer-work {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ui-fg-muted);
+}
+
+.answer-work-block {
+  background: var(--ui-surface-subtle);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.answer-work-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-fg-subtle);
+}
+
+.answer-work-block code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ui-fg);
+  word-break: break-word;
+}
+
+.answer-work-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.answer-work-rows strong {
+  color: var(--ui-fg);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.review-actions .btn-primary,
+.review-actions .btn-secondary {
+  flex: 1;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-subtle);
+}
+
+.review-form strong {
+  font-size: 11px;
+  color: var(--ui-fg);
+}
+
+.review-form input {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
+  color: var(--ui-fg);
+  outline: none;
+}
+
+.review-form input:focus {
+  border-color: var(--ui-fg-muted);
+}
+
+.review-form-error {
+  font-size: 10px;
+  color: #b91c1c;
+}
+
+.review-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--ui-border-subtle);
+  padding-top: 10px;
+}
+
+@media (max-width: 840px) {
+  .sidebar-panel,
+  .answer-panel {
+    display: flex;
+  }
+  .workspace-layout.has-answer .answer-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(86vw, 380px);
+    min-width: 0;
+    max-width: none;
+    z-index: 22;
+    box-shadow: 0 12px 32px rgba(9, 9, 11, 0.16);
+  }
+  .header-doc {
+    display: none;
+  }
 }
