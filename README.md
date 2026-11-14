@@ -21,7 +21,7 @@ cp .env.example .env
 .venv/bin/python ops/start_local.py
 ```
 
-Open <http://127.0.0.1:8787>. Native analysis needs no API key. Visual analysis needs a privately configured OpenAI key. Windows setup and dependency refresh instructions are in the application handoff.
+Open <http://127.0.0.1:8787>. Native analysis needs no API key. Visual analysis uses a privately configured Gemini key with the current Argon policy; OpenAI remains optional. Windows setup and dependency refresh instructions are in the application handoff.
 
 Verify from `stoa-trace/`:
 

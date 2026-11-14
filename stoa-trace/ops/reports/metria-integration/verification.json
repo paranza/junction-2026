@@ -1,0 +1,78 @@
+{
+  "source_revision": "a1d06e8",
+  "antonio_ui_revision": "b6d7c42",
+  "michele_backend_revision": "5d8598c",
+  "matteo_readings_revision": "d0c9fcd",
+  "latest_matteo_report_revision": "96626c6",
+  "backend_tests": 318,
+  "frontend_tests": 36,
+  "frontend_build": "passed",
+  "local_workspace": "http://127.0.0.1:8791/",
+  "previous_answers_preserved": 7321,
+  "previous_event_history_preserved": true,
+  "runtime_retained": true,
+  "model_requests_before": 1,
+  "model_requests_after": 4,
+  "model_request_ceiling": 1000,
+  "live_argon_smoke": {
+    "id": "942b9a0d3cb7493688b4e9d3e04a6f2a",
+    "status": "needs_review",
+    "value": 4,
+    "method": "visual_inventory",
+    "agreement": {
+      "readings": [
+        4,
+        4
+      ],
+      "agree": true
+    },
+    "usage": {
+      "model_calls": 2,
+      "input_tokens": 23984,
+      "output_tokens": 4450,
+      "cached_input_tokens": 0,
+      "models": [
+        "gemini/gemini-4-argon"
+      ],
+      "cost_known_usd": 0.0,
+      "unknown_usage_calls": 0,
+      "cost_unavailable_calls": 2,
+      "cache_hit": false,
+      "pricing_note": "Estimated provider token cost before credits; hosting and storage excluded.",
+      "model_usage": [
+        {
+          "model": "gemini/gemini-4-argon",
+          "model_calls": 2,
+          "input_tokens": 23984,
+          "output_tokens": 4450,
+          "cached_input_tokens": 0,
+          "cost_known_usd": 0.0,
+          "unknown_usage_calls": 0,
+          "cost_unavailable_calls": 2,
+          "cost_estimate_usd": null
+        }
+      ],
+      "cost_estimate_usd": null,
+      "cost_basis": "unconfigured",
+      "inventory_cache_hit": false
+    },
+    "inventory_cache_hit": false,
+    "elapsed_seconds": 31.35,
+    "evidence_count": 4,
+    "source": "Existing procedural development PNG; not a reserved evaluation."
+  },
+  "cloudinary_browser_closeup": "passed",
+  "browser_checks": [
+    "native PDF: two washbasins with two source items",
+    "review exclusion and restore: 2 to 1 to 2",
+    "conversation and cached answer survive reload",
+    "session and message usage read from server",
+    "calibrated QA polygon: 48 square metres from entered reference",
+    "imperial conversion: 516.667 square feet in current and historical answer",
+    "mobile portrait and landscape: composer visible, no horizontal overflow",
+    "native IFC API: 211 doors and 211 evidence items",
+    "real Cloudinary evidence close-up in local app"
+  ],
+  "reserved_evaluations": 0,
+  "limits": "Integration and smoke checks only; no new general-accuracy estimate and no production VM deployment."
+}
