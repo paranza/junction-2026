@@ -107,7 +107,9 @@ class MeasurementBreakdown(unittest.TestCase):
   self.assertIsNone(native_query.execute(plan,document))
  def test_measurement_unit_after_how_many_is_not_a_count(self):
   for question,expected in [('How many square meters per room?','area'),('How many m² of flooring?','area'),
-    ('How many cubic metres of concrete?','volume'),('How many metres of wall?','length'),('How many doors wider than 2 m?','count')]:
+    ('How many cubic metres of concrete?','volume'),('How many metres of wall?','length'),('How many doors wider than 2 m?','count'),
+    ('Quanti metri di tubi ci sono nel progetto?','length'),('Quanti metri quadrati di pavimento?','area'),
+    ('Quanti metri cubi di calcestruzzo?','volume'),('Quante porte più larghe di 2 metri?','count')]:
    with self.subTest(question=question):self.assertEqual(llm.requested_quantity(question),expected)
  def test_large_property_schemas_are_shared_without_erasing_fields(self):
   import json

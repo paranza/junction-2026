@@ -39,6 +39,10 @@ def main():
         from .rendering import render_page,png_bytes
         image,source=render_page(path,request['page'],request['max_edge'])
         result={'png':base64.b64encode(png_bytes(image)).decode(),'source':str(source)}
+    elif operation in {'raster_region','region'}:
+        from .rendering import render_region,png_bytes
+        image=render_region(path,request['page'],request['region'],request['max_edge'])
+        result={'png':base64.b64encode(png_bytes(image)).decode()}
     elif operation=='dxf':
         from .rendering import dxf_render
         pdf,transform=dxf_render(path)

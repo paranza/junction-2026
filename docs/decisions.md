@@ -1,5 +1,17 @@
 # Decisions
 
+### 2026-11-14: prioritize Stoa's complex scanned-drawing evaluation
+
+The user asked us to concentrate current work on new Stoa Discord guidance.
+The partner will evaluate a few unreleased drawings through the submitted
+interface, with difficult questions focused on scanned PDFs/PNGs. Prioritize
+source-resolution inspection, typed annotation evidence and checked area,
+perimeter, slab-class and piping workflows. Keep the existing chat/selection
+interface and the working native paths. No new Projects page is implied by
+multi-building context. Preserve benchmark references and distinguish their
+scores from a separate drawing-level audit where human labels are disputed.
+The rejected detector remains disabled. See the [dated evidence and scope](research/stoa-final-evaluation-20261114.md).
+
 ## Agreed context
 
 | Item | Decision or status |

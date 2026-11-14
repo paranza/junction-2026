@@ -17,8 +17,9 @@ SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '1') == '1'
 RASTER_SUFFIXES = frozenset({'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.tif', '.tiff'})
 RASTER_ENCODINGS = frozenset({'PNG', 'JPEG', 'WEBP', 'BMP', 'GIF', 'TIFF'})
 MAX_RASTER_BYTES = 120 * 1024 * 1024
-MAX_RASTER_PIXELS = 100_000_000
+MAX_RASTER_PIXELS = 160_000_000
 MAX_RASTER_PAGES = 200
+LARGE_RASTER_PIXELS = 25_000_000
 
 
 def _raster_limits(path, image):
@@ -74,6 +75,11 @@ def _raster_page(path: Path, page: int, max_edge: int):
             raise ValueError('Drawing page is unavailable')
         image.seek(page - 1)
         _raster_limits(path, image)
+        # Downsample once before RGB conversion and EXIF copies. Engineering
+        # scans can be one-bit or grayscale and exceed 100 megapixels.
+        if image.mode=='1':image=image.convert('L')
+        elif image.mode=='P':image=image.convert('RGBA' if 'transparency' in image.info else 'RGB')
+        image.thumbnail((max_edge,max_edge),Image.Resampling.LANCZOS)
         image = ImageOps.exif_transpose(image)
         if image.mode in {'RGBA', 'LA'} or 'transparency' in image.info:
             rgba = image.convert('RGBA')
@@ -83,6 +89,75 @@ def _raster_page(path: Path, page: int, max_edge: int):
             normalized = image.convert('RGB')
         normalized.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
         return normalized.copy()
+
+
+def _large_raster(path,page):
+    if path.stat().st_size>MAX_RASTER_BYTES:
+        raise ValueError('Image exceeds the 120 MB processing size limit')
+    with Image.open(path) as image:
+        if page>_raster_frame_count(path,image):raise ValueError('Drawing page is unavailable')
+        image.seek(page-1)
+        _raster_limits(path,image)
+        return image.width*image.height>LARGE_RASTER_PIXELS
+
+
+def _raster_region(path,page,region,max_edge):
+    with Image.open(path) as image:
+        if page>_raster_frame_count(path,image):raise ValueError('Drawing page is unavailable')
+        image.seek(page-1)
+        _raster_limits(path,image)
+        oriented=ImageOps.exif_transpose(image)
+        x0,y0,x1,y1=region
+        crop=oriented.crop((int(x0*oriented.width),int(y0*oriented.height),
+                            int(x1*oriented.width),int(y1*oriented.height)))
+        if crop.width<1 or crop.height<1:raise ValueError('Selected region is smaller than a source pixel')
+        if crop.mode=='1':crop=crop.convert('L')
+        elif crop.mode=='P':crop=crop.convert('RGBA' if 'transparency' in crop.info else 'RGB')
+        crop.thumbnail((max_edge,max_edge),Image.Resampling.LANCZOS)
+        if crop.mode in {'RGBA','LA'} or 'transparency' in crop.info:
+            rgba=crop.convert('RGBA');normalized=Image.new('RGB',rgba.size,'white')
+            normalized.paste(rgba,mask=rgba.getchannel('A'));return normalized
+        return crop.convert('RGB')
+
+
+def render_region(path:Path,page,region,max_edge=2000):
+    """Crop original raster pixels in the same oriented page coordinates."""
+    import math
+    if (not isinstance(region,(list,tuple)) or len(region)!=4 or type(max_edge) is not int or not 1<=max_edge<=6000 or
+        any(type(value) not in (int,float) or not math.isfinite(value) for value in region) or
+        not 0<=region[0]<region[2]<=1 or not 0<=region[1]<region[3]<=1 or page<1):
+        raise ValueError('Invalid drawing region')
+    path=Path(path)
+    if path.suffix.lower() in RASTER_SUFFIXES:
+        from . import native_worker
+        if _large_raster(path,page) and not native_worker.in_worker():
+            import base64
+            result=native_worker.call('raster_region',path=str(path.resolve()),page=page,region=list(region),max_edge=max_edge)
+            with Image.open(io.BytesIO(base64.b64decode(result['png']))) as image:return image.copy()
+        return _raster_region(path,page,region,max_edge)
+    if path.suffix.lower() in {'.pdf','.svg'}:
+        from . import native_worker
+        if not native_worker.in_worker():
+            import base64
+            result=native_worker.call('region',path=str(path.resolve()),page=page,region=list(region),max_edge=max_edge)
+            with Image.open(io.BytesIO(base64.b64decode(result['png']))) as image:return image.copy()
+        with pymupdf.open(path) as document:
+            if page>len(document):raise ValueError('Drawing page is unavailable')
+            sheet=document[page-1]
+            if sheet.rotation:sheet.remove_rotation()
+            rect=sheet.rect;x0,y0,x1,y1=region
+            clip=pymupdf.Rect(rect.x0+x0*rect.width,rect.y0+y0*rect.height,
+                              rect.x0+x1*rect.width,rect.y0+y1*rect.height)
+            scale=max_edge/max(clip.width,clip.height)
+            pix=sheet.get_pixmap(matrix=pymupdf.Matrix(scale,scale),clip=clip,alpha=False)
+            image=Image.frombytes('RGB',(pix.width,pix.height),pix.samples)
+            image.thumbnail((max_edge,max_edge),Image.Resampling.LANCZOS)
+            return image
+    image,_=render_page(path,page,max_edge=3200)
+    x0,y0,x1,y1=region
+    crop=image.crop((int(x0*image.width),int(y0*image.height),int(x1*image.width),int(y1*image.height)))
+    crop.thumbnail((max_edge,max_edge),Image.Resampling.LANCZOS)
+    return crop
 
 
 def natural_key(path):
@@ -166,6 +241,10 @@ def render_page(path: Path, page=1, max_edge=2400):
         source, source_page = sources[0], page
     suffix = source.suffix.lower()
     if suffix in RASTER_SUFFIXES:
+        if not native_worker.in_worker() and _large_raster(source,source_page):
+            import base64
+            result=native_worker.call('render',path=str(path.resolve()),page=page,max_edge=max_edge)
+            with Image.open(io.BytesIO(base64.b64decode(result['png']))) as image:return image.copy(),Path(result['source'])
         return _raster_page(source, source_page, max_edge), source
     if suffix in {'.pdf', '.svg'}:
         with pymupdf.open(source) as doc:
@@ -194,13 +273,11 @@ def image_inputs(path: Path, pages: list[int], region=None, *, small_image_crops
     """Overview plus detail crops, with invertible image-to-page coordinates."""
     inputs = []
     for page in pages:
-        image, _ = render_page(path, page, max_edge=3200)
         if region:
-            x0, y0, x1, y1 = region
-            crop = image.crop((int(x0 * image.width), int(y0 * image.height), int(x1 * image.width), int(y1 * image.height)))
-            crop.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
+            crop=render_region(path,page,region,max_edge=2000)
             inputs.append({'image': crop, 'page': page, 'region': list(region), 'kind': 'selected region'})
             continue
+        image, _ = render_page(path, page, max_edge=3200)
         overview = image.copy()
         overview.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
         inputs.append({'image': overview, 'page': page, 'region': [0, 0, 1, 1], 'kind': 'overview'})

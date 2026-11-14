@@ -3,7 +3,7 @@
 Published rates checked 2026-11-14:
 https://aistudio.google.com/docs/pricing#gemini-4-carbon
 https://aistudio.google.com/docs/pricing#gemma-4
-Carbon's listed promotional rates expire on 2026-12-01. Gemma's hosted free
+Carbon and Argon's listed promotional rates expire on 2026-12-01. Gemma's hosted free
 tier is an estimate of provider token charges, not a promise about an invoice.
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ import os
 _SOURCE = 'https://aistudio.google.com/docs/pricing'
 _LISTED = {
     'gemini/gemini-4-carbon': (2.0, .1, 10.0),
+    'gemini/gemini-4-argon': (2.0, .1, 10.0),
     'gemini/gemma-4-31b-it': (0.0, 0.0, 0.0),
     'gemini/gemma-4-26b-a4b-it': (0.0, 0.0, 0.0),
 }

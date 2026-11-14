@@ -74,6 +74,25 @@ class EvidenceRules(unittest.TestCase):
             self.assertEqual(context['objects'][0]['page'], 1)
             self.assertEqual(context['objects'][0]['source_path'], str(views[1]))
 
+    def test_visual_source_unit_aliases_and_conversions_are_reproduced(self):
+        item={'object_id':None,'image_index':0,'bbox':[.1,.1,.2,.2],
+              'label':'Printed floor area','quoted_text':'100 SF','value':100,'unit':'SF'}
+        result=self.result(operation='area',value=999,unit='m²',evidence=[item])
+        with patch.object(llm,'_request',return_value=result),patch.object(llm,'image_inputs',return_value=self.inputs):
+            answer=llm.answer_with_model('What is the printed floor area in square metres?',self.document,Path('scan.png'),scope='page')
+        self.assertAlmostEqual(answer['value'],9.290304)
+        self.assertEqual(answer['evidence'][0]['value'],100)
+        self.assertIn('100 SF',answer['calculation']);self.assertEqual(answer['status'],'needs_review')
+
+    def test_a_length_cannot_be_accepted_as_an_area_from_a_raster(self):
+        item={'object_id':None,'image_index':0,'bbox':[.1,.1,.2,.2],
+              'label':'Dimension','quoted_text':'100 mm','value':100,'unit':'mm'}
+        for target in ['m²','mm']:
+            result=self.result(operation='area',value=999,unit=target,evidence=[item])
+            with patch.object(llm,'_request',return_value=result),patch.object(llm,'image_inputs',return_value=self.inputs):
+                answer=llm.answer_with_model('What is the area?',self.document,Path('scan.png'),scope='page')
+            self.assertIsNone(answer['value'])
+
 
 if __name__ == '__main__':
     unittest.main()

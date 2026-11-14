@@ -24,6 +24,12 @@ def response(status='completed'):
 
 
 class TokenPricing(unittest.TestCase):
+    def test_argon_uses_its_published_price_and_expiry(self):
+        result=costs.summarize_calls([{'model':'gemini/gemini-4-argon','created':NOW.timestamp(),
+                                      'usage':usage(1_000_000,100_000,500_000)}])
+        self.assertEqual(result['cost_estimate_usd'],2.05)
+        self.assertIsNone(costs.rates_for('gemini/gemini-4-argon',datetime(2026,12,1,tzinfo=timezone.utc)))
+
     def test_dated_prices_count_uncached_cached_and_thought_output_once(self):
         result = costs.summarize_calls([{'model': 'gemini/gemini-4-carbon',
                                         'created': NOW.timestamp(), 'usage': usage(100, 10, 20)}])

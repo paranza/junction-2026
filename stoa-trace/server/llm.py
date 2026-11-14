@@ -321,15 +321,15 @@ def requested_quantity(question):
     q = question.casefold()
     # The object after "how many" may itself be a measurement unit.
     # A later threshold, as in "how many doors wider than 2 m", stays a count.
-    measured_count=re.search(r'\bhow many\s+(?:(square|cubic)\s+)?(met(?:er|re)s?|feet|foot|m[²³23]|sq\.?\s*(?:m|ft))\b',q)
+    measured_count=re.search(r'\b(?:how many|quanti|quante)\s+(?:(square|cubic)\s+)?(met(?:er|re)s?|(?:milli|centi)?metr[io]|feet|foot|pied[ei]|inches|pollici|m[²³23]|sq\.?\s*(?:m|ft))(?:\s+(quadrati|quadri|cubi))?\b',q)
     if measured_count:
         phrase=measured_count.group(0)
-        return 'volume' if measured_count.group(1)=='cubic' or re.search(r'm[³3]',phrase) else 'area' if measured_count.group(1)=='square' or re.search(r'm[²2]|sq',phrase) else 'length'
+        return 'volume' if measured_count.group(1)=='cubic' or measured_count.group(3)=='cubi' or re.search(r'm[³3]',phrase) else 'area' if measured_count.group(1)=='square' or measured_count.group(3) in {'quadrati','quadri'} or re.search(r'm[²2]|sq',phrase) else 'length'
     for kind, pattern in (
         ('count', r'\b(how many|number of|count|montako|kuinka monta|mitu|quanti|quante|combien|wie viele)\b'),
         ('volume', r'\b(volume|volumen|tilavuus|maht)\b|m[³3]'),
         ('area', r'\b(area|superficie|fläche|flache|pinta-ala|pindala)\b|m[²2]|ft[²2]'),
-        ('length', r'\b(length|width|height|perimeter|distance|länge|lange|breite|höhe|pituus|leveys|korkeus)\b')):
+        ('length', r'\b(length|width|height|thickness|diameter|perimeter|distance|lunghezza|larghezza|altezza|spessore|diametro|perimetro|länge|lange|breite|höhe|pituus|leveys|korkeus)\b')):
         if re.search(pattern, q):
             return kind
     return None
@@ -424,11 +424,16 @@ def answer_with_model(question, document, path, page=1, scope='document', region
         calculation = f'Count of {value} distinct located evidence items after overlap deduplication.'
         warnings.append('Visual detection completeness has not been independently verified. Review all marked candidates.')
     elif operation in {'area', 'length', 'volume'}:
-        quantities = [e for e in evidence if type(e.get('value')) in (int, float)
-                      and math.isfinite(e['value']) and e['value'] >= 0 and unit and e.get('unit') == unit]
+        from .verification import unit_spec,convert_quantity
+        target=unit_spec(unit)
+        quantities=[]
+        if target and target[0]==operation:
+            for item in evidence:
+                converted=convert_quantity(item.get('value'),item.get('unit'),unit)
+                if converted is not None:quantities.append({**item,'converted_value':converted})
         if len(quantities) == len(evidence) and quantities and (len(quantities) == 1 or re.search(r'total|sum|combined|all|complessiv|totaal', question, re.I)):
-            value = sum(e['value'] for e in quantities)
-            calculation = ' + '.join(str(e['value']) for e in quantities) + f' = {value:g} {unit}'
+            value = sum(e['converted_value'] for e in quantities)
+            calculation = ' + '.join(f"({e['value']:g} {e['unit']} = {e['converted_value']:g} {unit})" if e['unit']!=unit else str(e['value']) for e in quantities) + f' = {value:g} {unit}'
             fully_grounded = all(e.get('source_verified') for e in quantities)
             if fully_grounded:
                 answer = f'{value:g} {unit}, calculated from checked source quantities.'
