@@ -238,7 +238,7 @@ function UsageDetails({ answer }) {
   if (!usage) return null;
   return <details className="usage-details"><summary>{usageLabel(answer)} · {callsKnown ? `${usage.model_calls} model ${usage.model_calls === 1 ? 'call' : 'calls'}` : 'Call count unavailable'}</summary>
     <dl><dt>This question</dt><dd>{costText(usage)}</dd><dt>Input / output tokens</dt><dd>{Number(usage.input_tokens || 0).toLocaleString()} / {Number(usage.output_tokens || 0).toLocaleString()}</dd>{Number(usage.cached_input_tokens || 0) > 0 && <><dt>Cached input tokens</dt><dd>{Number(usage.cached_input_tokens).toLocaleString()}</dd></>}{answer.model && <><dt>Model</dt><dd>{answer.model}</dd></>}{initial && <><dt>Initial visual extraction</dt><dd>{Number(initial.model_calls || 0)} calls · {costText(initial)}</dd></>}</dl>
-    <p>{usage.cost_estimate_usd == null && usage.cost_basis !== 'native' ? 'No token prices are configured. Usage is recorded; dollar cost is unknown.' : usage.cost_basis === 'native' ? 'No model inference was needed. Hosting and storage costs are separate.' : 'Estimate uses configured token rates, not a provider invoice.'}</p>
+    <p>{usage.usage_incomplete ? 'The provider did not report all token usage. Any known cost is a subtotal.' : usage.cost_estimate_usd == null && usage.cost_basis !== 'native' ? 'A price is unavailable for some model usage. Any known cost is a subtotal.' : usage.model_calls === 0 ? 'No model inference was needed. Hosting and storage costs are separate.' : 'Estimate uses published or explicitly configured token rates before credits. It is not a provider invoice.'}</p>
   </details>;
 }
 
