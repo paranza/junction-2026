@@ -1,0 +1,28 @@
+{
+  "generated_independent_source_fixtures": true,
+  "cases": 3,
+  "correct": 3,
+  "actual_model_attempts": 4,
+  "harness_failures": 1,
+  "harness_failure_note": "An initial result was generated successfully but the local scorer used group instead of label. It was not scored and remains an accounted model attempt.",
+  "source_objects_per_fixture": 500,
+  "prompt_characters": [
+    [
+      9241
+    ],
+    [
+      9262
+    ],
+    [
+      9267
+    ]
+  ],
+  "latency_ms": [
+    13151,
+    23163,
+    6643
+  ],
+  "planner_sha256": "114e1b6a73cafc464bffe5d7e78000f9d444fd92b71a04dbd5333e1b2a458b02",
+  "expected_values_in_model_prompt": false,
+  "limits": "Functional generated-source checks, not a dataset accuracy estimate."
+}

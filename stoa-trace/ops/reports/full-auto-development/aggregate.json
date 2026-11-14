@@ -1,0 +1,394 @@
+{
+  "frozen_revision": "190e116",
+  "model": "gemini-4-carbon",
+  "selected_questions": 7066,
+  "completed_questions": 6967,
+  "unrun_questions": 99,
+  "outcomes": {
+    "manual_review": 159,
+    "unanswered": 139,
+    "correct": 6305,
+    "incorrect": 364
+  },
+  "all_selected": {
+    "cases": 7066,
+    "answered": 6828,
+    "coverage": 0.966317577129918,
+    "numeric_cases": 6801,
+    "numeric_answered": 6669,
+    "numeric_correct": 6305,
+    "accuracy_all": 0.9270695485957947,
+    "accuracy_answered": 0.9454191033138402,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 265,
+    "text_answered_for_manual_review": 159,
+    "review_flagged_answers": 3515,
+    "errors": 7,
+    "methods": {
+      "visual_inventory": 3448,
+      "model_source_records": 195,
+      "model_planned_native_query": 32,
+      "vision": 7,
+      "native_ifc_quantity": 888,
+      "source_scope_check": 1,
+      "native_ifc_entity_count": 137,
+      "none": 106,
+      "native_pdf_schedule_area": 7,
+      "model_planned_schedule_query": 20,
+      "native_cad_area_annotations": 686,
+      "native_cad_symbol_inventory": 620,
+      "native_cad_room_labels": 744,
+      "native_pdf_ruled_schedule": 25,
+      "native": 2,
+      "native_query_clarification": 22,
+      "native_pdf_schedule_rows": 3,
+      "native_pdf_schedule_row": 2,
+      "native_cad_unit_outlines": 120,
+      "native_ifc_project_records": 1
+    },
+    "statuses": {
+      "needs_review": 3516,
+      "insufficient_evidence": 130,
+      "supported": 3285,
+      "needs_input": 1,
+      "no_response": 7,
+      "not_run": 99,
+      "visual": 6,
+      "needs_clarification": 22
+    },
+    "usage": {
+      "model_calls": 860,
+      "input_tokens": 38594666,
+      "output_tokens": 4604018,
+      "cache_hits": 3322,
+      "cost_estimate_usd": null,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 6967,
+      "total": 39137954.82,
+      "p50": 6.76,
+      "p95": 33574.6
+    },
+    "evidence": {
+      "items": 36091,
+      "answers_with_evidence": 6387,
+      "answers_with_geometry": 5423,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 10991,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "cases": 3534,
+      "answered": 3426,
+      "coverage": 0.969439728353141,
+      "numeric_cases": 3534,
+      "numeric_answered": 3426,
+      "numeric_correct": 3063,
+      "accuracy_all": 0.866723259762309,
+      "accuracy_answered": 0.8940455341506129,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 3426,
+      "errors": 6,
+      "methods": {
+        "visual_inventory": 3448,
+        "none": 84,
+        "native": 2
+      },
+      "statuses": {
+        "needs_review": 3426,
+        "no_response": 6,
+        "insufficient_evidence": 24,
+        "not_run": 78
+      },
+      "usage": {
+        "model_calls": 380,
+        "input_tokens": 1474554,
+        "output_tokens": 3486068,
+        "cache_hits": 1725,
+        "cost_estimate_usd": null,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 3456,
+        "total": 22701367.66,
+        "p50": 4.01,
+        "p95": 47127.59
+      },
+      "evidence": {
+        "items": 8546,
+        "answers_with_evidence": 3024,
+        "answers_with_geometry": 3024,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_bench": {
+      "cases": 249,
+      "answered": 143,
+      "coverage": 0.5742971887550201,
+      "numeric_cases": 0,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": null,
+      "accuracy_answered": null,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 249,
+      "text_answered_for_manual_review": 143,
+      "review_flagged_answers": 88,
+      "errors": 0,
+      "methods": {
+        "model_source_records": 195,
+        "model_planned_native_query": 31,
+        "native_query_clarification": 22,
+        "native_ifc_project_records": 1
+      },
+      "statuses": {
+        "insufficient_evidence": 106,
+        "supported": 32,
+        "needs_review": 88,
+        "needs_clarification": 22,
+        "visual": 1
+      },
+      "usage": {
+        "model_calls": 444,
+        "input_tokens": 36726741,
+        "output_tokens": 1078494,
+        "cache_hits": 0,
+        "cost_estimate_usd": 84.23842200000006,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 249,
+        "total": 15459111.41,
+        "p50": 38343.58,
+        "p95": 231496.14
+      },
+      "evidence": {
+        "items": 2234,
+        "answers_with_evidence": 121,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 2234,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_models": {
+      "cases": 1049,
+      "answered": 1025,
+      "coverage": 0.9771210676835081,
+      "numeric_cases": 1049,
+      "numeric_answered": 1025,
+      "numeric_correct": 1025,
+      "accuracy_all": 0.9771210676835081,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 1,
+      "methods": {
+        "vision": 1,
+        "native_ifc_quantity": 888,
+        "source_scope_check": 1,
+        "native_ifc_entity_count": 137,
+        "none": 22
+      },
+      "statuses": {
+        "needs_review": 1,
+        "supported": 1025,
+        "needs_input": 1,
+        "no_response": 1,
+        "not_run": 21
+      },
+      "usage": {
+        "model_calls": 2,
+        "input_tokens": 22655,
+        "output_tokens": 2980,
+        "cache_hits": 512,
+        "cost_estimate_usd": null,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 1028,
+        "total": 357653.1,
+        "p50": 56.43,
+        "p95": 217.36
+      },
+      "evidence": {
+        "items": 10440,
+        "answers_with_evidence": 1026,
+        "answers_with_geometry": 183,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 8757,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "opening_design": {
+      "cases": 64,
+      "answered": 64,
+      "coverage": 1.0,
+      "numeric_cases": 48,
+      "numeric_answered": 48,
+      "numeric_correct": 47,
+      "accuracy_all": 0.9791666666666666,
+      "accuracy_answered": 0.9791666666666666,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 16,
+      "text_answered_for_manual_review": 16,
+      "review_flagged_answers": 1,
+      "errors": 0,
+      "methods": {
+        "native_pdf_schedule_area": 7,
+        "vision": 6,
+        "model_planned_schedule_query": 20,
+        "native_pdf_ruled_schedule": 25,
+        "model_planned_native_query": 1,
+        "native_pdf_schedule_rows": 3,
+        "native_pdf_schedule_row": 2
+      },
+      "statuses": {
+        "supported": 58,
+        "visual": 5,
+        "needs_review": 1
+      },
+      "usage": {
+        "model_calls": 34,
+        "input_tokens": 370716,
+        "output_tokens": 36476,
+        "cache_hits": 0,
+        "cost_estimate_usd": 1.1061919999999998,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 64,
+        "total": 597752.99,
+        "p50": 53.52,
+        "p95": 35579.86
+      },
+      "evidence": {
+        "items": 349,
+        "answers_with_evidence": 64,
+        "answers_with_geometry": 64,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "swiss_dwellings": {
+      "cases": 2170,
+      "answered": 2170,
+      "coverage": 1.0,
+      "numeric_cases": 2170,
+      "numeric_answered": 2170,
+      "numeric_correct": 2170,
+      "accuracy_all": 1.0,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_cad_area_annotations": 686,
+        "native_cad_symbol_inventory": 620,
+        "native_cad_room_labels": 744,
+        "native_cad_unit_outlines": 120
+      },
+      "statuses": {
+        "supported": 2170
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 1085,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 2170,
+        "total": 22069.67,
+        "p50": 7.7,
+        "p95": 24.84
+      },
+      "evidence": {
+        "items": 14522,
+        "answers_with_evidence": 2152,
+        "answers_with_geometry": 2152,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_source_completed": {
+    "ifc_bench": 249,
+    "cubicasa5k": 3456,
+    "opening_design": 64,
+    "ifc_models": 1028,
+    "swiss_dwellings": 2170
+  },
+  "actual_cumulative_model_attempts": 879,
+  "development_only": true,
+  "reserved_preview_questions_scored": 0,
+  "independent_released_reserved_evaluation_rerun": false,
+  "manifest_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+  "nonanswers_excluding_errors": 132,
+  "technical_errors": 7,
+  "skipped_following_failed_drawing": 99,
+  "model_attempt_limit": 1000,
+  "free_text_accuracy": null,
+  "reference_answers_in_inference": false,
+  "new_source_features_included": false,
+  "policy": {
+    "revision": "bulk-evaluation-v2",
+    "manifest_cases_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+    "selected_cases_sha256": "e2a882e795c9ffb415df3feb8246010cc125095c0368fa6ce7a53eb61f283f36",
+    "source": "cubicasa5k",
+    "declared_application_commit": "190e1162e412d882ed0653cd12f14777eebcb1ed",
+    "provider": "gemini",
+    "model": "gemini-4-carbon",
+    "server_provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+    "server_inventory_signature": {
+      "revision": "located-inventory-v6",
+      "small_image_crops": false,
+      "reading_policy": "repeat",
+      "symbol_reader": "standard",
+      "detector": null,
+      "readings": 2
+    },
+    "server_solver_revision": "e018fa0fb0ba9daf12d6",
+    "mode": "auto",
+    "verify_visual": false,
+    "normalizer_sha256": "cfe6d285b43c5667fc9a51b3d58cc272a9dcc0cf7f179a507f9e3ee607e5cbd2",
+    "question_templates_sha256": "295a091bdd460b3a39268515332764098a44f8ae069f514abb9625cacaf2efc1"
+  },
+  "private_checkpoint_sha256": {
+    "ifc_bench.jsonl": "06f5dab2bafafbc66c82f0a687c251d4b804947369351487f755f96f45b9a19e",
+    "cubicasa5k.jsonl": "ae3bbb830defcf0bc1e0c7f16a8c93127c1fdebbe8194c8e0e4c06fa39d78b8b",
+    "opening_design.jsonl": "908fdf48570dcccd4897d49c29abce9e0c7b13929a17777672eeaa72205d550b",
+    "ifc_models.jsonl": "7c159ccdd5160063ae1bac4952f8cecb5c93f2b929b21c5dfada997d1ecbe7fb",
+    "swiss_dwellings.jsonl": "acb69bd9e24361ec40317cd3586e507100a76b2bf736d69580736d267a00844c"
+  },
+  "limitations": [
+    "Development benchmark, not an independent generalization estimate.",
+    "Counts exact; measurements use 2% relative tolerance; free text ungraded.",
+    "Frozen 190e116 policy, before later source and detector changes.",
+    "Source/provider errors preserve failed cases and unrun questions; no silent replay.",
+    "879 is the cumulative persisted request ledger, including earlier retained attempts. Response-level usage alone undercounts failed or reconciled attempts.",
+    "Automatic source orchestration finished; 99 questions remain unrun after failed drawings.",
+    "One scheduler exited configuration code 2 when it reached an output owned by another source runner; the owning run completed that source without duplicate calls."
+  ]
+}

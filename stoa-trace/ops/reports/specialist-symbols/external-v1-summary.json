@@ -1,0 +1,122 @@
+{
+  "experiment": "yolo11s-external-v1",
+  "training_source": "CubiCasa5K official external splits",
+  "train_images": 256,
+  "validation_images": 64,
+  "confirmation_images": 16,
+  "junction_preview_image_ids_excluded": 241,
+  "reference_answers_in_inference": false,
+  "licenses": [
+    "CubiCasa CC-BY-NC-4.0",
+    "Ultralytics model AGPL-3.0"
+  ],
+  "training_configuration": {
+    "architecture": "yolo11s.pt",
+    "pretrained": true,
+    "epochs": 60,
+    "imgsz": 1024,
+    "batch": 4,
+    "seed": 8127,
+    "device": 0,
+    "workers": 2,
+    "patience": 60,
+    "optimizer": "AdamW",
+    "lr0": 0.001,
+    "cos_lr": true,
+    "mosaic": 0.5,
+    "close_mosaic": 10,
+    "degrees": 90,
+    "fliplr": 0.5,
+    "flipud": 0.5,
+    "scale": 0.3,
+    "translate": 0.1,
+    "hsv_h": 0,
+    "hsv_s": 0,
+    "hsv_v": 0.2,
+    "cache": false,
+    "amp": true,
+    "deterministic": true,
+    "save_period": 10,
+    "plots": false,
+    "name": "yolo11s-external-v1",
+    "exist_ok": false
+  },
+  "pretrained_sha256": "85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5",
+  "weights_sha256": "25d1cf2f260973a728fcb4b07d86324be81e510c9a5dd26aaae2d42d71287b08",
+  "onnx_sha256": "2adf293ddaa5a6554fa91abc4b06866468893040fc5ecace5f0984d521bd2186",
+  "validation_selected_thresholds": {
+    "0": 0.2,
+    "1": 0.3
+  },
+  "validation_count_and_iou50_metrics": {
+    "0": {
+      "exact_counts": 24,
+      "cases": 64,
+      "absolute_count_error": 97,
+      "true_positive_iou50": 542,
+      "false_positive_iou50": 144,
+      "false_negative_iou50": 125
+    },
+    "1": {
+      "exact_counts": 28,
+      "cases": 64,
+      "absolute_count_error": 101,
+      "true_positive_iou50": 431,
+      "false_positive_iou50": 92,
+      "false_negative_iou50": 115
+    }
+  },
+  "confirmation": {
+    "images": 16,
+    "counts": 32,
+    "summary": {
+      "baseline": {
+        "exact": 14,
+        "cases": 32,
+        "answered": 32,
+        "absolute_count_error": 47
+      },
+      "detector": {
+        "exact": 13,
+        "cases": 32,
+        "answered": 32,
+        "absolute_count_error": 51
+      },
+      "hybrid": {
+        "exact": 15,
+        "cases": 32,
+        "answered": 32,
+        "absolute_count_error": 44
+      }
+    },
+    "gained_cases": 1,
+    "lost_previously_correct_cases": 0,
+    "training_or_tuning_on_confirmation": false
+  },
+  "actual_gemini_attempts": 48,
+  "onnx_parity": {
+    "shape": [
+      1,
+      6,
+      21504
+    ],
+    "maximum_absolute_error": 0.0023193359375,
+    "mean_absolute_error": 2.744634184637107e-05,
+    "bbox_max_error_pixels": 0.0023193359375,
+    "score_max_error": 3.6656856536865234e-06
+  },
+  "cloud": {
+    "training_instance_removed": true,
+    "production_still_running": true,
+    "owned_volumes_remaining": 0,
+    "allocation_seconds": 992,
+    "compute_eur_hour": 0.1088,
+    "compute_estimate_eur": 0.02999,
+    "cost_note": "Elapsed allocation compute estimate only; excludes disk and provider billing rounding. No balance delta is attributed solely to training."
+  },
+  "enabled_in_default_app": false,
+  "release_decision": "Keep default reader. One improved count and 17/32 still wrong are insufficient evidence for the extra inference cost. The first model also used grayscale training exports with RGB inference; preserve these measured pipeline results, but do not claim a matched-preprocessing deployment validation. The larger experiment records the color contract explicitly.",
+  "pre_gold_high_resolution_fix": "Two large raster inputs exceeded the old heatmap memory guard. Box inference uses a fixed-size tensor. All 14 already-reviewed proposal lists were identical after the limit correction; the two remaining reviews ran before any confirmation reference was opened.",
+  "confirmation_protocol_sha256": "96f28bbb34bb3f3a55eca4d2bd75ca96558da50011df0b849688022b6245cdbd",
+  "confirmation_report_sha256": "1aaaadae98f43bac5e8773ba723984412447aaf5cb24a8a6b5fdf8eedee74cf2"
+}

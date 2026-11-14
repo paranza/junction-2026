@@ -1,5 +1,32 @@
 # Deployment verification
 
+## Source attribute release, Saturday evening
+
+Reviewed main `af767260c3611fb00c43e4689ea9adf105652353` is deployed on the
+existing protected CPU VM. The 397 backend tests, 59 frontend tests and build
+passed. All 7,066 development cases retained their native outcomes: 3,234/6,801
+numeric correct, zero previously correct losses, source changes, request errors
+or model calls. The preview reserve and independently released evaluation were
+not rerun.
+
+Authentication, native answers/evidence, previews, saved review/export and
+restart persistence passed. SQLite backup integrity and retained previous image
+were verified. Prior answers, uploads, event history, credentials and explicit
+Carbon policy are preserved. The production counter remains **17/1,000**.
+Optional inventory fallback and specialist detectors remain disabled. Both local
+apps load the release with their original policies and unchanged counters of
+4/1,000 and 140/200.
+
+[Deployment and hashes](../../stoa-trace/ops/reports/source-attributes-recovery/deployment.json),
+[native regression](../../stoa-trace/ops/reports/source-attributes-recovery/native-development.json),
+[tests/build](../../stoa-trace/ops/reports/source-attributes-recovery/build-checks.json),
+[local continuity](../../stoa-trace/ops/reports/source-attributes-recovery/local-continuity.json).
+
+The lift-door counting prompt and parser process isolation were also released
+before this deployment. The exact lift case changed from 35 to 36 doors with
+the landing entrance located; closed shaft and drawn-entrance controls passed.
+Those functional checks do not establish general door-count accuracy.
+
 ## Scheduled Saturday 18:00 verification
 
 Latest fetched main `29f6bf9` contains the same application source as deployed release `915f768`. All 27 server-source hashes and three frontend build hashes match the running container. The existing successful 374 Python tests, 59 frontend tests/build and 7,066-case development regression apply to this identical code; no tests or reserved evaluations were repeated.
@@ -20,7 +47,7 @@ The old Docker image and SQLite backup were retained. Authentication, the 211-do
 
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
-The historical Saturday 13:00 release used main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed at **13:06 Europe/Helsinki**. The latest verified application revision is recorded in the scheduled Saturday 18:00 check above. Documentation-only commits can follow a deployed application revision without requiring a rebuild. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
+The historical Saturday 13:00 release used main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed at **13:06 Europe/Helsinki**. The latest verified application revision is recorded in the source attribute release above. Documentation-only commits can follow a deployed application revision without requiring a rebuild. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
 
 
 ## Saturday 13:00 deployment

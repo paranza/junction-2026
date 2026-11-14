@@ -1,0 +1,19 @@
+{
+  "code_revision": "190e1162e412d882ed0653cd12f14777eebcb1ed",
+  "backend_tests": {
+    "status": "passed",
+    "tests": 378
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "tests": 59
+  },
+  "frontend_build": {
+    "status": "passed"
+  },
+  "frontend_build_sha256": {
+    "frontend/dist/assets/index-BJdZkLss.css": "7c9e96310156641f17b0f50c1273264723a1eb994260d4a95faa52debe818231",
+    "frontend/dist/assets/index-DJDJJ6la.js": "4916bde82b6109d05c84162432f1045c0a0ccffd86f33f46193540b8bfa2c0a4",
+    "frontend/dist/index.html": "ac63763c7e77ea257c6bdd6f7cbe7fae795dc838142b5b2a5ece28157e634d65"
+  }
+}

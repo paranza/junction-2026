@@ -1,0 +1,27 @@
+{
+  "generated_source_attribute_checks": {
+    "cases": 4,
+    "correct": 4,
+    "actual_model_calls": 4,
+    "planner_sha256": "5a34dc823d551e0cb7575f2d9d2487aff3e6c3a9df8588c61eece465781d5892"
+  },
+  "generated_typed_measurement_tables": {
+    "code_revision": "af76726",
+    "cases": 2,
+    "correct": 2,
+    "actual_model_calls": 2,
+    "source_sha256": "cc657b20d113e51b4fa331e5a0be904017fa3b72d102fd798795dcaf1276f3b1"
+  },
+  "recovery_functional_check": {
+    "primary_failures_simulated": true,
+    "simulated_primary_calls_sent_to_provider": 0,
+    "actual_argon_calls": 3,
+    "generated_door_controls": 2,
+    "generated_controls_correct": 2,
+    "development_questions_from_one_failed_drawing": 20,
+    "development_questions_answered": 20,
+    "development_numeric_correct": 16,
+    "enabled_in_default_policy": false
+  },
+  "limits": "Generated fixtures and one known failed development drawing establish function, not independent accuracy. Simulated failures do not prove provider availability. Production verification used zero model calls."
+}

@@ -2,6 +2,28 @@
 
 14 November 2026. Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
+Latest evening update: application revision `af76726` is on main and deployed
+on the existing VM. It retains full IFC property sets, declared materials and
+typed dimensions, supports exact source attributes and per-object measurement
+tables, and includes an optional bounded recovery read. 397 backend tests,
+59 frontend tests/build and all 7,066 native development cases passed without
+losing a correct case. Production remains Carbon with 17/1,000 cumulative
+attempts; recovery and specialist models are disabled by default.
+
+The completed frozen Carbon automatic development run returned 6,828 answers
+from 7,066 selected questions: 6,305/6,669 answered numeric questions correct
+(94.54%), or 92.71% of all 6,801 numeric questions. There were 132 nonanswers,
+seven technical failures and 99 skipped questions after failed drawings. The
+159 free-text answers are ungraded. CubiCasa visual counts scored 89.40% among
+answered questions. See [the full definitions and limits](../evaluation/development-auto-190e116.md).
+
+Specialist research fine-tunes pretrained YOLO11s on external CubiCasa data,
+excluding every Junction preview image ID. The first combined pipeline improved
+one of 32 external category counts and remains disabled. A larger experiment
+uses 1,024 training, 128 validation and 32 fresh confirmation drawings. Its
+training mAP is not an application accuracy measurement. No completed result
+for that larger experiment is claimed in this snapshot.
+
 | Assigned work | Status and evidence |
 | --- | --- |
 | Integrate teammate changes | Native normalizer and visual inventory integrated, with filename-independent scope, constraint checks and provider-aware caches. Team deletion of the separate prototype retained. |

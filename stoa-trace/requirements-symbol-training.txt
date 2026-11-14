@@ -1,0 +1,6 @@
+# Separate research/training environment. Never add Torch to the app container.
+torch==2.15.0
+numpy==2.4.6
+pillow==13.0.0
+requests==2.34.2
+onnx==1.23.2
