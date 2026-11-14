@@ -61,7 +61,7 @@ export function aggregateUsage(value) {
 }
 
 
-export const reviewCategories = ['door', 'window', 'apartment', 'toilet', 'sink', 'bathtub', 'shower', 'bedroom', 'kitchen', 'balcony', 'sauna', 'bathroom', 'room', 'sanitary_fixture', 'wall', 'column', 'beam', 'stair', 'storey'];
+export const reviewCategories = ['door', 'window', 'apartment', 'toilet', 'sink', 'bathtub', 'shower', 'bedroom', 'kitchen', 'balcony', 'sauna', 'bathroom', 'wc_room', 'room', 'sanitary_fixture', 'wall', 'column', 'beam', 'stair', 'storey', 'floor'];
 
 export function canonicalCategory(value) {
   const key = String(value || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -107,6 +107,7 @@ export function allowedCountCategories(answer) {
 
 export function usageLabel(answer) {
   const usage = answer?.usage;
+  if (answer?.method?.startsWith('calibrated_')) return 'Calibrated measurement';
   if (usage?.cache_hit) return 'Saved answer reused';
   if (answer?.inventory_cache_hit || usage?.inventory_cache_hit) return 'Prepared visual inventory reused';
   return Number.isFinite(usage?.model_calls) && usage.model_calls === 0 ? 'Native source tools' : 'Model analysis';

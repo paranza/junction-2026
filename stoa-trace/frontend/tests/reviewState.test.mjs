@@ -115,4 +115,7 @@ test('mixed counts allow exactly the component categories for review', () => {
   assert.deepEqual(allowedCountCategories({category:'shower+bathtub'}), ['shower','bathtub']);
   assert.deepEqual(allowedCountCategories({category:'IfcDoor'}), ['door']);
   assert.deepEqual(allowedCountCategories({allowed_count_categories:['shower','bathtub','shower']}), ['shower','bathtub']);
+  assert.deepEqual(allowedCountCategories({category:'wc_room'}), ['wc_room']);
+  assert.deepEqual(allowedCountCategories({category:'floor'}), ['floor']);
+  assert.equal(usageLabel({method:'calibrated_polygon_area',usage:{model_calls:0}}), 'Calibrated measurement');
 });
