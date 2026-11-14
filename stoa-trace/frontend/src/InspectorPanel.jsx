@@ -93,7 +93,7 @@ export default function InspectorPanel({ documentId, documentName, onOverlay }) 
   if (!documentId) return null;
   const checks = data?.checks || [];
   const failing = checks.filter(c => c.status !== 'pass').length;
-  return <details className="inspector-panel">
+  return <details className="inspector-panel" name="drawing-tools">
     <summary>Takeoff &amp; code check{data ? <span className="inspector-summary"> · {money(totals.eur)} · {failing ? `${failing} to review` : 'all checks pass'}</span> : null}</summary>
     {error && <p className="inspector-error" role="alert">{error}</p>}
     {!data && !error && <p className="inspector-muted">Computing from the drawing…</p>}

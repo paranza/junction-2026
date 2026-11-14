@@ -53,18 +53,19 @@ export function useConversation({ sessionId, snapshot, answer, answerQuestion, d
   return { records, answers, unavailableIds, usageById };
 }
 
-export default function ChatThread({ conversation, activeAnswer, asking, onInspect, children, quantityUnit }) {
+export default function ChatThread({ conversation, activeAnswer, asking, onInspect, children, quantityUnit, formatQuantity }) {
   return <div className="chat-thread" aria-label="Conversation messages">
     {conversation.records.length === 24 && <p className="chat-thread-limit">Showing the 24 most recent questions in this session.</p>}
     {conversation.records.map(record => {
       if (asking && ['pending', 'running', 'in_progress'].includes(record.status)) return null;
       const response = conversation.answers[record.answerId];
       const active = !asking && activeAnswer?.id === record.answerId;
+      const quantity = response ? formatQuantity?.(response) || { value: response.value, unit: quantityUnit(response) } : null;
       return <article className={`chat-turn ${active ? 'is-active' : ''}`} key={record.id}>
         <div className="chat-user-message"><span className="chat-user-label">You</span><p>{record.question}</p>{(response?.document?.name || record.documentName) && <span className="chat-user-context">{response?.document?.name || record.documentName}</span>}</div>
         {active ? children : <div className="chat-assistant-message">
           <span className="chat-assistant-label">Metria</span>
-          {response ? <>{response.source_changed && <p className="chat-message-source-state" role="status">Source changed. Recompute this answer before using it.</p>}<p className="chat-message-summary">{response.value != null && <strong>{formatQuantityValue(response.value, response.unit)} {quantityUnit(response) || ''}</strong>}{response.answer || response.message || 'Saved answer'}</p><div className="chat-message-actions"><span className="chat-message-cost">{messageCost(response.usage)}</span><button type="button" onClick={() => onInspect({ id: response.id, question: record.question, documentId: response.document_id, documentName: response.document?.name || record.documentName })}>Inspect answer <ArrowUpRight size={14} /></button></div></> : ['error', 'failed'].includes(record.status) ? <><p className="chat-message-summary">This question could not be completed.</p><span className="chat-message-cost">{messageCost(conversation.usageById[record.id])}</span></> : conversation.unavailableIds.includes(record.answerId) ? <p className="chat-message-summary">This saved answer is unavailable.</p> : <p className="chat-message-loading"><LoaderCircle size={14} className="spin" />{record.status === 'completed' ? 'Opening saved answer…' : 'The server is still working on this question…'}</p>}
+          {response ? <>{response.source_changed && <p className="chat-message-source-state" role="status">Source changed. Recompute this answer before using it.</p>}<p className="chat-message-summary">{response.value != null && <strong>{formatQuantityValue(quantity.value, quantity.unit)} {quantity.unit || ''}</strong>}{response.answer || response.message || 'Saved answer'}</p><div className="chat-message-actions"><span className="chat-message-cost">{messageCost(response.usage)}</span><button type="button" onClick={() => onInspect({ id: response.id, question: record.question, documentId: response.document_id, documentName: response.document?.name || record.documentName })}>Inspect answer <ArrowUpRight size={14} /></button></div></> : ['error', 'failed'].includes(record.status) ? <><p className="chat-message-summary">This question could not be completed.</p><span className="chat-message-cost">{messageCost(conversation.usageById[record.id])}</span></> : conversation.unavailableIds.includes(record.answerId) ? <p className="chat-message-summary">This saved answer is unavailable.</p> : <p className="chat-message-loading"><LoaderCircle size={14} className="spin" />{record.status === 'completed' ? 'Opening saved answer…' : 'The server is still working on this question…'}</p>}
         </div>}
       </article>;
     })}

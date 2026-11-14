@@ -106,7 +106,7 @@ export default function MeasurementPanel({ documentId, page, captureMode, points
     }
   }
 
-  return <details className="measurement-panel" onPointerDown={event => event.stopPropagation()}
+  return <details className="measurement-panel" name="drawing-tools" onPointerDown={event => event.stopPropagation()}
     onClick={event => event.stopPropagation()} onToggle={event => {
       if (!event.currentTarget.open) onCaptureModeChange?.(null);
     }}>
