@@ -18,12 +18,11 @@ PRIVATE_ENV = Path.home() / '.config' / 'stoa-junction-2026' / 'secrets.env'
 
 def launch_settings(project_root: Path = ROOT, env_file: Path | None = None,
                     private_env: Path | None = PRIVATE_ENV) -> dict:
-    from dotenv import load_dotenv
-
-    # Match server.app: exported environment, then private config, then .env.
-    if private_env is not None:
-        load_dotenv(private_env, override=False)
-    load_dotenv(env_file if env_file is not None else project_root / '.env', override=False)
+    sys.path.insert(0, str(ROOT))
+    from server.config import load_environment
+    # Use the sidecar only for the ordinary private configuration location.
+    kwargs = {} if private_env == PRIVATE_ENV else {'gemini_env': None}
+    load_environment(project_root, private_env=private_env, env_file=env_file, **kwargs)
     host = os.environ.get('STOA_HOST', '127.0.0.1').strip()
     if not host or any(char.isspace() for char in host):
         raise ValueError('STOA_HOST must be a hostname or IP address without spaces.')

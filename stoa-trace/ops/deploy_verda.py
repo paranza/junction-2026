@@ -21,7 +21,7 @@ import tempfile
 import time
 from urllib import request, error
 
-from check_connections import DEFAULT_ENV, HealthError, create_ssl_context, load_config, request_json
+from check_connections import DEFAULT_ENV, HealthError, create_ssl_context, load_config, load_runtime_config, request_json
 
 ROOT=Path(__file__).resolve().parent.parent
 CONFIG=Path.home()/'.config/stoa-junction-2026'
@@ -149,7 +149,31 @@ def run_remote(state,script,*,input_bytes=None,timeout=1800):
     return result.stdout
 
 
+def runtime_environment(config):
+    """Build a provider-specific env file; callers send it over encrypted stdin."""
+    provider = config.get('STOA_PROVIDER', 'openai').strip().lower()
+    if provider not in {'openai', 'gemini'}:
+        raise ValueError('STOA_PROVIDER must be openai or gemini.')
+    key_name = 'GEMINI_API_KEY' if provider == 'gemini' else 'OPENAI_API_KEY'
+    key = config.get(key_name) or (config.get('GOOGLE_API_KEY', '') if provider == 'gemini' else '')
+    if not key or any(c in key for c in '\r\n'):
+        raise ValueError('A valid one-line provider runtime key is required.')
+    values = {key_name: key, 'STOA_PROVIDER': provider,
+              'STOA_MODEL': config.get('STOA_MODEL') or ('gemini-4-carbon' if provider == 'gemini' else 'gpt-6-astra'),
+              'STOA_MAX_MODEL_CALLS': config.get('STOA_MAX_MODEL_CALLS', '50')}
+    if int(values['STOA_MAX_MODEL_CALLS']) < 0:
+        raise ValueError('STOA_MAX_MODEL_CALLS must be nonnegative.')
+    for name in ('STOA_INPUT_USD_PER_MILLION', 'STOA_CACHED_INPUT_USD_PER_MILLION',
+                 'STOA_OUTPUT_USD_PER_MILLION', 'STOA_SMALL_IMAGE_CROPS'):
+        if name in config:
+            values[name] = config[name]
+    if any(any(c in str(value) for c in '\r\n') for value in values.values()):
+        raise ValueError('Runtime settings must use one line per value.')
+    return ''.join(name + '=' + str(value) + '\n' for name, value in values.items()).encode()
+
+
 def sync(state,config):
+    env = runtime_environment(config)
     with tempfile.TemporaryDirectory() as folder:
         archive=Path(folder)/'stoa-source.tar.gz'
         with tarfile.open(archive,'w:gz') as bundle:
@@ -161,12 +185,8 @@ def sync(state,config):
                         if item.is_file() and not any(part in ('node_modules','dist','__pycache__') for part in item.parts):
                             bundle.add(item,arcname=str(item.relative_to(ROOT)))
         run_remote(state,'mkdir -p /srv/stoa/app /srv/stoa/data && tar -xzf - -C /srv/stoa/app',input_bytes=archive.read_bytes(),timeout=300)
-    # Transfer only the runtime's OpenAI key through encrypted stdin. Never put
+    # Transfer only the selected provider key through encrypted stdin. Never put
     # it in argv, shell expansion, archives, Docker build arguments or logs.
-    key=config.get('OPENAI_API_KEY','')
-    if not key or any(c in key for c in '\r\n'):
-        raise RuntimeError('A valid one-line OpenAI runtime key is required.')
-    env=('OPENAI_API_KEY='+key+'\nSTOA_MODEL=gpt-6-astra\nSTOA_MAX_MODEL_CALLS=50\n').encode()
     run_remote(state,'umask 077; cat > /srv/stoa/runtime.env; chmod 600 /srv/stoa/runtime.env',input_bytes=env,timeout=30)
     return {'status':'source_and_runtime_configuration_uploaded'}
 
@@ -248,7 +268,7 @@ def main():
         else:
             # Existing SSH access survives expiry of the short-lived Cloud
             # credential. Code updates/restarts need no Cloud API token.
-            config=load_config(DEFAULT_ENV) if args.action=='sync' else {}
+            config=load_runtime_config() if args.action=='sync' else {}
         if args.action=='create':result=create(call,state,args)
         elif args.action=='inspect':result={'balance':call('/balance'),'managed_instance':status(call,state)}
         elif args.action=='status':result=status(call,state)

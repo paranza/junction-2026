@@ -32,12 +32,17 @@ from urllib import error, request
 
 
 DEFAULT_ENV = Path.home() / ".config/stoa-junction-2026/secrets.env"
+GEMINI_ENV = DEFAULT_ENV.with_name('gemini.env')
 DEFAULT_MODEL = "gpt-6-astra"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 RETRYABLE_HTTP = {429, 500, 502, 503, 504}
 ENV_KEYS = {
     "OPENAI_API_KEY", "OPENAI_PROJECT_ID", "VERDA_CLIENT_ID",
     "VERDA_CLIENT_SECRET", "VERDA_PROJECT_ID",
+    "GEMINI_API_KEY", "GOOGLE_API_KEY", "STOA_PROVIDER", "STOA_MODEL",
+    "STOA_MAX_MODEL_CALLS", "STOA_INPUT_USD_PER_MILLION",
+    "STOA_CACHED_INPUT_USD_PER_MILLION", "STOA_OUTPUT_USD_PER_MILLION",
+    "STOA_SMALL_IMAGE_CROPS",
 }
 
 
@@ -84,6 +89,23 @@ def load_config(path: Path) -> dict[str, str]:
             value = value[1:-1]
         if key in ENV_KEYS:
             config[key] = value
+    return config
+
+
+def load_runtime_config(path: Path = DEFAULT_ENV, gemini_path: Path | None = GEMINI_ENV):
+    """Use the private Gemini sidecar only once it contains a key."""
+    config = load_config(path)
+    selected = os.environ.get('STOA_PROVIDER')
+    if gemini_path is not None and (selected is None or selected.lower() == 'gemini'):
+        values = load_config(gemini_path)
+        if ((values.get('GEMINI_API_KEY') or values.get('GOOGLE_API_KEY'))
+                and values.get('STOA_PROVIDER', 'gemini').lower() == 'gemini'):
+            for key, value in values.items():
+                if key.startswith('STOA_') or key in {'GEMINI_API_KEY', 'GOOGLE_API_KEY'}:
+                    config[key] = value
+    for key in ENV_KEYS:
+        if key in os.environ:
+            config[key] = os.environ[key]
     return config
 
 

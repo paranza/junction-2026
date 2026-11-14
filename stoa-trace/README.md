@@ -16,6 +16,8 @@ chmod +x run.sh
 
 Open <http://127.0.0.1:8787>. Set `STOA_DATA_ROOT` in `.env` to the folder containing `data/` and `questions.jsonl`. To use vision, set `OPENAI_API_KEY` in a private `.env` or `~/.config/stoa-junction-2026/secrets.env`. Native mode needs no API key. Uploads also work without the preview dataset.
 
+Gemini is selectable with `STOA_PROVIDER=gemini`, `STOA_MODEL=gemini-4-carbon` and a private `GEMINI_API_KEY`. See [provider setup](ops/GEMINI.md). Exported variables take precedence; a private `gemini.env` sidecar activates only once it contains a key. Provider changes require a restart and invalidate model answer caches. Existing saved answers and reviews are retained.
+
 The portable default dataset location is `datasets/junction-dataset-preview/`, which is ignored by Git. Download the preview separately using the URL in `HANDOFF.md` and retain its licence files. Set a fresh local `STOA_RUNTIME_DIR`; credentials and the existing shared runtime are not part of the handoff.
 
 For explicit cross-platform setup and after pulling dependency or frontend updates:
@@ -51,6 +53,8 @@ PDF text uses page rotation consistent with previews. Swiss CAD room polygons ar
 - Recognized PDF door schedules and room finish schedules with row evidence.
 - Vision analysis of raster drawings and other supported previews, with reusable candidate inventories and explicit completeness warnings.
 - Document search, multi-file upload, page navigation, pan/zoom, selected-region questions, one-click evidence focus, manual additions/exclusions, undo, saved review revisions, explicit highlight commands and JSON export.
+- GIF, WebP, BMP and multipage TIFF input alongside PDF, PNG, JPEG, SVG, DXF and IFC. Animated inputs explicitly use their first frame.
+- Area and length measurement from a user-supplied reference length and an outlined polygon or segment, with page and source binding. Automatic rectangular areas can use two explicitly quoted dimensions with compatible units.
 
 ## Review and compare
 
@@ -130,7 +134,7 @@ translations in the same evaluation group; do not tune on a scored final holdout
 
 Visual counts can miss objects or misinterpret symbols. A model's completeness claim is not independent verification. The app shows these as visual candidates for review. Source-based counts describe modeled or documented instances, not an as-built survey. Some source questions have ambiguous building/floor scope.
 
-DWG uploads are accepted for project storage; analysis requires a supported paired export or an additional DWG conversion tool. Arbitrary geometry measurement, comprehensive wall/MEP quantity extraction, scans without legible dimensions, and every exporter-specific schedule are not implemented. No fine-tuned segmentation model is currently deployed. A GPU is not needed for the current hosted-vision/native architecture.
+DWG uploads are accepted for project storage; analysis requires a supported paired export or an additional DWG conversion tool. Automatic arbitrary geometry measurement, comprehensive wall/MEP quantity extraction, scans without legible dimensions, and every exporter-specific schedule are not implemented. No fine-tuned segmentation model is currently deployed. A GPU is not needed for the current hosted-vision/native architecture.
 
 ## Data, access and costs
 
@@ -138,7 +142,7 @@ DWG uploads are accepted for project storage; analysis requires a supported pair
 - SQLite defaults to WAL on a local disk. Set `STOA_SQLITE_JOURNAL=DELETE` for a compatible single-writer shared-volume deployment; do not scale multiple app replicas around SQLite.
 - Set `STOA_ACCESS_TOKEN` to protect backend APIs behind a server-side proxy that supplies `X-Trace-Token`. Do not embed it or provider keys in the browser. Use HTTPS and access control for a remote workspace.
 - `STOA_MAX_MODEL_CALLS` limits recorded model attempts per runtime database (default 500). It is an attempt limit, not a dollar budget. Configure a provider spending cap separately.
-- Hosted model requests send selected source material to OpenAI with `store: false`; this does not override the provider's retention terms. Native mode sends no model requests.
+- Hosted model requests send selected source material to the configured OpenAI or Gemini service with `store: false`; this does not override the provider's retention terms. Native mode sends no model requests.
 - Dataset sources retain their respective licenses; source credits are shown in the app. The dataset is not bundled into this repository. Team code uses `LICENSE`; source-derived screenshots, benchmark questions and evidence retain the terms documented in `THIRD_PARTY_NOTICES.md` and `third_party/dataset_licenses/`.
 
 See `DATA_INVENTORY.md` for the complete preview file inventory. The full 10 GB dataset has not been loaded.

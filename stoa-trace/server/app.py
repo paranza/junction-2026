@@ -14,11 +14,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
-from dotenv import load_dotenv
-
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(Path.home() / '.config/stoa-junction-2026/secrets.env', override=False)
-load_dotenv(ROOT / '.env', override=False)
+from .config import load_environment
+load_environment(ROOT)
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
