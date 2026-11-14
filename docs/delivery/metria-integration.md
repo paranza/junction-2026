@@ -1,6 +1,6 @@
 # Metria integration verification
 
-14 November 2026. The local app at <http://127.0.0.1:8791/> now combines Antonio’s Metria interface (`b6d7c42`), Michele’s native analysis fixes (`5d8598c`), and Matteo’s repeated visual readings (`d0c9fcd`). Matteo’s subsequent evaluation record (`96626c6`) is retained.
+14 November 2026. The local app at <http://127.0.0.1:8791/> now combines Antonio’s Metria interface (`b6d7c42`), Michele’s native analysis fixes (`5d8598c`), and Matteo’s repeated visual readings (`d0c9fcd`). Matteo’s subsequent corrected evaluation record (`8ad913d`) is retained.
 
 ## Preserved behavior
 

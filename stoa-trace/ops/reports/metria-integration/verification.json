@@ -3,7 +3,7 @@
   "antonio_ui_revision": "b6d7c42",
   "michele_backend_revision": "5d8598c",
   "matteo_readings_revision": "d0c9fcd",
-  "latest_matteo_report_revision": "96626c6",
+  "latest_matteo_report_revision": "8ad913d",
   "backend_tests": 318,
   "frontend_tests": 36,
   "frontend_build": "passed",
