@@ -1,5 +1,11 @@
 # Deployment verification
 
+## Scheduled Saturday 18:00 verification
+
+Latest fetched main `29f6bf9` contains the same application source as deployed release `915f768`. All 27 server-source hashes and three frontend build hashes match the running container. The existing successful 374 Python tests, 59 frontend tests/build and 7,066-case development regression apply to this identical code; no tests or reserved evaluations were repeated.
+
+Authenticated native answer/evidence, preview, review/restoration and export checks passed again. The same image had already passed restart persistence in the immediately preceding deployment; its start time remained unchanged, so no needless rebuild, replacement or second restart was performed. A fresh SQLite backup passed integrity verification and the current image was retained. All 28 pre-existing answers, 11 uploads, credentials, configured Carbon policy and prior event history are preserved. Model attempts remain **17/1,000** and verification made zero model calls. [Scheduled verification and source hashes](../../stoa-trace/ops/reports/saturday-1800/verification.json).
+
 ## Model-scope release, 14 November evening
 
 Reviewed main revision `915f76800db559a96a82dde0ae29d824ae503543` is deployed on the existing protected VM. It prevents whole-model answers from partial IFC-derived drawings whose model is missing. 374 Python tests, 59 frontend tests/build and the paired 7,066-case native regression passed with no losses, changed outcomes, source changes, errors or model calls. Authentication, native evidence, previews, review/export and restart persistence passed. Runtime configuration, credentials, uploads, prior answers and event history are preserved; the production model counter remains 17/1,000. [Deployment record](../../stoa-trace/ops/reports/model-coverage/deployment.json), [automatic-path evaluation](../evaluation/model-coverage-development.md).
@@ -14,7 +20,7 @@ The old Docker image and SQLite backup were retained. Authentication, the 211-do
 
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
-Current runtime source matches reviewed main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed on **14 November 2026 at 13:06 Europe/Helsinki** during Riccardo's scheduled deployment. All 21 server files and all three generated frontend files match the running container by SHA256. Later commits may contain verification records or teammate work not yet deployed. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
+The historical Saturday 13:00 release used main **`8d4b822391300e2127c30a1077222c30fb969d20`**, deployed at **13:06 Europe/Helsinki**. The latest verified application revision is recorded in the scheduled Saturday 18:00 check above. Documentation-only commits can follow a deployed application revision without requiring a rebuild. The explicitly configured production policy is preserved: **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap, 600-second timeout and no small-image crops. Optional Gemma 4 31B review uses minimal reasoning and remains off by default. New main defaults do not replace this selected production policy.
 
 
 ## Saturday 13:00 deployment
