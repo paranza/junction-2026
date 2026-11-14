@@ -524,6 +524,19 @@ def _compute_analysis(payload, question, data, source):
             except llm.ModelError:
                 pass
         native_result = copy.deepcopy(result)
+    if result is None and payload.mode != 'native' and not payload.region and llm.model_available():
+        # Schedule sheets: a model plans the table query, the program executes it over the cells.
+        from . import schedule_planner
+        if schedule_planner.usable_tables(data):
+            def _plan_cache_get(key):
+                return store.cached_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}))
+
+            def _plan_cache_put(key, plan):
+                store.save_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}), 'schedule_plan', plan)
+            try:
+                result = schedule_planner.answer(question, data, request=llm._request, cache=(_plan_cache_get, _plan_cache_put))
+            except llm.ModelError:
+                result = None
     if result is None and payload.mode != 'native':
         try:
             result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
