@@ -1,6 +1,7 @@
 """Gemini wire format, failure and allowance checks using mocked HTTP only."""
 import base64
 import json
+import os
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from server import gemini_provider as gemini, llm
 class GeminiProviderTests(unittest.TestCase):
     def setUp(self):
         self.patches = [patch.object(llm, 'PROVIDER', 'gemini'),
+                        patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'high'}),
                         patch.object(llm, 'KEY', 'private-test-key'),
                         patch.object(llm, 'MODEL', 'gemini-4-carbon'),
                         patch.object(llm, 'MAX_CALLS', 50),
@@ -51,7 +53,8 @@ class GeminiProviderTests(unittest.TestCase):
         kwargs = post.call_args.kwargs
         self.assertEqual(kwargs['headers'], {'x-goog-api-key': 'private-test-key', 'Api-Revision': '2026-05-20'})
         payload = kwargs['json']
-        self.assertEqual(payload['input'][1], {'type': 'image', 'mime_type': 'image/png', 'data': data})
+        self.assertEqual(payload['input'][1], {'type': 'image', 'mime_type': 'image/png', 'data': data,
+                                             'resolution': 'high'})
         self.assertEqual(payload['system_instruction'], llm.SYSTEM)
         self.assertEqual(payload['response_format'], {'type': 'text', 'mime_type': 'application/json', 'schema': llm.SCHEMA})
         self.assertFalse(payload['store'])
@@ -176,6 +179,51 @@ class GeminiProviderTests(unittest.TestCase):
             self.assertNotEqual(signature, llm.provider_signature())
         with patch.object(llm, 'MODEL', 'gemini-4-argon'):
             self.assertNotEqual(signature, llm.provider_signature())
+
+    def test_image_resolution_defaults_to_high_and_is_sent_on_every_image(self):
+        data = base64.b64encode(b'fixture-image').decode()
+        content = [{'type': 'input_text', 'text': 'Count doors'},
+                   {'type': 'input_image', 'image_url': 'data:image/png;base64,' + data},
+                   {'type': 'input_image', 'image_url': 'data:image/jpeg;base64,' + data}]
+        with patch.dict(os.environ, {}, clear=True):
+            payload = gemini.prepare_request(content, llm.SYSTEM, llm.SCHEMA, 10000, llm.MODEL)
+            self.assertEqual(gemini.image_resolution(), 'high')
+            self.assertIn('image_resolution=high', llm.provider_signature())
+        self.assertEqual([part['resolution'] for part in payload['input'] if part['type'] == 'image'], ['high', 'high'])
+        self.assertNotIn('resolution', payload['input'][0])
+
+    def test_each_supported_image_resolution_changes_wire_payload_and_cache_signature(self):
+        data = base64.b64encode(b'fixture-image').decode()
+        signatures = set()
+        for resolution in ('low', 'medium', 'high', 'ultra_high'):
+            with self.subTest(resolution=resolution), patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': resolution}):
+                _, post = self.client()
+                llm._request([{'type': 'input_image', 'image_url': 'data:image/png;base64,' + data}])
+                image = post.call_args.kwargs['json']['input'][0]
+                self.assertEqual(image['resolution'], resolution)
+                signature = llm.provider_signature()
+                self.assertIn('image_resolution=' + resolution, signature)
+                signatures.add(signature)
+        self.assertEqual(len(signatures), 4)
+
+    def test_invalid_image_resolution_is_sanitized_before_allowance_or_network(self):
+        _, post = self.client()
+        for value in ('', 'automatic', 'private-test-key\ninjected=1'):
+            with self.subTest(value=value), patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': value}):
+                # Cache-key generation must remain safe for native questions.
+                self.assertIn('image_resolution=invalid', llm.provider_signature())
+                self.assertNotIn('private-test-key', llm.provider_signature())
+                with self.assertRaisesRegex(llm.ModelError, 'STOA_GEMINI_IMAGE_RESOLUTION') as error:
+                    llm._request([{'type': 'input_text', 'text': 'Doors?'}])
+                self.assertNotIn('private-test-key', str(error.exception))
+        self.reserve.assert_not_called()
+        post.assert_not_called()
+
+    def test_openai_signature_is_unaffected_by_gemini_image_resolution(self):
+        with patch.object(llm, 'PROVIDER', 'openai'):
+            original = llm.provider_signature()
+            with patch.dict(os.environ, {'STOA_GEMINI_IMAGE_RESOLUTION': 'ultra_high'}):
+                self.assertEqual(llm.provider_signature(), original)
 
     def test_openai_transport_remains_available_without_gemini_calls(self):
         _, post = self.client({'status': 'completed', 'usage': {'input_tokens': 10, 'output_tokens': 5},

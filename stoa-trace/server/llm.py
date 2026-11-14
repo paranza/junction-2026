@@ -89,7 +89,7 @@ def model_available():
 
 def provider_signature():
     """Non-secret configuration fingerprint for every model-dependent cache."""
-    revision = gemini_provider.REVISION + ':' + gemini_provider.API_REVISION if PROVIDER == 'gemini' else 'responses-v1'
+    revision = gemini_provider.config_signature() if PROVIDER == 'gemini' else 'responses-v1'
     return f'{PROVIDER}:{MODEL}:{revision}'
 
 

@@ -4,6 +4,7 @@ REST shape checked against Google's current documentation on 2026-11-14:
 https://aistudio.google.com/api-reference/interactions-api/create-interaction
 https://aistudio.google.com/docs/structured-output
 https://aistudio.google.com/docs/image-understanding
+https://aistudio.google.com/docs/media-resolution
 
 Budget reservation and usage accounting belong to llm._request, once per attempt.
 This transport never retries or accepts a configurable destination for secrets.
@@ -12,14 +13,16 @@ from __future__ import annotations
 
 import base64
 import binascii
+import os
 import re
 
 import httpx
 
 ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions'
 API_REVISION = '2026-05-20'
-REVISION = 'gemini-interactions-v1'
+REVISION = 'gemini-interactions-v2'
 DEFAULT_MODEL = 'gemini-4-carbon'
+IMAGE_RESOLUTIONS = frozenset({'low', 'medium', 'high', 'ultra_high'})
 _IMAGE = re.compile(r'data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)\Z')
 
 
@@ -27,7 +30,25 @@ class ProviderError(Exception):
     """Public-safe provider error without request data or credential contents."""
 
 
+def image_resolution():
+    resolution = os.environ.get('STOA_GEMINI_IMAGE_RESOLUTION', 'high').strip().lower()
+    if resolution not in IMAGE_RESOLUTIONS:
+        raise ProviderError('STOA_GEMINI_IMAGE_RESOLUTION must be low, medium, high or ultra_high.')
+    return resolution
+
+
+def config_signature():
+    """Keep visual caches separate without making invalid vision config break native tools."""
+    try:
+        resolution = image_resolution()
+    except ProviderError:
+        resolution = 'invalid'
+    return f'{REVISION}:{API_REVISION}:image_resolution={resolution}'
+
+
 def prepare_request(content, system, schema, max_tokens, model):
+    # Validate before shared llm._request reserves a potentially billable attempt.
+    resolution = image_resolution()
     inputs = []
     for part in content:
         if part.get('type') == 'input_text' and isinstance(part.get('text'), str):
@@ -42,7 +63,8 @@ def prepare_request(content, system, schema, max_tokens, model):
                 raise ProviderError('The drawing image could not be encoded for Gemini.') from None
             if not decoded:
                 raise ProviderError('The drawing image is empty.')
-            inputs.append({'type': 'image', 'mime_type': match[1], 'data': match[2]})
+            inputs.append({'type': 'image', 'mime_type': match[1], 'data': match[2],
+                           'resolution': resolution})
         else:
             raise ProviderError('This drawing input is not supported by Gemini.')
     return {'model': model, 'input': inputs, 'system_instruction': system, 'store': False,
