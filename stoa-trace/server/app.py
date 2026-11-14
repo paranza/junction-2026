@@ -12,6 +12,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 
@@ -420,6 +421,88 @@ def ask(payload: AskRequest):
     return result
 
 
+def _answer_view(result, fingerprints=None):
+    """Decorate history with current-source status without rewriting its record."""
+    answer = copy.deepcopy(result)
+    expected = answer.get('provenance', {}).get('source_fingerprint')
+    if not expected:
+        answer.update(source_changed=False, source_status='untracked')
+        return answer
+    doc_id = answer.get('document_id')
+    fingerprints = fingerprints if fingerprints is not None else {}
+    if doc_id not in fingerprints:
+        try:
+            fingerprints[doc_id] = store.source_fingerprint(doc_id)
+        except (KeyError, OSError, ValueError):
+            fingerprints[doc_id] = None
+    current = fingerprints[doc_id]
+    changed = current != expected
+    answer.update(source_changed=changed, source_status='unavailable' if current is None else ('changed' if changed else 'current'))
+    if changed:
+        answer['can_review'] = False
+        answer['status'] = 'needs_review'
+        answer['warnings'] = list(dict.fromkeys(answer.get('warnings', []) + ['The source or a linked drawing changed after this answer. Its old locations and quantities need a new analysis before review.']))
+        if answer.get('working_quantity'):
+            answer['working_quantity'] = {**answer['working_quantity'], 'source_changed': True}
+    return answer
+
+
+class ResolutionRequest(BaseModel):
+    choice: Literal['native', 'comparison']
+    note: str = Field(min_length=3, max_length=4000)
+
+
+@app.post('/api/answers/{answer_id}/resolution')
+def resolve_answer(answer_id: str, payload: ResolutionRequest):
+    """Save an explicit human working quantity; retain every machine result."""
+    note = payload.note.strip()
+    if len(note) < 3:
+        raise HTTPException(422, 'Explain the working quantity choice in at least three characters.')
+    with store.key_lock('review:' + answer_id):
+        try:
+            current = store.read_answer(answer_id)
+        except KeyError:
+            raise HTTPException(404, 'Answer not found') from None
+        if _answer_view(current).get('source_changed'):
+            raise HTTPException(409, 'The source changed. Run a new analysis before selecting a working quantity.')
+        comparison = current.get('reconciliation') or {}
+        if comparison.get('status') not in {'agreement', 'disagreement'}:
+            raise HTTPException(422, 'Only comparable source quantities can be resolved.')
+        from .verification import convert_quantity, unit_spec, finite_number
+        unit = comparison.get('unit')
+        if not unit_spec(unit):
+            raise HTTPException(422, 'The comparison has no supported quantity unit.')
+        answer_unit = unit_spec(current.get('unit'))
+        if answer_unit and answer_unit[0] != unit_spec(unit)[0]:
+            raise HTTPException(422, 'The comparison quantity is incompatible with the answer quantity.')
+        native_value, compared_value = comparison.get('native_value'), comparison.get('visual_value')
+        native_unit = comparison.get('native_unit') or unit
+        compared_unit = comparison.get('comparison_unit') or comparison.get('visual_unit') or unit
+        if not finite_number(native_value) or not finite_number(compared_value):
+            raise HTTPException(422, 'Both compared source quantities must be finite and nonnegative.')
+        native = convert_quantity(native_value, native_unit, unit)
+        compared = convert_quantity(compared_value, compared_unit, unit)
+        if native is None or compared is None:
+            raise HTTPException(422, 'Compared quantities must have compatible dimensions and units.')
+        if unit_spec(unit)[0] == 'count' and any(not float(value).is_integer() for value in (native, compared)):
+            raise HTTPException(422, 'Compared object counts must be exact whole numbers.')
+        selected_value = native if payload.choice == 'native' else compared
+        if unit_spec(unit)[0] == 'count':
+            selected_value = int(selected_value)
+        label = comparison.get('native_label') if payload.choice == 'native' else comparison.get('visual_label')
+        working = {'value': selected_value, 'unit': unit, 'selected_source': payload.choice,
+                   'source_label': label or ('Native source' if payload.choice == 'native' else 'Compared source'),
+                   'note': note, 'reviewed_at': datetime.now(timezone.utc).isoformat()}
+        history = list(current.get('resolution_history', []))
+        history.append({**working, 'revision': len(history) + 1,
+                        'comparison_snapshot': copy.deepcopy(comparison)})
+        result = {**current, 'working_quantity': working, 'resolution_history': history, 'human_reviewed': True}
+        result.pop('resolution_superseded', None)
+        result['warnings'] = list(dict.fromkeys(current.get('warnings', []) + ['The working quantity is a recorded human judgment; it does not independently verify either source or detection completeness.']))
+        store.update_answer(answer_id, result)
+    return _answer_view(result)
+
+
 class ManualEvidence(BaseModel):
     id: str | None = Field(default=None, max_length=100)
     label: str = Field(min_length=1, max_length=200)
@@ -444,6 +527,8 @@ def review_answer(answer_id: str, payload: ReviewRequest):
             current = store.read_answer(answer_id)
         except KeyError:
             raise HTTPException(404, 'Answer not found') from None
+        if _answer_view(original).get('source_changed'):
+            raise HTTPException(409, 'The source changed. Run a new analysis before correcting its count.')
         if not original.get('can_review'):
             raise HTTPException(422, 'This answer does not support count corrections.')
         original_evidence = copy.deepcopy(original.get('evidence', []))
@@ -504,6 +589,17 @@ def review_answer(answer_id: str, payload: ReviewRequest):
                   'original_evidence': original_evidence, 'added_evidence': added, 'category': expected_category or None,
                   'review': review, 'review_history': history,
                   'completeness': {'human_review_performed': True, 'independently_verified': False}}
+        result['resolution_history'] = copy.deepcopy(current.get('resolution_history', []))
+        if reviewed_value != current.get('value') and current.get('working_quantity'):
+            result['working_quantity'] = None
+            result['resolution_superseded'] = {'reason': 'The object count changed after this working quantity was selected. Choose a working quantity again after inspecting the revised evidence.',
+                                               'reviewed_at': review['reviewed_at'],
+                                               'previous_working_quantity': copy.deepcopy(current['working_quantity'])}
+        elif current.get('working_quantity'):
+            result['working_quantity'] = copy.deepcopy(current['working_quantity'])
+        elif current.get('resolution_superseded'):
+            result['working_quantity'] = None
+            result['resolution_superseded'] = copy.deepcopy(current['resolution_superseded'])
         result['answer'] = f'{reviewed_value} included objects after your review.'
         result['calculation'] = f'{len(ids)} original objects + {len(added)} added − {len(excluded)} excluded = {reviewed_value}'
         result['warnings'] = list(dict.fromkeys(original.get('warnings', []) + ['Your corrections change the included set; they do not independently establish detection completeness.']))
@@ -521,20 +617,24 @@ def answer_reviews(answer_id: str):
     except KeyError:
         raise HTTPException(404, 'Answer not found') from None
     return {'answer_id': answer_id, 'original_value': original.get('value'),
-            'original_evidence': original.get('evidence', []), 'revisions': current.get('review_history', [])}
+            'original_evidence': original.get('evidence', []), 'revisions': current.get('review_history', []),
+            'resolution_history': current.get('resolution_history', []),
+            'working_quantity': _answer_view(current).get('working_quantity'),
+            'resolution_superseded': current.get('resolution_superseded')}
 
 
 @app.get('/api/answers/{answer_id}')
 def answer_detail(answer_id: str, original: bool = False):
     try:
-        return store.read_answer(answer_id, original=original)
+        return _answer_view(store.read_answer(answer_id, original=original))
     except KeyError:
         raise HTTPException(404, 'Answer not found') from None
 
 
 @app.get('/api/answers')
 def recent_answers(limit: int = 12):
-    return {'answers': store.list_answers(max(1, min(limit, 50)))}
+    fingerprints = {}
+    return {'answers': [_answer_view(answer, fingerprints) for answer in store.list_answers(max(1, min(limit, 50)))]}
 
 
 DIST = ROOT / 'frontend' / 'dist'

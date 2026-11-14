@@ -245,6 +245,88 @@ class BackendUpgrade(unittest.TestCase):
         source.unlink()
         self.assertIsNone(api._native_region_answer('How many doors?', data, unregistered, 1, [0, 0, 1, 1]))
 
+    def _save_comparison_answer(self, answer_id='resolution', **updates):
+        result = {'id': answer_id, 'document_id': self.doc['id'], 'question': 'How many windows?',
+                  'answer': '2 native windows', 'value': 2, 'unit': 'count', 'operation': 'count',
+                  'status': 'supported', 'can_review': True, 'warnings': [],
+                  'evidence': [{'id': 'a', 'type': 'window'}, {'id': 'b', 'type': 'window'}],
+                  'reconciliation': {'status': 'disagreement', 'native_value': 2, 'visual_value': 3,
+                                     'unit': 'count', 'native_label': 'Native windows', 'visual_label': 'Located candidates'},
+                  'provenance': {'source_fingerprint': store.source_fingerprint(self.doc['id'])}, **updates}
+        store.save_answer(answer_id, self.doc['id'], result['question'], result)
+        return result
+
+    def test_resolutions_preserve_machine_result_and_append_auditable_choices(self):
+        original = self._save_comparison_answer()
+        route = '/api/answers/resolution/resolution'
+        first = self.client.post(route, json={'choice': 'comparison', 'note': 'The third window is visible in the source.'})
+        self.assertEqual(first.status_code, 200, first.text)
+        result = first.json()
+        self.assertEqual(result['value'], original['value'])
+        self.assertEqual(result['evidence'], original['evidence'])
+        self.assertEqual(result['working_quantity']['value'], 3)
+        self.assertEqual(result['working_quantity']['selected_source'], 'comparison')
+        self.assertEqual(result['working_quantity']['source_label'], 'Located candidates')
+        self.assertTrue(result['human_reviewed'])
+        second = self.client.post(route, json={'choice': 'native', 'note': 'Use the native source inventory pending site inspection.'}).json()
+        self.assertEqual(second['working_quantity']['value'], 2)
+        self.assertEqual(len(second['resolution_history']), 2)
+        self.assertEqual(second['resolution_history'][0]['value'], 3)
+        self.assertEqual(second['resolution_history'][0]['comparison_snapshot']['native_value'], 2)
+        self.assertEqual(store.read_answer('resolution', original=True), original)
+        self.assertEqual(self.client.get('/api/answers/resolution/reviews').json()['resolution_history'], second['resolution_history'])
+
+    def test_resolution_rejects_missing_scopes_nonfinite_values_units_and_empty_reason(self):
+        self._save_comparison_answer()
+        route = '/api/answers/resolution/resolution'
+        for request in ({'choice': 'other', 'note': 'Reason'}, {'choice': 'native', 'note': '  '}, {'choice': 'comparison', 'note': 'ab'}):
+            self.assertEqual(self.client.post(route, json=request).status_code, 422)
+        original = store.read_answer('resolution')
+        for changes in ({'status': 'unavailable'}, {'status': 'scope_mismatch'}, {'native_value': float('inf')},
+                        {'visual_value': -1}, {'unit': 'unknown'}, {'visual_unit': 'm²'}, {'visual_value': 2.5}):
+            store.update_answer('resolution', {**original, 'reconciliation': {**original['reconciliation'], **changes}})
+            self.assertEqual(self.client.post(route, json={'choice': 'native', 'note': 'Select a working quantity.'}).status_code, 422, changes)
+
+    def test_resolution_uses_compatible_converted_units(self):
+        self._save_comparison_answer('area-resolution', value=1, unit='m²', operation='area', can_review=False,
+                                     reconciliation={'status': 'agreement', 'native_value': 1, 'visual_value': 10000,
+                                                     'unit': 'm²', 'visual_unit': 'cm²'})
+        response = self.client.post('/api/answers/area-resolution/resolution', json={'choice': 'comparison', 'note': 'The dimensions establish the same area.'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertAlmostEqual(response.json()['working_quantity']['value'], 1)
+        self.assertEqual(response.json()['working_quantity']['unit'], 'm²')
+
+    def test_count_change_supersedes_working_quantity_without_erasing_resolution_history(self):
+        self._save_comparison_answer()
+        self.client.post('/api/answers/resolution/resolution', json={'choice': 'comparison', 'note': 'Use the located source candidates.'})
+        reviewed = self.client.post('/api/answers/resolution/review', json={'excluded_evidence_ids': ['a'], 'note': 'One original object was a legend symbol.'})
+        self.assertEqual(reviewed.status_code, 200, reviewed.text)
+        result = reviewed.json()
+        self.assertEqual(result['value'], 1)
+        self.assertIsNone(result['working_quantity'])
+        self.assertEqual(len(result['resolution_history']), 1)
+        self.assertEqual(result['resolution_superseded']['previous_working_quantity']['value'], 3)
+        repeated = self.client.post('/api/answers/resolution/review', json={'excluded_evidence_ids': ['a']}).json()
+        self.assertIsNone(repeated['working_quantity'])
+        self.assertEqual(repeated['resolution_history'], result['resolution_history'])
+        self.assertEqual(store.read_answer('resolution', original=True)['value'], 2)
+
+    def test_source_changed_history_is_flagged_and_old_review_and_resolution_are_blocked(self):
+        original = self._save_comparison_answer()
+        current = self.client.get('/api/answers/resolution').json()
+        self.assertFalse(current['source_changed'])
+        self.path.write_bytes(self.path.read_bytes() + b'updated-source')
+        history = self.client.get('/api/answers/resolution').json()
+        self.assertTrue(history['source_changed'])
+        self.assertFalse(history['can_review'])
+        self.assertEqual(history['status'], 'needs_review')
+        recent = self.client.get('/api/answers').json()['answers']
+        self.assertTrue(next(a for a in recent if a['id'] == 'resolution')['source_changed'])
+        self.assertEqual(self.client.post('/api/answers/resolution/review', json={'excluded_evidence_ids': []}).status_code, 409)
+        self.assertEqual(self.client.post('/api/answers/resolution/resolution', json={'choice': 'native', 'note': 'Select native source.'}).status_code, 409)
+        self.assertEqual(store.read_answer('resolution', original=True), original)
+        self.assertNotIn('source_changed', store.read_answer('resolution'))
+
     def test_native_context_stays_valid_json_and_reports_omissions(self):
         document = {'objects': [{'id': str(i), 'properties': {'long': 'A' * 3000}} for i in range(500)],
                     'metadata': {'long': 'A' * 100000}, 'pages': [{'page': i, 'text': 'B' * 40000} for i in range(30)]}
