@@ -22,8 +22,11 @@ def active_gemini_settings(values, selected_provider=None):
     key = values.get('GEMINI_API_KEY') or values.get('GOOGLE_API_KEY')
     if not key or str(values.get('STOA_PROVIDER', 'gemini')).strip().lower() != 'gemini':
         return {}
-    return {name: str(value) for name, value in values.items()
-            if name in RUNTIME_KEYS and value is not None}
+    settings = {name: str(value) for name, value in values.items()
+                if name in RUNTIME_KEYS and value is not None}
+    settings['STOA_PROVIDER'] = 'gemini'
+    settings.setdefault('STOA_MODEL', 'gemini-4-carbon')
+    return settings
 
 
 def load_environment(project_root: Path, *, private_env: Path | None = PRIVATE_ROOT / 'secrets.env',

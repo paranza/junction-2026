@@ -62,6 +62,31 @@ class ProviderConfiguration(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     runtime_environment(config)
 
+    def test_bare_sidecar_key_chooses_gemini_default_model_in_both_loaders(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {}, clear=True):
+            root = Path(folder)
+            secrets = root / 'secrets.env'
+            secrets.write_text('OPENAI_API_KEY=test-openai\nSTOA_MODEL=old-openai-model\n')
+            gemini = root / 'gemini.env'
+            gemini.write_text('GEMINI_API_KEY=test-gemini\n')
+            config = load_runtime_config(secrets, gemini)
+            load_environment(root, private_env=secrets, gemini_env=gemini)
+            for actual in (config, os.environ):
+                self.assertEqual(actual['STOA_PROVIDER'], 'gemini')
+                self.assertEqual(actual['STOA_MODEL'], 'gemini-4-carbon')
+
+    def test_exported_google_key_does_not_activate_an_empty_sidecar(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {'GOOGLE_API_KEY': 'unrelated-test-key'}, clear=True):
+            root = Path(folder)
+            secrets = root / 'secrets.env'
+            secrets.write_text('OPENAI_API_KEY=test-openai\n')
+            gemini = root / 'gemini.env'
+            gemini.write_text('GEMINI_API_KEY=\nSTOA_PROVIDER=gemini\n')
+            config = load_runtime_config(secrets, gemini)
+            load_environment(root, private_env=secrets, gemini_env=gemini)
+            self.assertNotIn('STOA_PROVIDER', config)
+            self.assertNotIn('STOA_PROVIDER', os.environ)
+
 
 if __name__ == '__main__':
     unittest.main()

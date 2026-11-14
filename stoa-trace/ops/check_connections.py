@@ -62,8 +62,8 @@ class NoRedirect(request.HTTPRedirectHandler):
         return None
 
 
-def load_config(path: Path) -> dict[str, str]:
-    config = {key: os.environ[key] for key in ENV_KEYS if key in os.environ}
+def load_config(path: Path, *, include_environment=True) -> dict[str, str]:
+    config = {key: os.environ[key] for key in ENV_KEYS if key in os.environ} if include_environment else {}
     try:
         if not path.exists():
             return config
@@ -96,10 +96,12 @@ def load_runtime_config(path: Path = DEFAULT_ENV, gemini_path: Path | None = GEM
     """Use the private Gemini sidecar only once it contains a key."""
     config = load_config(path)
     selected = os.environ.get('STOA_PROVIDER')
-    if gemini_path is not None and (selected is None or selected.lower() == 'gemini'):
-        values = load_config(gemini_path)
+    if gemini_path is not None and (selected is None or selected.strip().lower() == 'gemini'):
+        values = load_config(gemini_path, include_environment=False)
         if ((values.get('GEMINI_API_KEY') or values.get('GOOGLE_API_KEY'))
-                and values.get('STOA_PROVIDER', 'gemini').lower() == 'gemini'):
+                and values.get('STOA_PROVIDER', 'gemini').strip().lower() == 'gemini'):
+            values['STOA_PROVIDER'] = 'gemini'
+            values.setdefault('STOA_MODEL', 'gemini-4-carbon')
             for key, value in values.items():
                 if key.startswith('STOA_') or key in {'GEMINI_API_KEY', 'GOOGLE_API_KEY'}:
                     config[key] = value
