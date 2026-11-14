@@ -15,8 +15,9 @@ def image(page=1, region=None):
             'image': Image.new('RGB', (80, 60), 'white')}
 
 
-def obj(box=None, index=0, label='Door', ambiguous=False):
-    return {'image_index': index, 'bbox': box or [.1, .1, .2, .2], 'label': label, 'ambiguous': ambiguous}
+def obj(box=None, index=0, label='Door', ambiguous=False, category=None):
+    return {'image_index': index, 'bbox': box or [.1, .1, .2, .2], 'label': label,
+            'category': category or llm.evidence_category(label), 'ambiguous': ambiguous}
 
 
 class VisualCountAudit(unittest.TestCase):
@@ -31,9 +32,10 @@ class VisualCountAudit(unittest.TestCase):
         response.update(kwargs.pop('response', {}))
         document = kwargs.pop('document', self.document)
         result = kwargs.pop('result', self.initial)
+        question = kwargs.pop('question', 'How many doors are shown?')
         with patch.object(visual_audit.rendering, 'image_inputs', return_value=images or [image()]) as render, \
              patch.object(llm, '_request', return_value=response) as request:
-            answer = visual_audit.audit_visual_count('How many doors are shown?', result, document, Path('new-upload.png'), **kwargs)
+            answer = visual_audit.audit_visual_count(question, result, document, Path('new-upload.png'), **kwargs)
         return answer, request, render
 
     def test_native_and_non_count_paths_do_not_request_a_review(self):
@@ -69,17 +71,19 @@ class VisualCountAudit(unittest.TestCase):
         self.assertEqual([e['page'] for e in answer['evidence']], [1, 1, 2])
 
     def test_different_target_kinds_are_not_merged(self):
-        answer, _, _ = self.audit([obj(label='Door'), obj(label='Window')])
+        answer, _, _ = self.audit([obj(label='Door'), obj(label='Window')],
+            question='How many doors and windows?', result={**self.initial, 'category': 'door+window'})
         self.assertEqual(answer['value'], 2)
 
     def test_generic_labels_reuse_the_initial_target_when_deduplicating(self):
-        answer, _, _ = self.audit([obj(label='Door'), obj(label='D1')])
+        answer, _, _ = self.audit([obj(label='Door'), obj(label='D1', category='door')])
         self.assertEqual(answer['value'], 1)
 
     def test_selected_region_maps_image_boxes_and_uses_the_selected_page(self):
         document = {**self.document, 'page_count': 3}
         initial = {**self.initial, 'coverage': {'inspected_pages': [2]}}
-        answer, _, render = self.audit([obj([.25, .25, .5, .5])], [image(page=2, region=[.2, .2, .6, .6])],
+        answer, _, render = self.audit([obj([.25, .25, .5, .5], index=1)],
+            [image(page=2), image(page=2, region=[.2, .2, .6, .6])],
             document=document, result=initial, page=2, scope='document', region=[.2, .2, .6, .6])
         self.assertEqual(answer['value'], 1)
         self.assertEqual(answer['evidence'][0]['page'], 2)
@@ -92,6 +96,75 @@ class VisualCountAudit(unittest.TestCase):
             region=[.25, .25, .75, .75])
         self.assertEqual(answer['value'], 1)
         self.assertEqual(answer['count_audit']['scope_filtered_objects'], 1)
+
+    def test_region_filter_runs_after_full_envelope_association(self):
+        answer, _, _ = self.audit([obj([.4, .1, .7, .2]), obj([0, .1, .4, .2], index=1)],
+            [image(), image(region=[.5, 0, 1, 1])], region=[.49, 0, .8, 1])
+        self.assertEqual(answer['value'], 0)
+        self.assertEqual(answer['count_audit']['scope_filtered_objects'], 1)
+        self.assertEqual(answer['count_audit']['duplicates_removed'], 1)
+
+    def test_audit_preserves_full_extent_when_partial_crop_is_smaller(self):
+        answer, _, _ = self.audit([obj([.4, .1, .7, .2]), obj([0, .1, .4, .2], index=1)],
+            [image(), image(region=[.5, 0, 1, 1])])
+        self.assertEqual(answer['value'], 1)
+        self.assertEqual(answer['evidence'][0]['bbox'], [.4, .1, .7, .2])
+        self.assertFalse(answer['evidence'][0]['containment_uncertain'])
+
+    def test_crop_edge_only_candidate_cannot_recover_uncertain_region_count(self):
+        initial = {**self.initial, 'value': None, 'method': 'visual_inventory',
+                   'category': 'door', 'evidence': [{**self.initial['evidence'][0], 'containment_uncertain': True}]}
+        answer, _, render = self.audit([obj([0, .1, .2, .2], index=1)],
+            [image(), image(region=[.5, 0, 1, 1])], result=initial, region=[.45, 0, .8, 1])
+        self.assertIsNone(answer['value'])
+        self.assertEqual(answer['count_audit']['containment_uncertain_objects'], 1)
+        self.assertTrue(answer['evidence'][0]['containment_uncertain'])
+        # Full-page context is requested, without restricting rendering to a crop.
+        self.assertEqual(len(render.call_args.args), 2)
+
+    def test_selected_region_crop_alone_cannot_resolve_original_uncertainty(self):
+        initial = {**self.initial, 'value': None, 'method': 'visual_inventory'}
+        answer, request, _ = self.audit([obj()], [image(region=[.25, .25, .75, .75])],
+            result=initial, region=[.25, .25, .75, .75])
+        self.assertIsNone(answer['value'])
+        request.assert_not_called()
+
+    def test_same_view_adjacent_and_nested_boxes_remain_distinct(self):
+        for boxes in (([.1, .1, .3, .3], [.15, .1, .35, .3]),
+                      ([.1, .1, .4, .4], [.2, .2, .3, .3])):
+            with self.subTest(boxes=boxes):
+                answer, _, _ = self.audit([obj(box) for box in boxes])
+                self.assertEqual(answer['value'], 2)
+                self.assertEqual(answer['count_audit']['duplicates_removed'], 0)
+
+    def test_coarse_observation_over_multiple_objects_remains_unresolved(self):
+        answer, _, _ = self.audit([obj([.5, .1, .9, .3]),
+                                  obj([.04, .1, .24, .3], index=1),
+                                  obj([.56, .1, .76, .3], index=1)],
+                                 [image(), image(region=[.5, 0, 1, 1])])
+        self.assertIsNone(answer['value'])
+        self.assertEqual(len(answer['evidence']), 2)
+        self.assertEqual(len(answer['count_audit']['unresolved_envelopes']), 1)
+
+    def test_combined_count_requires_valid_individual_component_categories(self):
+        initial = {**self.initial, 'category': 'shower+bathtub'}
+        question = 'How many showers and bathtubs?'
+        answer, _, _ = self.audit([obj(label='Shower'), obj([.5, .5, .6, .6], label='Bathtub')],
+            result=initial, question=question)
+        self.assertEqual(answer['value'], 2)
+        self.assertEqual({item['category'] for item in answer['evidence']}, {'shower', 'bathtub'})
+        for label, category in (('Toilet', 'toilet'), ('Unclear fixture', 'unknown'),
+                                ('Combined fixture', 'shower+bathtub')):
+            with self.subTest(category=category):
+                answer, _, _ = self.audit([obj(label=label, category=category)], result=initial, question=question)
+                self.assertIsNone(answer['value'])
+                self.assertTrue(answer['evidence'][0]['ambiguous'])
+                self.assertEqual(answer['evidence'][0]['category'], category)
+
+    def test_unknown_single_class_does_not_inherit_question_category(self):
+        answer, _, _ = self.audit([obj(label='Unclear fixture', category='unknown')])
+        self.assertIsNone(answer['value'])
+        self.assertEqual(answer['evidence'][0]['category'], 'unknown')
 
     def test_invalid_objects_withhold_total_but_keep_valid_candidates(self):
         bad = [obj(index=-1), obj([.8, .8, .2, .2]), obj([float('nan'), 0, 1, 1]), obj(index=True)]
