@@ -28,6 +28,15 @@ torch.set_num_threads(int(os.environ.get("THREADS", max(1, (os.cpu_count() or 4)
 
 def load(path):
     z = np.load(path, allow_pickle=True)
+    f = CFG.get("scale", 1.0)
+    if f != 1.0:  # train at reduced resolution: 4x cheaper per step at 0.5
+        g = z["gray"]
+        W, H = int(g.shape[1] * f), int(g.shape[0] * f)
+        seg = np.unpackbits(z["seg"] if z["seg"].ndim == 3 else z["seg"][None], axis=0)[: len(CFG["seg"])]
+        # keep thin lines (edges, text) alive when shrinking: max-pool style via INTER_AREA + threshold
+        seg = np.stack([(cv2.resize(c.astype(np.float32), (W, H), interpolation=cv2.INTER_AREA) > 0.25).astype(np.uint8) for c in seg])
+        return {"name": os.path.basename(path)[:-4], "gray": cv2.resize(g, (W, H), interpolation=cv2.INTER_AREA), "seg": seg,
+                "centres": [z[f"c_{c}"] * f for c in CFG["obj"]], "boxes": [z[f"b_{c}"] * f for c in CFG["obj"]]}
     return {
         "name": os.path.basename(path)[:-4],
         "gray": z["gray"],
@@ -170,7 +179,9 @@ def main():
     ap.add_argument("--resume", default=None)
     ap.add_argument("--dataset", default="swiss", choices=["swiss", "cc"])
     ap.add_argument("--max_train", type=int, default=100000)
+    ap.add_argument("--input_scale", type=float, default=1.0, help="resize sheets before training/inference")
     a = ap.parse_args()
+    CFG["scale"] = a.input_scale
     if a.dataset == "cc":
         from train.build_cubicasa import CC_OBJ, CC_SEG
         CFG["seg"], CFG["obj"] = CC_SEG, CC_OBJ
@@ -214,14 +225,14 @@ def main():
             if score > best:
                 best = score
                 torch.save({"model": model.state_dict(), "eval": r, "it": it,
-                            "seg_channels": CFG["seg"], "obj_classes": CFG["obj"], "wall_px": CFG.get("wall_px")}, a.out)
+                            "seg_channels": CFG["seg"], "obj_classes": CFG["obj"], "wall_px": CFG.get("wall_px"), "input_scale": CFG["scale"]}, a.out)
                 print("saved best", a.out, flush=True)
     r = evaluate(model, val)
     print("FINAL", json.dumps(r), flush=True)
     score = np.mean(list(r["exact"].values())) + r["room_iou"]
     if score > best:
         torch.save({"model": model.state_dict(), "eval": r, "it": it,
-                    "seg_channels": CFG["seg"], "obj_classes": CFG["obj"], "wall_px": CFG.get("wall_px")}, a.out)
+                    "seg_channels": CFG["seg"], "obj_classes": CFG["obj"], "wall_px": CFG.get("wall_px"), "input_scale": CFG["scale"]}, a.out)
 
 
 if __name__ == "__main__":

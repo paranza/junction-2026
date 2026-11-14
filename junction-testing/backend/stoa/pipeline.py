@@ -159,6 +159,7 @@ class Models:
             self.seg_ch, self.obj_cls = ck["seg_channels"], ck["obj_classes"]
             self.plan = PlanNet(len(self.seg_ch), len(self.obj_cls))
             self.plan.load_state_dict(ck["model"]); self.plan.eval()
+            self.plan_scale = ck.get("input_scale") or 1.0
             self.plan_eval = ck.get("eval")
         self.cc = None
         c = os.path.join(WEIGHTS, "plannet_cc.pt")
@@ -253,10 +254,15 @@ def analyze_raster(gray, words=None, source="raster"):
     models = Models.get()
     warnings = []
     if models.plan is None:
-        raise RuntimeError("PlanNet weights missing: train with train/train_plannet.py")
+        return _empty_facts(gray, source, "The plan-reading model is not installed in this copy of the app, so only the drawing is shown.")
     H, W = gray.shape
-    seg, heat = predict_full(models.plan, gray)
-    seg = seg.numpy(); ch = {n: i for i, n in enumerate(models.seg_ch)}
+    f = models.plan_scale
+    small = gray if f == 1 else cv2.resize(gray, (int(W * f), int(H * f)), interpolation=cv2.INTER_AREA)
+    seg, heat = predict_full(models.plan, small)
+    seg = seg.numpy()
+    if f != 1:  # back to full resolution so polygons, OCR crops and areas use the original pixels
+        seg = np.stack([cv2.resize(c, (W, H), interpolation=cv2.INTER_LINEAR) for c in seg])
+    ch = {n: i for i, n in enumerate(models.seg_ch)}
     if words is None:
         words = _read_words_ocr(models, gray, seg[ch["text"]]) if models.glyph is not None else []
         if models.glyph is None:
@@ -326,6 +332,7 @@ def analyze_raster(gray, words=None, source="raster"):
     for c, plist in enumerate(peaks):
         t = models.obj_cls[c]
         for x, y, sc in plist:
+            x, y = int(round(x / f)), int(round(y / f))
             h = 12 if t in ("wc", "washbasin", "shower") else 18 if t in ("door", "bathtub", "stove") else 14
             objects.append({"id": f"o{len(objects)}", "type": t, "x": x, "y": y, "bbox": [x - h, y - h, x + h, y + h], "score": round(sc, 3)})
 
@@ -359,6 +366,13 @@ def analyze_raster(gray, words=None, source="raster"):
              "wall_mask": (seg[ch["wall"]] > 0.5)}
     _assign_rooms(facts)
     return summarize(facts)
+
+
+def _empty_facts(gray, source, why):
+    h, w = gray.shape
+    return summarize({"source": source, "width": w, "height": h,
+                      "scale": {"m_per_px": SWISS_M_PER_PX, "method": "not measured"},
+                      "rooms": [], "objects": [], "units": [], "words": [], "storeys": 1, "warnings": [why]})
 
 
 def is_swiss_sheet(gray) -> bool:
@@ -498,9 +512,14 @@ def analyze_file(path):
     color = cv2.imread(path, cv2.IMREAD_COLOR)
     disp = color if color is not None and color.shape[:2] == gray.shape else cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
     m = Models.get()
-    if is_swiss_sheet(gray) or m.cc is None:
-        facts = analyze_raster(gray, source="raster")
+    swiss = is_swiss_sheet(gray)
+    if swiss or m.cc is None:
+        facts = analyze_raster(gray, source="raster") if m.plan is not None else None
+        if facts is None:
+            facts = _empty_facts(gray, "raster", "The plan-reading model is not installed in this copy of the app, so only the drawing is shown.")
         facts["style"] = "swiss"
+        if not swiss and m.cc is None:
+            facts["warnings"].insert(0, "This looks like a residential sketch plan; its dedicated model is not installed yet, so the Swiss-sheet model was used and results may be incomplete.")
     else:
         facts = analyze_raster_cc(gray, source="raster")
     return disp, facts
