@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import io
+import os
 import re
 from pathlib import Path
 
 import pymupdf
 from PIL import Image, ImageOps
+
+# Enlarged overlapping crops for small plans (most CubiCasa images are under 1,000 px).
+# Off until the cubicasa comparison shows it helps; part of the inventory cache key.
+SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '') == '1'
 
 
 def natural_key(path):
@@ -95,10 +100,14 @@ def image_inputs(path: Path, pages: list[int], region=None):
         overview = image.copy()
         overview.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
         inputs.append({'image': overview, 'page': page, 'region': [0, 0, 1, 1], 'kind': 'overview'})
-        if max(image.size) > 1600 and len(pages) <= 2:
+        small = SMALL_IMAGE_CROPS and max(image.size) <= 1600
+        if (max(image.size) > 1600 or small) and len(pages) <= 2:
             # Overlap makes tiny symbols crossing a crop boundary inspectable.
             for x0, y0, x1, y1 in ((0, 0, .55, .55), (.45, 0, 1, .55), (0, .45, .55, 1), (.45, .45, 1, 1)):
                 crop = image.crop((int(x0 * image.width), int(y0 * image.height), int(x1 * image.width), int(y1 * image.height)))
+                if small:  # enlarge small plans so their symbols cover more pixels
+                    crop = crop.resize((crop.width * 2, crop.height * 2), Image.Resampling.LANCZOS)
                 crop.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
-                inputs.append({'image': crop, 'page': page, 'region': [x0, y0, x1, y1], 'kind': 'detail crop'})
+                inputs.append({'image': crop, 'page': page, 'region': [x0, y0, x1, y1],
+                               'kind': 'enlarged detail crop' if small else 'detail crop'})
     return inputs
