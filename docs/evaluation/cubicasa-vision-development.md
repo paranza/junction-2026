@@ -33,7 +33,7 @@ Round 2, 60 fresh development plans and 524 questions, all with gemini-4-argon. 
 
 ## Held-out plans
 
-54 plans and 482 questions, scored once with gemini-4-argon, ultra-high resolution, enlarged crops and rules v2 on the evaluation branch before the port to main (its development score was 464 of 524). The most common value gets 276; the configuration got 421 (87.3%). Main's own adapter has not been scored on these plans yet.
+54 plans and 482 questions, scored once with gemini-4-argon, ultra-high resolution, enlarged crops and rules v2 on the evaluation branch before the port to main (its development score was 464 of 524). The most common value gets 276; the configuration got 421 (87.3%). Main's own adapter with two readings later scored 425 of 482 (88.2%) on the same plans in the end-to-end run (`docs/evaluation/end-to-end.md`).
 
 | Question type | Plans | Correct |
 | --- | ---: | ---: |
