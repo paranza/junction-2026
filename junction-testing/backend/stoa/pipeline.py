@@ -68,7 +68,7 @@ def summarize(facts):
     indoor = [r for r in rooms if not r["outdoor"] and not r["shaft"]]
     facts["summary"] = {
         "rooms": len(rooms), "apartments": len(facts["units"]),
-        "net_area_m2": round(sum(r["area_m2"] or 0 for r in indoor), 2),
+        "net_area_m2": round(sum(r["area_m2"] or 0 for r in indoor), 2) if all(r["area_m2"] is not None for r in indoor) else None,
         "outdoor_area_m2": round(sum(r["area_m2"] or 0 for r in rooms if r["outdoor"]), 2),
         "objects": dict(c),
         "unit_areas": {u["id"]: u["area_m2"] for u in facts["units"]},
@@ -110,6 +110,7 @@ def analyze_dxf(path):
             "id": f"r{i}", "number": r["number"], "name": r["name"], "category": categorize(r["name"]),
             "area_m2": area, "area_source": "printed label (DXF text)" if r["area_label"] is not None else "polygon geometry",
             "area_geom_m2": round(r["area_geom"], 2) if r["area_geom"] else None,
+            "area_px": round((r["area_geom"] or 0) / SWISS_M_PER_PX ** 2, 1),
             "polygon": _round_poly(poly) if poly is not None else [],
             "centroid": [round(float(v), 1) for v in (poly.mean(0) if poly is not None else T(r["text_xy"]))],
             "unit": r["unit"], "outdoor": r["outdoor"], "shaft": r["shaft"], "confidence": 1.0,
@@ -324,7 +325,7 @@ def analyze_raster(gray, words=None, source="raster"):
             r["area_m2"], r["area_source"] = geo, "segmented geometry x calibrated scale"
             if r["area_label"] is not None:
                 warnings.append(f"Room {r['number']}: printed {r['area_label']} m2 disagrees with geometry {geo} m2; used geometry.")
-        del r["pixels"]
+        r["area_px"] = round(r.pop("pixels"), 1)
 
     # ---- objects from heatmap peaks
     peaks = heat_peaks(heat)
@@ -365,6 +366,55 @@ def analyze_raster(gray, words=None, source="raster"):
              "rooms": rooms, "objects": objects, "units": units, "words": words, "storeys": 1, "warnings": warnings,
              "wall_mask": (seg[ch["wall"]] > 0.5)}
     _assign_rooms(facts)
+    return summarize(facts)
+
+
+def analyze_geometry(gray, source="raster", why=None):
+    """Training-free fallback for drawing styles our models were not trained on."""
+    from .geometry import extract
+    g = extract(gray)
+    H, W = gray.shape
+    rooms = []
+    for i, r in enumerate(sorted(g["rooms"], key=lambda r: (r["centroid"][1] // 80, r["centroid"][0]))):
+        rooms.append({"id": f"r{i}", "number": str(i + 1), "name": None, "category": "unlabelled",
+                      "area_m2": None, "area_px": round(r["area_px"], 1), "area_source": "set the scale to measure",
+                      "area_geom_m2": None, "polygon": _round_poly(r["polygon"]),
+                      "centroid": [round(v, 1) for v in r["centroid"]], "unit": None, "outdoor": False, "shaft": False,
+                      "confidence": 0.6})
+    near = np.zeros((H, W), np.uint8)
+    for r in rooms:
+        cv2.fillPoly(near, [np.array(r["polygon"], np.int32)], 1)
+    k = int(6 * g["stroke_px"]) + 3
+    near = cv2.dilate(near, np.ones((k, k), np.uint8))
+    objects = []
+    for o in g["openings"]:
+        if near[min(H - 1, int(o["y"])), min(W - 1, int(o["x"]))]:
+            objects.append({"id": f"o{len(objects)}", "type": "opening", "x": round(o["x"], 1), "y": round(o["y"], 1),
+                            "bbox": [round(v, 1) for v in o["bbox"]], "score": 0.5, "length_px": o["length_px"]})
+    warn = [why] if why else []
+    warn.append("Unknown drawing style: rooms found by wall geometry (no learned model). Use Set scale and click a known dimension to get areas in m2.")
+    facts = {"source": source, "style": "geometry", "width": W, "height": H,
+             "scale": {"m_per_px": None, "method": "not calibrated"},
+             "rooms": rooms, "objects": objects, "units": [], "words": [], "storeys": 1,
+             "warnings": warn, "wall_mask": g["wall_mask"]}
+    _assign_rooms(facts)
+    return summarize(facts)
+
+
+def apply_scale(facts, m_per_px, method):
+    """Re-measure every geometry-based area with a new scale (printed labels stay authoritative)."""
+    facts["scale"] = {"m_per_px": m_per_px, "method": method}
+    for r in facts["rooms"]:
+        if r.get("area_px") is None:
+            continue
+        geo = round(r["area_px"] * m_per_px ** 2, 2)
+        r["area_geom_m2"] = geo
+        if not str(r.get("area_source", "")).startswith("printed"):
+            r["area_m2"], r["area_source"] = geo, "geometry x " + method
+    for u in facts["units"]:
+        u["area_m2"] = round(sum(r["area_m2"] or 0 for r in facts["rooms"]
+                                 if r["unit"] == u["id"] and not r["outdoor"] and not r["shaft"]), 2)
+    facts["warnings"] = [w for w in facts["warnings"] if "Set scale" not in w and "Scale not calibrated" not in w]
     return summarize(facts)
 
 
@@ -448,7 +498,8 @@ def analyze_raster_cc(gray, source="raster"):
     else:
         warnings.append("Sheet has no scale: areas estimated from typical door width (0.9 m). Treat areas as approximate.")
     for r in rooms:
-        r["area_m2"] = round(r.pop("pixels") * m_per_px ** 2, 1)
+        r["area_px"] = round(r.pop("pixels"), 1)
+        r["area_m2"] = round(r["area_px"] * m_per_px ** 2, 1)
         r["area_source"] = "segmented geometry x door-based scale estimate"
         r["area_geom_m2"] = r["area_m2"]
     # storeys: separate building footprints drawn side by side
@@ -512,14 +563,13 @@ def analyze_file(path):
     color = cv2.imread(path, cv2.IMREAD_COLOR)
     disp = color if color is not None and color.shape[:2] == gray.shape else cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
     m = Models.get()
-    swiss = is_swiss_sheet(gray)
-    if swiss or m.cc is None:
-        facts = analyze_raster(gray, source="raster") if m.plan is not None else None
-        if facts is None:
-            facts = _empty_facts(gray, "raster", "The plan-reading model is not installed in this copy of the app, so only the drawing is shown.")
+    facts = None
+    if is_swiss_sheet(gray) and m.plan is not None:
+        facts = analyze_raster(gray, source="raster")
         facts["style"] = "swiss"
-        if not swiss and m.cc is None:
-            facts["warnings"].insert(0, "This looks like a residential sketch plan; its dedicated model is not installed yet, so the Swiss-sheet model was used and results may be incomplete.")
-    else:
+    elif m.cc is not None:
         facts = analyze_raster_cc(gray, source="raster")
+    # ponytail: confidence gate = "found at least 3 plausible rooms"; upgrade to a calibrated style classifier
+    if facts is None or len([r for r in facts["rooms"] if (r.get("area_px") or 0) > 0]) < 3:
+        facts = analyze_geometry(gray, source="raster")
     return disp, facts

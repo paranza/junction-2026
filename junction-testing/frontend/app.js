@@ -14,7 +14,8 @@ const OBJ = {
   door: ["#e8590c", "Doors", "D"], window: ["#1c7ed6", "Windows", "W"], wc: ["#0ca678", "WC / toilets", "T"],
   washbasin: ["#3bc9db", "Washbasins", "B"], sink: ["#3bc9db", "Sinks", "S"], bathtub: ["#4263eb", "Bathtubs", "Ba"],
   shower: ["#7048e8", "Showers", "Sh"], stove: ["#f03e3e", "Stoves", "St"], washing_machine: ["#868e96", "Washing machines", "WM"],
-  kitchen: ["#fab005", "Kitchen runs", "K"],
+  kitchen: ["#fab005", "Kitchen runs", "K"], sauna_stove: ["#d9480f", "Sauna stoves", "SS"],
+  opening: ["#e8590c", "Openings (doors / gaps)", "O"],
 };
 
 let F = null;                 // current facts
@@ -81,7 +82,7 @@ function show(facts) {
   F = facts;
   chatHistory = [];
   $("#chat").innerHTML = "";
-  objOn = Object.fromEntries(Object.keys(facts.summary.objects).map((k) => [k, true]));
+  objOn = Object.fromEntries(Object.keys(facts.summary.objects).map((k) => [k, k !== "opening"]));  // gap candidates are noisy: opt-in
   const img = $("#img");
   img.onload = () => { fit(); };
   img.src = `/api/analysis/${facts.id}/image?${Date.now()}`;
@@ -90,9 +91,11 @@ function show(facts) {
   $("#svg").setAttribute("width", facts.width);
   $("#svg").setAttribute("height", facts.height);
   ["#stage", "#toolbar", "#panel"].forEach((s) => $(s).classList.remove("hidden"));
-  const src = { dxf: "Vector DXF (exact geometry)", pdf: "PDF (text layer + PlanNet)", raster: "Image (PlanNet + GlyphNet)" }[facts.source];
+  const src = facts.style === "geometry" ? "Image (wall geometry, no learned model)" :
+    facts.style === "cubicasa" ? "Image (PlanNet residential)" :
+    { dxf: "Vector DXF (exact geometry)", pdf: "PDF (text layer + PlanNet)", raster: "Image (PlanNet + GlyphNet)" }[facts.source];
   $("#fileinfo").innerHTML = `<div class="name">${esc(facts.filename)}</div>
-    <div class="meta">${src} · ${facts.cached ? "cached" : facts.seconds + " s"} · scale ${(facts.scale.m_per_px * 100).toFixed(2)} cm/px (${esc(facts.scale.method)})</div>`;
+    <div class="meta">${src} · ${facts.cached ? "cached" : facts.seconds + " s"} · ${facts.scale.m_per_px ? `scale ${(facts.scale.m_per_px * 100).toFixed(2)} cm/px (${esc(facts.scale.method)})` : `<b style="color:var(--accent)">scale not set</b>`}</div>`;
   buildLayers();
   draw();
   overview();
@@ -142,7 +145,7 @@ function draw() {
       const xs = r.polygon.map((q) => q[0]), w = Math.max(...xs) - Math.min(...xs);
       const fs = Math.max(8, Math.min(fontBase * 1.25, w / 6));
       const t = el("text", { x: cx, y: cy - fs * 0.15, "text-anchor": "middle", class: "rlabel", "font-size": fs, fill: "#111" }, gL);
-      t.textContent = r.area_m2 != null ? `${(+r.area_m2).toFixed(2)} m²` : "";
+      t.textContent = r.area_m2 != null ? `${(+r.area_m2).toFixed(2)} m²` : (r.name || `Room ${r.number || ""}`);
       if (r.name && w > fs * 4) {
         const t2 = el("text", { x: cx, y: cy + fs * 0.95, "text-anchor": "middle", class: "rlabel", "font-size": fs * 0.72, fill: col, style: "font-weight:600" }, gL);
         t2.textContent = r.name;
@@ -178,7 +181,7 @@ function buildLayers() {
   const items = [["rooms", "Rooms", "#4dabf7"], ["labels", "Areas", "#111"], ["units", "Apartments", "#e03131"]];
   if (F.has_walls) items.push(["walls", "Walls", "#2828dc"]);
   L.innerHTML = items.map(([k, n, c]) => `<button data-l="${k}" class="${layers[k] ? "on" : ""}"><span class="sw" style="background:${c}"></span>${n}</button>`).join("") +
-    Object.keys(objOn).map((k) => `<button data-o="${k}" class="on"><span class="sw" style="background:${(OBJ[k] || ["#999"])[0]}"></span>${(OBJ[k] || [0, k])[1]} ${F.summary.objects[k]}</button>`).join("");
+    Object.keys(objOn).map((k) => `<button data-o="${k}" class="${objOn[k] ? "on" : ""}"><span class="sw" style="background:${(OBJ[k] || ["#999"])[0]}"></span>${(OBJ[k] || [0, k])[1]} ${F.summary.objects[k]}</button>`).join("");
   L.querySelectorAll("button").forEach((b) => (b.onclick = () => {
     if (b.dataset.l) layers[b.dataset.l] = !layers[b.dataset.l];
     else objOn[b.dataset.o] = !objOn[b.dataset.o];
@@ -287,11 +290,11 @@ function tab(name) {
 
 function overview() {
   const S = F.summary;
-  const n = (k) => S.objects[k] || 0;
+  const n = (k) => (F.style === "geometry" ? "—" : S.objects[k] || 0);
   let html = `<div class="cards">
-    <div class="card big"><div class="k">Net indoor floor area</div><div class="v">${S.net_area_m2.toFixed(2)} <small>m²</small></div></div>
+    <div class="card big"><div class="k">Net indoor floor area</div><div class="v">${S.net_area_m2 != null ? S.net_area_m2.toFixed(2) + " <small>m²</small>" : `<button class="btn primary" onclick="startScale()">Set scale to measure</button>`}</div></div>
     <div class="card"><div class="k">Rooms</div><div class="v">${S.rooms}</div></div>
-    <div class="card"><div class="k">Apartments</div><div class="v">${S.apartments}</div></div>
+    <div class="card"><div class="k">Apartments</div><div class="v">${F.style === "geometry" || F.style === "cubicasa" ? "—" : S.apartments}</div></div>
     <div class="card"><div class="k">Doors</div><div class="v">${n("door")}</div></div>
     <div class="card"><div class="k">Windows</div><div class="v">${n("window")}</div></div>
   </div>`;
@@ -303,7 +306,8 @@ function overview() {
   for (const [c, rs] of Object.entries(cats).sort((a, b) => b[1].length - a[1].length)) {
     const [col, name] = CAT[c] || CAT.other;
     const area = rs.reduce((s, r) => s + (r.area_m2 || 0), 0);
-    html += `<div class="feat" style="animation-delay:${(d++) * 40}ms" data-ids="${rs.map((r) => r.id).join(",")}"><span class="sw" style="background:${col}"></span><span class="n">${name}</span><span class="c">${rs.length} · ${area.toFixed(1)} m²</span></div>`;
+    const known = rs.every((r) => r.area_m2 != null);
+    html += `<div class="feat" style="animation-delay:${(d++) * 40}ms" data-ids="${rs.map((r) => r.id).join(",")}"><span class="sw" style="background:${col}"></span><span class="n">${name}</span><span class="c">${rs.length}${known ? ` · ${area.toFixed(1)} m²` : ""}</span></div>`;
   }
   html += `<h3>Detected objects</h3>`;
   for (const [k, v] of Object.entries(S.objects).sort((a, b) => b[1] - a[1])) {
@@ -416,3 +420,39 @@ async function ask(q) {
   const r = await fetch(`/api/analysis/${encodeURIComponent(id)}`);
   if (r.ok) { $("#drop").classList.add("hidden"); show(await r.json()); }
 })();
+
+
+// ------------------------------------------------------------- scale calibration: click two points of a known length
+let scaleMode = null;
+function toImg(e) {
+  const b = stage.getBoundingClientRect();
+  return [(e.clientX - b.left - view.x) / view.s, (e.clientY - b.top - view.y) / view.s];
+}
+function startScale() {
+  scaleMode = { pts: [] };
+  stage.style.cursor = "crosshair";
+  tip({ clientX: stage.getBoundingClientRect().left + 20, clientY: stage.getBoundingClientRect().top + 20 },
+      "Click both ends of a dimension you know (e.g. a wall with a written length)");
+}
+window.startScale = startScale;
+stage.addEventListener("click", async (e) => {
+  if (!scaleMode || (drag && drag.moved)) return;
+  e.stopPropagation();
+  scaleMode.pts.push(toImg(e));
+  const svg = $("#svg");
+  const [x, y] = scaleMode.pts[scaleMode.pts.length - 1];
+  el("circle", { cx: x, cy: y, r: 6 / view.s + 2, fill: "#ffb020", stroke: "#000", "stroke-width": 1 }, svg);
+  if (scaleMode.pts.length < 2) return;
+  const [[x1, y1], [x2, y2]] = scaleMode.pts;
+  el("line", { x1, y1, x2, y2, stroke: "#ffb020", "stroke-width": 3 / view.s + 1 }, svg);
+  const px = Math.hypot(x2 - x1, y2 - y1);
+  scaleMode = null; stage.style.cursor = ""; tip();
+  const v = prompt(`Real length of this line in metres? (${px.toFixed(0)} px)`, "");
+  const m = parseFloat((v || "").replace(",", "."));
+  if (!m) return draw();
+  const r = await fetch(`/api/analysis/${F.id}/scale`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ px_length: px, meters: m }) });
+  const j = await r.json();
+  if (!r.ok) { alert(j.detail); return draw(); }
+  const keep = { ...view };
+  show(j); view = keep; apply();
+}, true);

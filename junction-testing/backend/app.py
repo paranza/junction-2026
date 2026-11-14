@@ -35,7 +35,7 @@ except ImportError:
 from stoa import llm, pipeline, questions, takeoff  # noqa: E402
 
 app = FastAPI(title="Blueprint analyzer")
-PIPELINE_VERSION = "3"  # bump when analysis output changes; part of the cache key
+PIPELINE_VERSION = "4"  # bump when analysis output changes; part of the cache key
 
 
 def _weights_stamp() -> str:
@@ -60,6 +60,11 @@ def _dir(aid: str) -> str:
 def _load(aid: str) -> dict:
     with open(os.path.join(_dir(aid), "facts.json"), encoding="utf8") as f:
         return json.load(f)
+
+
+@app.on_event("startup")
+def _preload():
+    pipeline.Models.get()  # load weights once at boot, not on the first user's upload
 
 
 @app.post("/api/analyze")
@@ -122,6 +127,24 @@ def get_takeoff(aid: str, ceiling_h: float = 2.5, waste: float = 0.10):
     if not (1.8 <= ceiling_h <= 6 and 0 <= waste <= 0.5):
         raise HTTPException(400, "ceiling 1.8-6 m, waste 0-50%")
     return takeoff.compute(_load(aid), ceiling_h, waste)
+
+
+class Scale(BaseModel):
+    px_length: float
+    meters: float
+
+
+@app.post("/api/analysis/{aid}/scale")
+def set_scale(aid: str, body: Scale):
+    """User calibration: a known dimension clicked on the drawing."""
+    if not (body.px_length > 2 and 0.05 <= body.meters <= 1000):
+        raise HTTPException(400, "measure at least a few pixels and a length between 0.05 and 1000 m")
+    facts = _load(aid)
+    facts = pipeline.apply_scale(facts, body.meters / body.px_length, f"calibrated by user ({body.meters} m)")
+    facts["takeoff"] = takeoff.compute(facts)
+    with open(os.path.join(_dir(aid), "facts.json"), "w", encoding="utf8") as f:
+        json.dump(facts, f, ensure_ascii=False)
+    return facts
 
 
 class Ask(BaseModel):

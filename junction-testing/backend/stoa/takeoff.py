@@ -21,6 +21,10 @@ def perimeter_px(poly):
 def compute(facts: dict, ceiling_h: float = 2.5, waste: float = 0.10) -> dict:
     s = facts["scale"]["m_per_px"]
     rows = []
+    if not s:
+        return {"assumptions": {"ceiling_height_m": ceiling_h, "waste_factor": waste,
+                                "formula": "Set the scale first: a takeoff needs real lengths."},
+                "rooms": [], "totals": {k: 0 for k in ("floor_m2", "flooring_order_m2", "skirting_m", "paint_m2", "wall_tiles_m2", "perimeter_m")}}
     for r in facts["rooms"]:
         if r.get("shaft"):
             continue
