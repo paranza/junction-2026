@@ -78,7 +78,7 @@ def _measurement_language_supported(question, labels=()):
         return False
     if re.search(r"\d", re.sub(r"\b(?:m|ft)[23]\b", "", q)):
         return False
-    safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
+    safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls slab slabs deck decks beam beams column columns building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
     return all(word in safe for word in re.findall(r"[a-z]+", q))
 
 
@@ -239,6 +239,37 @@ def _space_footprint_quantity(obj, model):
         return None
 
 
+def _space_floor_face_quantity(obj, model):
+    """Area of the lowest downward-facing faces of the IfcSpace body, for spaces without a
+    footprint representation. Exact mesh faces in world coordinates, never a bounding box."""
+    try:
+        import ifcopenshell.geom
+        import numpy as np
+        space = model.by_guid(obj.get('guid'))
+        if not space or not space.is_a('IfcSpace'):
+            return None
+        settings = ifcopenshell.geom.settings()
+        settings.set('use-world-coords', True)
+        geometry = ifcopenshell.geom.create_shape(settings, space).geometry
+        v = np.array(geometry.verts, dtype=float).reshape(-1, 3)
+        t = np.array(geometry.faces, dtype=int).reshape(-1, 3)
+        if not len(t):
+            return None
+        a, b, c = v[t[:, 0]], v[t[:, 1]], v[t[:, 2]]
+        n = np.cross(b - a, c - a)
+        length = np.linalg.norm(n, axis=1)
+        down = n[:, 2] / np.maximum(length, 1e-12) < -0.999
+        low = (a[:, 2] + b[:, 2] + c[:, 2]) / 3 < v[:, 2].min() + 0.001
+        value = float(length[down & low].sum() / 2)
+        if not math.isfinite(value) or value <= 0:
+            return None
+        return {'value': value, 'unit': 'm²', 'property_path': 'IfcSpace.Body.lowest_downward_faces',
+                'unit_basis': 'world coordinates in metres (geometry kernel)',
+                'basis': 'area of the lowest downward-facing faces of the space body; no bounding-box approximation'}
+    except Exception:
+        return None
+
+
 def _room_quantity(obj, key, model):
     """Keep exact source quantities, resolving only missing/ambiguous net area."""
     props = obj.get('properties', {})
@@ -255,7 +286,7 @@ def _room_quantity(obj, key, model):
         return None  # An invalid negative/nonfinite source value is not a missing field.
     if key != 'net_area_m2' or model is None:
         return None
-    quantity = _space_footprint_quantity(obj, model)
+    quantity = _space_footprint_quantity(obj, model) or _space_floor_face_quantity(obj, model)
     if quantity is None:
         return None
     updated = dict(props)
@@ -377,17 +408,29 @@ def _ifc_scope(question, document, source_path, root):
 
 def _native_ifc(question, document, source_path, root):
     if source_path.suffix.lower() != ".ifc" and not linked_model(source_path):
-        return None
+        # Without the model, a semantic plan view (SVG with IFC class + GUID per product) can
+        # still answer what this floor drawing shows. Whole-model questions stay unanswered.
+        visible_plan = (bool(document.get("metadata", {}).get("semantic_svg")) and _count_question(question)
+                        and bool(re.search(r"\b(?:shown|drawn|plan|grundriss|dargestellt|naidatud|plaanil|vist|tegning)\b", _normal(question)))
+                        and not re.search(r"\b" + _MODEL_WORDS + r"\b", _without_model_titles(question)))
+        if not visible_plan:
+            return None
     doc, scoped, scope, warnings = _ifc_scope(question, document, source_path, root)
     if warnings or not scoped:
         return None
     q = _normal(question)
     types = _target_class(question)
     if _count_question(question) and types and not _measurement_question(question):
-        known_storeys=[s['name'] for s in doc.get('metadata',{}).get('storeys',[])
-                       if s.get('name') and re.search(
+        storey_names=[s['name'] for s in doc.get('metadata',{}).get('storeys',[]) if s.get('name')]
+        if not storey_names and source_path.suffix.lower() != ".ifc":
+            # A plan view without its model: the only floor it can describe is its own level,
+            # which plan exports carry in their file name.
+            storey_names=[m[1:-1] for m in re.findall(_QUOTED_TEXT, question)
+                          if len(_compact(m[1:-1])) > 2 and _compact(m[1:-1]) in _compact(source_path.stem)]
+        known_storeys=[name for name in storey_names
+                       if re.search(
                            r"\b(?:on|of|at|in|floor|storey|level|korruse|korrusel|im)\s+[\"'«“„]?"+
-                           re.escape(_normal(s['name']))+r"(?!\w)",_without_model_titles(question))]
+                           re.escape(_normal(name))+r"(?!\w)",_without_model_titles(question))]
         if not _simple_count_language(question,extra=known_storeys):
             return None
         if _unsupported_constraints(question) or re.search(r"\bwith\b|\b(?:wide|width|height|high|exclude|excluding|except)\b",q):
@@ -426,6 +469,8 @@ def _native_ifc(question, document, source_path, root):
         result["calculation"] = {"operation":"count_distinct_guid", "classes":list(types), "count":len(unique)}
         return result
     if _measurement_question(question):
+        # Quoted labels are names, not element classes: 'INVA-WC (103)' is a room, not a toilet.
+        types = _target_class(re.sub(_QUOTED_TEXT, " ", question))
         target = types[0] if types else "IfcSpace"
         if target not in {"IfcSpace", "IfcWall", "IfcSlab", "IfcBeam", "IfcColumn"}:
             return None
@@ -482,7 +527,7 @@ def _native_ifc(question, document, source_path, root):
                 return None
             total = round(sum(o["properties"][key] for o in selected), 4)
             unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
-            geometry = any(o['properties'].get('area_source') == 'IfcSpace.Representation.FootPrint' for o in selected)
+            geometry = any(o['properties'].get('area_source') in ('IfcSpace.Representation.FootPrint', 'IfcSpace.Body.lowest_downward_faces') for o in selected)
             return _result(total, unit, selected, "native_ifc_quantity", scope,
                            warnings=['Missing or zero untyped exporter areas were replaced by measurements of explicit closed IfcSpace footprints. This is geometry-derived area, not an explicit net-area quantity.'] if geometry else None,
                            calculation={"operation":"sum", "property":key,
