@@ -39,6 +39,8 @@ For UI development, run the backend and `npm --prefix frontend run dev`. Vite pr
 4. Link citations to source objects or normalized image regions. Check numeric operands against typed source properties and exact native excerpts before computing. A model-selected answer type cannot bypass quantity checks. Image-only readings stay provisional.
 5. Display scope, method, usage, limitations, calculations and evidence. A source ID, an exact excerpt and semantic correctness are different checks. User corrections preserve the original result and every saved review revision.
 
+Translated questions are first rewritten into the English wording the native solvers read (`server/normalize.py`), copying labels, room numbers and apartment letters verbatim; the answer shows the rewritten text as `interpreted_question`. The template table `server/question_templates.json` is rebuilt with `python ops/build_question_templates.py --dataset-root <preview>`, which reads question wording only, never answers. Unknown wording passes through unchanged.
+
 PDF text uses page rotation consistent with previews. Swiss CAD room polygons are projected onto paired PDFs only when multiple matching room-number anchors support an alignment; otherwise boxes are withheld. IFC entities can link to matching semantic SVG/PDF floor views. Whole-model counts and visible-floor counts are separate operations.
 
 ## Supported first-version workflows

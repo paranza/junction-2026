@@ -26,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import llm, rendering, store
+from .normalize import to_english
 from .selection import highlight_target, native_highlight, describe_highlights
 
 ACCESS_TOKEN = os.environ.get('STOA_ACCESS_TOKEN', '')
@@ -304,7 +305,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py'):
+    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -463,6 +464,9 @@ def _guard_visual_measurements(result, question=''):
 def _compute_analysis(payload, question, data, source):
     from .native_qa import answer_native
     from . import inventory
+    english = to_english(question)
+    normalized = english != question
+    question = english
     result = None
     native_result = None
     native_data = data
@@ -475,7 +479,7 @@ def _compute_analysis(payload, question, data, source):
             result = _native_region_answer(question, data, source, payload.page, payload.region)
         elif not (payload.scope == 'page' and source.suffix.lower() == '.ifc'):
             result = native_highlight(question, native_data, source, store.DATA_ROOT) if highlight_target(question) else answer_native(question, native_data, source, store.DATA_ROOT)
-        if result is None and payload.mode == 'auto' and llm.model_available() and re.search(r'[^\x00-\x7f]', question):
+        if result is None and payload.mode == 'auto' and llm.model_available() and not normalized and re.search(r'[^\x00-\x7f]', question):
             try:
                 translated = llm.translate_question(question)
                 result = answer_native(translated, native_data, source, store.DATA_ROOT) if not payload.region else _native_region_answer(translated, data, source, payload.page, payload.region)
@@ -502,6 +506,8 @@ def _compute_analysis(payload, question, data, source):
                   'value': None, 'unit': None, 'method': 'native', 'status': 'insufficient_evidence', 'evidence': [], 'warnings': [], 'scope': payload.scope}
     if payload.cross_check:
         result['reconciliation'] = _cross_check(payload, question, native_result, data, source)
+    if normalized:
+        result.setdefault('interpreted_question', english)
     return result
 
 
@@ -538,7 +544,7 @@ def ask(payload: AskRequest):
                 store.save_analysis(key, 'answer', result)
         result['usage'] = llm.usage_snapshot(cache_hit=hit)
     result = _evidence(result, payload.document_id)
-    if highlight_target(question):
+    if highlight_target(to_english(question)):
         result = describe_highlights(result)
     result.setdefault('warnings', [])
     result.setdefault('status', 'computed')
@@ -551,7 +557,7 @@ def ask(payload: AskRequest):
     result.setdefault('operation', quantity_type)
     if result['operation'] == 'count':
         from .inventory import answer_category
-        result.setdefault('category', answer_category(question, result))
+        result.setdefault('category', answer_category(to_english(question), result))
     result['usage']['inventory_cache_hit'] = bool(result.get('inventory_cache_hit'))
     result.setdefault('can_review', result['operation'] == 'count' and result.get('value') is not None and result.get('value') == len(result['evidence']))
     result['question'] = payload.question
