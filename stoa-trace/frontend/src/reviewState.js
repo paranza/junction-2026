@@ -125,3 +125,12 @@ export function canResolveComparison(answer) {
   return answer?.source_changed !== true && !!comparison && ['agreement', 'disagreement'].includes(comparison.status)
     && Number.isFinite(comparison.native_value) && Number.isFinite(comparison.visual_value);
 }
+
+
+// Presentation only: persisted quantities and exported source values keep full precision.
+export function formatQuantityValue(value, unit) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return value == null ? '' : String(value);
+  if (unit === 'count') return String(value);
+  if (value !== 0 && Math.abs(value) < .001) return new Intl.NumberFormat('en-US', { useGrouping: false, maximumSignificantDigits: 4 }).format(value);
+  return new Intl.NumberFormat('en-US', { useGrouping: false, maximumFractionDigits: 3 }).format(value);
+}

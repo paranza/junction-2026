@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -97,4 +97,15 @@ test('working quantity choices require comparable finite values and an unchanged
   assert.equal(canResolveComparison({ ...original, reconciliation: { ...original.reconciliation, status: 'scope_mismatch' } }), false);
   assert.equal(canResolveComparison({ ...original, reconciliation: { ...original.reconciliation, visual_value: null } }), false);
   assert.equal(original.value, 0);
+});
+
+
+test('quantity presentation limits float noise without altering values or exact counts', () => {
+  const value = 13.617073235712027;
+  assert.equal(formatQuantityValue(value, 'm²'), '13.617');
+  assert.equal(formatQuantityValue(13.62, 'm²'), '13.62');
+  assert.equal(formatQuantityValue(49560, 'ft²'), '49560');
+  assert.equal(formatQuantityValue(17, 'count'), '17');
+  assert.equal(formatQuantityValue(.0001234567, 'm³'), '0.0001235');
+  assert.equal(value, 13.617073235712027);
 });
