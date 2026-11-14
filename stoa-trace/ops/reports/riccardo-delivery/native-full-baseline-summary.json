@@ -1,0 +1,506 @@
+{
+  "schema_version": 1,
+  "name": "Current main full preview native baseline before prospective quarantine",
+  "code_commit": "d6f5b0c908ec3f2e3fa907e22d5ab16e01314616",
+  "generated_at": "2026-11-14T08:06:40.251542+00:00",
+  "mode": "native",
+  "selected_cases": 7990,
+  "manifest_cases_sha256": "29c623293443c52ae04e9f32d04dc00e15895496f54a9338388c6b079e1fcacd",
+  "source_questions_sha256": "03b857a7ff91c63c81288081b526548ff4cfdf116e84f335f298906613168a70",
+  "model_attempts_in_isolated_runtime": 0,
+  "model_budget": 0,
+  "python_version": "3.11.3",
+  "files_sha256": {
+    "server/app.py": "54a8881930bda90e82039d58450292f41275d8b8e058668dbb40e147711d2e26",
+    "server/store.py": "314416f87328281d68757a1c17412f69c37d9ac3f7f58036625d8cf8b78cf476",
+    "server/extraction.py": "fe7c4e5f2e922a7d166f5a33a5154cccf74e50e58d282e8077d98c499a69675f",
+    "server/native_qa.py": "6f170ccf3c3b9d8f96b7a452c5572a08c9d8b43db0b3ef87b9c0211332fbcb55",
+    "server/inventory.py": "96125828c5f5f37d2d5f636e81ce961ab25e8f49549048564497dd46c0d6df3e",
+    "server/llm.py": "beaf66a7e5dcc6bfeab279b1cf4cc2be9a5683a767aa5a1c33a67b7d485f0299",
+    "server/rendering.py": "a17737d5ecae3153f5f2c1aeb1326fbde7c317c603ff9cae4b1056b33a52b511",
+    "server/verification.py": "1e8b5a605a5c4a247c6e742c46820bc490f45644fff8585a2e35f30eae41d3f4",
+    "ops/benchmark.py": "4b10d07fff92e837b6032ead5f5b7acb7874213b8797d122ca32fc8df946fe1d",
+    "ops/grouped_manifest.py": "5a6ec4d8ed6ac770de6bbb5d4e4e4dc9058645ee25d76e1284c5ba2ae65ce234"
+  },
+  "summary": {
+    "cases": 7990,
+    "answered": 1682,
+    "coverage": 0.21051314142678348,
+    "numeric_cases": 7725,
+    "numeric_answered": 1679,
+    "numeric_correct": 1598,
+    "accuracy_all": 0.20686084142394823,
+    "accuracy_answered": 0.9517569982132221,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 7990,
+      "total": 77059.08,
+      "p50": 3.85,
+      "p95": 38.73
+    },
+    "evidence": {
+      "items": 14948,
+      "answers_with_evidence": 1666,
+      "answers_with_geometry": 1261,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 5737,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "cases": 4270,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 4270,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 4270,
+        "total": 13307.9,
+        "p50": 2.81,
+        "p95": 4.5
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_bench": {
+      "cases": 249,
+      "answered": 1,
+      "coverage": 0.004016064257028112,
+      "numeric_cases": 0,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": null,
+      "accuracy_answered": null,
+      "text_cases": 249,
+      "text_answered_for_manual_review": 1,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 249,
+        "total": 6022.34,
+        "p50": 9.35,
+        "p95": 51.92
+      },
+      "evidence": {
+        "items": 3,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 3,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_models": {
+      "cases": 1049,
+      "answered": 505,
+      "coverage": 0.48141086749285034,
+      "numeric_cases": 1049,
+      "numeric_answered": 505,
+      "numeric_correct": 483,
+      "accuracy_all": 0.4604385128693994,
+      "accuracy_answered": 0.9564356435643564,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 1049,
+        "total": 36120.64,
+        "p50": 16.4,
+        "p95": 70.8
+      },
+      "evidence": {
+        "items": 7151,
+        "answers_with_evidence": 500,
+        "answers_with_geometry": 96,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 5734,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "opening_design": {
+      "cases": 64,
+      "answered": 12,
+      "coverage": 0.1875,
+      "numeric_cases": 48,
+      "numeric_answered": 10,
+      "numeric_correct": 10,
+      "accuracy_all": 0.20833333333333334,
+      "accuracy_answered": 1.0,
+      "text_cases": 16,
+      "text_answered_for_manual_review": 2,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 64,
+        "total": 1359.25,
+        "p50": 8.45,
+        "p95": 54.88
+      },
+      "evidence": {
+        "items": 99,
+        "answers_with_evidence": 12,
+        "answers_with_geometry": 12,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "swiss_dwellings": {
+      "cases": 2358,
+      "answered": 1164,
+      "coverage": 0.49363867684478374,
+      "numeric_cases": 2358,
+      "numeric_answered": 1164,
+      "numeric_correct": 1105,
+      "accuracy_all": 0.4686174724342663,
+      "accuracy_answered": 0.9493127147766323,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 2358,
+        "total": 20248.95,
+        "p50": 4.94,
+        "p95": 14.74
+      },
+      "evidence": {
+        "items": 7695,
+        "answers_with_evidence": 1153,
+        "answers_with_geometry": 1153,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_language_hint": {
+    "da": {
+      "cases": 197,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 197,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 197,
+        "total": 12953.85,
+        "p50": 52.45,
+        "p95": 88.17
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "de": {
+      "cases": 422,
+      "answered": 22,
+      "coverage": 0.052132701421800945,
+      "numeric_cases": 422,
+      "numeric_answered": 22,
+      "numeric_correct": 20,
+      "accuracy_all": 0.04739336492890995,
+      "accuracy_answered": 0.9090909090909091,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 422,
+        "total": 3915.7,
+        "p50": 4.46,
+        "p95": 20.49
+      },
+      "evidence": {
+        "items": 54,
+        "answers_with_evidence": 22,
+        "answers_with_geometry": 22,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "en": {
+      "cases": 4152,
+      "answered": 1593,
+      "coverage": 0.3836705202312139,
+      "numeric_cases": 3887,
+      "numeric_answered": 1590,
+      "numeric_correct": 1523,
+      "accuracy_all": 0.39181888345767946,
+      "accuracy_answered": 0.9578616352201258,
+      "text_cases": 265,
+      "text_answered_for_manual_review": 3,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 4152,
+        "total": 41698.11,
+        "p50": 4.12,
+        "p95": 40.27
+      },
+      "evidence": {
+        "items": 13433,
+        "answers_with_evidence": 1582,
+        "answers_with_geometry": 1191,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 4987,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "et": {
+      "cases": 315,
+      "answered": 25,
+      "coverage": 0.07936507936507936,
+      "numeric_cases": 315,
+      "numeric_answered": 25,
+      "numeric_correct": 17,
+      "accuracy_all": 0.05396825396825397,
+      "accuracy_answered": 0.68,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 315,
+        "total": 4750.09,
+        "p50": 13.98,
+        "p95": 26.97
+      },
+      "evidence": {
+        "items": 1327,
+        "answers_with_evidence": 21,
+        "answers_with_geometry": 7,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 750,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "fi": {
+      "cases": 2135,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 2135,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 2135,
+        "total": 6988.35,
+        "p50": 3.02,
+        "p95": 4.66
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "fr": {
+      "cases": 395,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 395,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 395,
+        "total": 3436.22,
+        "p50": 4.58,
+        "p95": 31.86
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "it": {
+      "cases": 374,
+      "answered": 42,
+      "coverage": 0.11229946524064172,
+      "numeric_cases": 374,
+      "numeric_answered": 42,
+      "numeric_correct": 38,
+      "accuracy_all": 0.10160427807486631,
+      "accuracy_answered": 0.9047619047619048,
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "errors": 0,
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 374,
+        "total": 3316.76,
+        "p50": 4.33,
+        "p95": 9.67
+      },
+      "evidence": {
+        "items": 134,
+        "answers_with_evidence": 41,
+        "answers_with_geometry": 41,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "language_rule": "Existing grouped_manifest initial-word heuristic, with Danish Hvad/Hvor and lowercase English how corrected only for this summary. No answer values used.",
+  "limits": [
+    "Preview already exposed to team EDA/tuning and prior evaluations; not a hidden or untouched test.",
+    "Native mode only; raster answers are intentionally absent. This does not measure hosted visual inventory accuracy.",
+    "Text answers require manual review and are excluded from numeric accuracy.",
+    "Geometry syntax checks are not human verification of citation correctness.",
+    "The full baseline was run before the new prospective reservation. Do not derive reserved subset scores before Sunday.",
+    "No raw question/expected-answer cases are committed in this report."
+  ]
+}
