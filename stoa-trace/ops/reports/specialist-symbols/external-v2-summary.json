@@ -1,0 +1,185 @@
+{
+  "experiment": "yolo11s-external-v2",
+  "pretrained": true,
+  "train_images": 1024,
+  "validation_images": 128,
+  "fresh_confirmation_images": 32,
+  "junction_preview_image_ids_excluded": 241,
+  "released_v1_confirmation_excluded_from_fresh_selection": 16,
+  "training_configuration": {
+    "architecture": "yolo11s.pt",
+    "pretrained": true,
+    "epochs": 80,
+    "imgsz": 1280,
+    "batch": 8,
+    "seed": 8127,
+    "device": 0,
+    "workers": 2,
+    "patience": 60,
+    "optimizer": "AdamW",
+    "lr0": 0.001,
+    "cos_lr": true,
+    "mosaic": 0.0,
+    "close_mosaic": 0,
+    "degrees": 0.0,
+    "fliplr": 0.5,
+    "flipud": 0.5,
+    "scale": 0.3,
+    "translate": 0.1,
+    "hsv_h": 0,
+    "hsv_s": 0,
+    "hsv_v": 0.2,
+    "cache": "disk",
+    "amp": true,
+    "deterministic": true,
+    "save_period": 10,
+    "plots": false,
+    "name": "yolo11s-external-v2",
+    "exist_ok": false,
+    "time": 1.2
+  },
+  "actual_epochs": 130,
+  "actual_last_training_csv_seconds": 3259.71,
+  "pretrained_sha256": "85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5",
+  "weights_sha256": "6de67a7367e8574e56a3a3dfb7110f0285e3b3972c7b8214630a7e9faf69da63",
+  "onnx_sha256": "d09e0cc6b8e08f0030cd55e0d3653617da592091e9b73e7bd343a71b72db641a",
+  "licenses": [
+    "CubiCasa CC-BY-NC-4.0",
+    "Ultralytics model AGPL-3.0"
+  ],
+  "color_mode": "rgb",
+  "validation_runtime_sha256": "8d161106c3cd758ddf00fbe479bca4cb8de759a895a13c072404f2266efe785a",
+  "selected_mode": "full_page",
+  "validation_thresholds": {
+    "0": 0.4,
+    "1": 0.3
+  },
+  "validation_count_and_iou50_metrics": {
+    "0": {
+      "exact_counts": 58,
+      "cases": 128,
+      "absolute_count_error": 145,
+      "true_positive_iou50": 1085,
+      "false_positive_iou50": 138,
+      "false_negative_iou50": 183
+    },
+    "1": {
+      "exact_counts": 61,
+      "cases": 128,
+      "absolute_count_error": 195,
+      "true_positive_iou50": 977,
+      "false_positive_iou50": 206,
+      "false_negative_iou50": 185
+    }
+  },
+  "validation_mode_exact_counts": {
+    "full_page": 119,
+    "native_tiles": 112
+  },
+  "confirmation": {
+    "images": 32,
+    "counts": 64,
+    "summary": {
+      "baseline": {
+        "exact": 28,
+        "cases": 64,
+        "answered": 64,
+        "absolute_count_error": 122
+      },
+      "blind_review": {
+        "exact": 27,
+        "cases": 64,
+        "answered": 64,
+        "absolute_count_error": 122
+      },
+      "detector": {
+        "exact": 25,
+        "cases": 64,
+        "answered": 64,
+        "absolute_count_error": 172
+      },
+      "hybrid": {
+        "exact": 29,
+        "cases": 64,
+        "answered": 64,
+        "absolute_count_error": 118
+      }
+    },
+    "gained_cases": 2,
+    "lost_previously_correct_cases": 1,
+    "promotion_gate": false,
+    "predeclared_promotion_criterion": "At least 4 additional exact category counts and zero previously correct regressions over 64 counts; never a universal accuracy claim.",
+    "detector_contribution_exact_delta": 2,
+    "training_or_tuning_on_confirmation": false
+  },
+  "matched_control": "Same system, schema, images, prior candidates and model; empty specialist candidate list. Frozen before opening any reference annotations.",
+  "gemini_model": "gemini-4-argon",
+  "gemini_policy": "gemini:gemini-4-argon:gemini-interactions-v3:2026-05-20:image_resolution=ultra_high:thinking_level=high:max_output_tokens=caller:timeout_seconds=600",
+  "actual_model_requests": {
+    "baseline_and_guided": {
+      "actual_cumulative_requests": 96,
+      "ceiling": 96
+    },
+    "matched_blind_review": {
+      "actual_cumulative_requests": 32,
+      "ceiling": 32
+    }
+  },
+  "total_actual_model_requests": 128,
+  "expected_values_in_inference": false,
+  "onnx_parity": {
+    "source": "real external validation image, RGB, production letterbox",
+    "shape": [
+      1,
+      6,
+      33600
+    ],
+    "maximum_box_difference_pixels": 0.00439453125,
+    "maximum_score_difference": 4.589557647705078e-06,
+    "onnx_sha256": "d09e0cc6b8e08f0030cd55e0d3653617da592091e9b73e7bd343a71b72db641a",
+    "passed": true
+  },
+  "cloud": {
+    "training_instance_removed": true,
+    "training_volumes_removed": true,
+    "protected_application_running": true,
+    "compute_eur_hour": "0.1088",
+    "elapsed_allocation_seconds": 3978,
+    "compute_estimate_eur": 0.12021517918777465,
+    "estimate_excludes": "disk charges and provider billing rounding; not inferred from balance delta",
+    "cleanup_verified_at": 1794687412.4753358
+  },
+  "enabled_in_default_app": false,
+  "release_decision": "Do not enable. Hybrid gains two exact counts but loses one previously correct count, for only one net gain over 64 counts. It fails the predeclared gate of at least four gains and zero losses. The matched extra-read control also shows no reliable large detector advantage. The default app reader and production Carbon policy remain unchanged.",
+  "selection_sha256": "c2e4bc6818e977436c0fb3ef3227be7e3d5f8f327a923e8b1276bc868e671958",
+  "private_confirmation_report_sha256": "96f52220666a99fbf24799402e772c7061609173a11d9a52abf0fa4ddc538156",
+  "limitations": [
+    "External CubiCasa drawings with generic whole-visible-page scope, not the Junction preview policy or arbitrary-format accuracy.",
+    "Prototype guided review uses an additional Argon call; production remains the explicitly configured Carbon policy.",
+    "Validation and confirmation category counts require exact equality; detection mAP and IoU are separate metrics.",
+    "Confirmation references are now released. Do not tune on these cases and call them new in another experiment."
+  ],
+  "dataset_manifest_sha256": "03a66ebb2ab4f2f481ca35e4782d7de836cc889007cbab082d68659bdffaeaf4",
+  "verified_source_archive": {
+    "size": 5469495706,
+    "md5": "0ce0b203d1e3c125b51087b219bd23b9",
+    "publisher_md5_verified": true
+  },
+  "training_runtime": {
+    "torch": "2.7.1+cu118",
+    "ultralytics": "8.4.212",
+    "cuda": "11.8",
+    "gpu": "Tesla V100-SXM2-16GB"
+  },
+  "orchestration_reconciliation": {
+    "archive_retrieval": "Python 3.11 tar filter argument unsupported; extracted the already downloaded, validated regular-file archive without repeating training or calibration.",
+    "scoring_environment": "The intentionally Torch-free app environment cannot import the training annotation reader. Scoring resumed in the existing training environment before any reference access.",
+    "paid_requests_replayed": 0,
+    "reference_access_before_all_three_prediction_sets_frozen": false,
+    "training_instance_and_disk_removed": true
+  },
+  "guided_system_sha256": "6b079e5f8e60aeef4c57943db7eabf6e0df8d56f21f959498d93348e8ac7cffc",
+  "guided_schema_sha256": "24486f8339678c2156e852056d7f46297587820a8cf49a9e0accfe36e1e18c78",
+  "guided_suffix_sha256": "f62d58d795f137d984c94957ab3a0c3351918de1ceafc6a015717733c7bfb699",
+  "inventory_system_source_revision": "af767260c3611fb00c43e4689ea9adf105652353"
+}

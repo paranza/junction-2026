@@ -98,6 +98,27 @@ with Gemini alone and with detector-guided review, counting failures and both
 gains and regressions. Training mAP does not establish exact count accuracy.
 The scripts do not enable a model in the application.
 
+The completed larger experiment also failed promotion. On 32 fresh external
+drawings, Gemini got 28/64 exact door/window counts, a matched extra-read control
+27/64, the detector alone 25/64 and guided review 29/64. Two gains and one
+regression are insufficient. Both pretrained experiments remain disabled.
+The matched control adds a review with the identical prompt and prior candidates
+but an empty detector list, so an extra model reading is not mistaken for a
+fine-tuning benefit. See `docs/evaluation/specialist-fine-tuning.md` at the repo
+root for the complete definitions. The confirmation annotations are now released.
+
+`guided_review.txt` preserves the exact experimental system-prompt suffix.
+Append it byte-for-byte to `server.inventory.SYSTEM` at `af76726`; the aggregate
+record pins the combined system and schema hashes. The schema is a deep copy of
+`inventory.SCHEMA` with the object category enum restricted to door/window.
+The first input text contains `prior_visual_candidates` (category, bbox, label
+from the baseline's first reading) and `specialist_candidates` (category, bbox,
+score from the frozen detector). Append the same `image_inputs` images and image
+index/local-coordinate descriptions for both guided and control requests.
+The control differs only by using an empty specialist candidate array.
+Locate and merge returned objects with the application's inventory helpers.
+Use separate private request ledgers and never send reference annotations.
+
 `model.py`, `data.py`, `train.py` and `export.py` retain an earlier from-scratch
 center detector experiment. Its first valid 4,000-step run got only 6/128 exact
 external validation category counts and was rejected. Earlier runs with incorrect

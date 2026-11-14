@@ -17,12 +17,14 @@ seven technical failures and 99 skipped questions after failed drawings. The
 159 free-text answers are ungraded. CubiCasa visual counts scored 89.40% among
 answered questions. See [the full definitions and limits](../evaluation/development-auto-190e116.md).
 
-Specialist research fine-tunes pretrained YOLO11s on external CubiCasa data,
+Specialist research fine-tuned pretrained YOLO11s on external CubiCasa data,
 excluding every Junction preview image ID. The first combined pipeline improved
-one of 32 external category counts and remains disabled. A larger experiment
-uses 1,024 training, 128 validation and 32 fresh confirmation drawings. Its
-training mAP is not an application accuracy measurement. No completed result
-for that larger experiment is claimed in this snapshot.
+one of 32 external category counts and remains disabled. The larger completed
+experiment used 1,024 training, 128 validation and 32 fresh confirmation drawings.
+Gemini got 28/64 exact confirmation counts, a matched extra-read control 27/64,
+the detector alone 25/64 and detector-guided review 29/64. Two gains and one
+regression fail the promotion gate, so the detector remains disabled. The GPU
+and disk were removed, with the application VM preserved. See [the full study](../evaluation/specialist-fine-tuning.md).
 
 | Assigned work | Status and evidence |
 | --- | --- |
