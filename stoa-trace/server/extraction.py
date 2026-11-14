@@ -245,12 +245,11 @@ def _word_schedules(document, prefix):
 
 
 def _image(path, root):
-    from PIL import Image
+    from .rendering import raster_metadata
     result = _empty(path, root)
-    with Image.open(path) as image:
-        width, height = image.size
-    result.update(page_count=1, pages=[{"page": 1, "width": width, "height": height,
-                                        "text": "", "words": []}])
+    pages, warnings = raster_metadata(path)
+    result.update(page_count=len(pages), pages=pages)
+    result["warnings"].extend(warnings)
     result["warnings"].append("Raster image: no native semantics. Object counts require visual detection and completeness review.")
     return result
 
@@ -830,7 +829,8 @@ def extract_document(path: Path, data_root: Path) -> dict:
         result["metadata"]["original_source_path"] = relative_path(path, data_root)
         result["metadata"]["preview_path"] = relative_path(path.with_suffix(".pdf"), data_root)
         return result
-    dispatch = {".pdf": _pdf, ".png": _image, ".jpg": _image, ".jpeg": _image,
+    from .rendering import RASTER_SUFFIXES
+    dispatch = {".pdf": _pdf, **{suffix: _image for suffix in RASTER_SUFFIXES},
                 ".svg": _svg, ".dxf": _dxf, ".ifc": _ifc}
     extractor = dispatch.get(path.suffix.casefold())
     if extractor is None:

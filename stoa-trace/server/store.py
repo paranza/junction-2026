@@ -16,12 +16,14 @@ _DEFAULT_DATA_ROOT = (_PROJECT_DATA_ROOT if _PROJECT_DATA_ROOT.is_dir() or not _
 _CONFIGURED_DATA_ROOT = Path(os.environ.get('STOA_DATA_ROOT', _DEFAULT_DATA_ROOT)).expanduser()
 DATA_ROOT = (_CONFIGURED_DATA_ROOT if _CONFIGURED_DATA_ROOT.is_absolute() else ROOT / _CONFIGURED_DATA_ROOT).resolve()
 RUNTIME = Path(os.environ.get('STOA_RUNTIME_DIR', ROOT / 'runtime')).expanduser().resolve()
-FORMATS = {'.pdf', '.png', '.jpg', '.jpeg', '.ifc', '.dxf', '.svg', '.dwg'}
+from .rendering import RASTER_SUFFIXES
+FORMATS = {'.pdf', '.ifc', '.dxf', '.svg', '.dwg'} | RASTER_SUFFIXES
 for folder in (RUNTIME, RUNTIME / 'uploads', RUNTIME / 'cache', RUNTIME / 'previews'):
     folder.mkdir(parents=True, exist_ok=True)
 _locks: dict[str, threading.Lock] = {}
 _lock_guard = threading.Lock()
-EXTRACTOR_REVISION = hashlib.sha256((Path(__file__).parent / 'extraction.py').read_bytes()).hexdigest()[:16]
+EXTRACTOR_REVISION = hashlib.sha256(b''.join((Path(__file__).parent / name).read_bytes()
+                                           for name in ('extraction.py', 'rendering.py'))).hexdigest()[:16]
 
 
 def connection():
