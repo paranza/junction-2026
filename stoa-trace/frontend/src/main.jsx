@@ -878,7 +878,7 @@ function App() {
   contextRef.current = JSON.stringify({ documentId: selectedId, page, scope, region });
   const selectedDocument = detail || documents.find(doc => String(doc.id) === String(selectedId));
   const evidence = useMemo(() => reviewEvidence(answer, manualAdditions).map((item, index) => ({ ...item, _key: evidenceKey(item, index), _number: index + 1 })), [answer, manualAdditions]);
-  const canvasEvidence = answer?.source_changed ? [] : [...evidence, ...(comparisonEvidence ? [comparisonEvidence] : []), ...(pendingManual ? [{ id: 'manual-preview', _key: 'manual-preview', _number: '+', label: manualLabel || 'Missing object', document_id: pendingManual.document_id, page: pendingManual.page, bbox: pendingManual.bbox, manual: true }] : [])].filter(item => String(item.document_id ?? answerDocumentId) === String(selectedId) && Number(item.page || 1) === page && evidenceBBox(item) && (item.confidence == null || item.confidence * 100 >= confidenceThreshold)).map(item => ({ ...item, _excluded: excluded.includes(item._key) }));
+  const canvasEvidence = answer?.source_changed ? [] : [...evidence, ...(comparisonEvidence ? [comparisonEvidence] : []), ...(pendingManual ? [{ id: 'manual-preview', _key: 'manual-preview', _number: '+', label: manualLabel || 'Missing object', document_id: pendingManual.document_id, page: pendingManual.page, bbox: pendingManual.bbox, manual: true }] : [])].filter(item => String(item.document_id ?? answerDocumentId) === String(selectedId) && Number(item.page || 1) === page && evidenceBBox(item) && (item._key === selectedEvidence || item.confidence == null || item.confidence * 100 >= confidenceThreshold)).map(item => ({ ...item, _excluded: excluded.includes(item._key) }));
   const selectedEvidenceItem = evidence.find(item => item._key === selectedEvidence);
   const focusEvidenceItem = selectedEvidenceItem || (comparisonEvidence?._key === selectedEvidence ? comparisonEvidence : null);
   const pageCount = Number(detail?.page_count || detail?.pages?.length || 1);
@@ -1126,7 +1126,7 @@ function App() {
   useEffect(() => {
     const onKeyDown = event => {
       if (event.key === 'Escape') setSettingsOpen(false);
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setLibraryOpen(true); requestAnimationFrame(() => searchInputRef.current?.focus()); }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); initialConversationRestore.current = true; setLibraryOpen(true); requestAnimationFrame(() => searchInputRef.current?.focus()); }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -1160,7 +1160,7 @@ function App() {
             title={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
             aria-label={sidebarOpen ? 'Hide drawings' : 'Show drawings'}
             aria-expanded={sidebarOpen}
-            onClick={() => setSidebarOpen(value => !value)}
+            onClick={() => { initialConversationRestore.current = true; setSidebarOpen(value => !value); }}
           >
             {panelIcon}
           </button>
@@ -1391,7 +1391,7 @@ function App() {
                 focusTarget={focusEvidenceItem ? { documentId: focusEvidenceItem.document_id || answerDocumentId, page: focusEvidenceItem.page || 1 } : null}
                 overviewToken={answer?.id}
                 onMeasuredAnswer={acceptMeasuredAnswer}
-                canReview={Boolean(answer?.can_review && !answer?.source_changed)}
+                canReview={Boolean(answer?.can_review && !answer?.source_changed && !reviewing && !resolving)}
                 manualMode={manualMode && !answer?.source_changed}
                 onManualRegion={markManual}
                 onCancelManual={cancelManual}
@@ -1449,6 +1449,7 @@ function App() {
                     className="btn-secondary"
                     onClick={event => {
                       event.stopPropagation();
+                      initialConversationRestore.current = true;
                       setSidebarOpen(true);
                     }}
                   >
