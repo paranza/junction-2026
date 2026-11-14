@@ -8,7 +8,7 @@ import statistics
 
 from .verification import _typed_candidates, normalized, unit_spec, convert_quantity
 
-REVISION = 'native-query-v2'
+REVISION = 'native-query-v3'
 SCALAR = {'type': ['string', 'number', 'boolean']}
 FILTER = {'type':'object','additionalProperties':False,'properties':{
     'field':{'type':'string'},
@@ -223,26 +223,60 @@ def _properties(value, depth=0):
     return result
 
 
+def _planner_context(records, question, limit=64000):
+    """Bound examples, never the collection used by the numeric executor."""
+    tokens=set(normalized(question).split())
+    catalog={}
+    for record in records:
+        entry=catalog.setdefault(record['type'],{'records':0,'fields':set(),'values':{}})
+        entry['records']+=1
+        def visit(value,prefix):
+            for name,item in value.items():
+                field=prefix+'.'+name
+                if isinstance(item,dict):visit(item,field)
+                else:
+                    entry['fields'].add(field)
+                    if isinstance(item,str) and len(item)<=160:
+                        values=entry['values'].setdefault(field,set())
+                        if len(values)<24:values.add(item)
+        visit(record['properties'],'properties')
+    types={kind:{'records':entry['records'],'fields':sorted(entry['fields']),
+                 'sample_values':{field:sorted(values) for field,values in entry['values'].items() if values}}
+           for kind,entry in catalog.items()}
+    context={'objects':[],'types':types,'total_objects':len(records),'omitted_objects':len(records),
+             'examples_complete':False,'sample_values_complete':False}
+    encoded=lambda value:json.dumps(value,ensure_ascii=False,separators=(',',':'))
+    if len(encoded(context))>limit//2:
+        for entry in types.values():entry.pop('sample_values',None)
+    if len(encoded(context))>limit//2:
+        types={kind:{'records':entry['records'],'fields':[],'fields_omitted':True} for kind,entry in catalog.items()}
+        context['types']=types
+    ranked=sorted(records,key=lambda obj:-len(tokens & set(normalized(str(obj.get('label',''))+' '+encoded(obj['properties'])).split())))
+    # Quantity provenance remains in the original document for verification.
+    # Repeating it for hundreds of examples can otherwise consume the entire
+    # model context before it has selected a simple property or storey filter.
+    def compact(value):
+        return {key:compact(item) if isinstance(item,dict) else item for key,item in value.items()
+                if key not in {'quantity_sources','native_geometry','available_projections'}
+                and not (isinstance(item,str) and len(item)>512)}
+    for record in ranked:
+        if len(context['objects'])>=80:break
+        example={**record,'properties':compact(record['properties'])}
+        context['objects'].append(example)
+        if len(context['objects'])>80 or len(encoded(context))>limit:
+            context['objects'].pop()
+            continue
+    context['omitted_objects']=len(records)-len(context['objects'])
+    context['examples_complete']=not context['omitted_objects']
+    return context
+
+
 def answer(question, document, request, cache=None, previous=None):
     if not available(document):
         return None
     objects = document.get('objects', [])
     records = [{key:obj.get(key) for key in ('id','type','label','page')} | {'properties':_properties(obj.get('properties',{}))} for obj in objects]
-    # Prefer source labels mentioned by the question; still describe all types/fields,
-    # so a bounded preview does not turn an omitted record into an absent record.
-    tokens = set(normalized(question).split())
-    ranked = sorted(records,key=lambda obj:-len(tokens & set(normalized(str(obj.get('label',''))+' '+json.dumps(obj['properties'],ensure_ascii=False)).split())))
-    catalog = {}
-    for obj in records:
-        entry = catalog.setdefault(obj['type'],{'records':0,'fields':set()})
-        entry['records'] += 1
-        def fields(value,prefix):
-            for key,item in value.items():
-                if isinstance(item,dict): fields(item,prefix+'.'+key)
-                else: entry['fields'].add(prefix+'.'+key)
-        fields(obj['properties'],'properties')
-    context = {'objects':ranked[:400], 'types':{k:{'records':v['records'],'fields':sorted(v['fields'])} for k,v in catalog.items()},
-               'total_objects':len(records),'omitted_objects':max(0,len(records)-400)}
+    context = _planner_context(records,question)
     prior = None
     if previous:
         prior = {'question':previous.get('question'),'selection_ids':[str(o['id']) for o in previous.get('evidence',[]) if not o.get('excluded')],
@@ -252,7 +286,7 @@ def answer(question, document, request, cache=None, previous=None):
     key = hashlib.sha256((REVISION+question+json.dumps([records,prior],sort_keys=True,default=str)).encode()).hexdigest()
     plan = cache[0](key) if cache else None
     if plan is None:
-        plan = request([{'type':'input_text','text':json.dumps({'question':question,'native_source':context,'previous_turn':prior},ensure_ascii=False,default=str)}],
+        plan = request([{'type':'input_text','text':json.dumps({'question':question,'native_source':context,'previous_turn':prior},ensure_ascii=False,default=str,separators=(',',':'))}],
                        system=SYSTEM,schema=SCHEMA,max_tokens=16000)
         plan.pop('_usage',None)
         if cache:

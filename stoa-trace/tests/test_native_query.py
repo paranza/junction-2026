@@ -5,6 +5,25 @@ from pathlib import Path
 
 
 class NativeQueryTests(unittest.TestCase):
+    def test_bounded_examples_still_aggregate_every_source_record(self):
+        import json
+        document={'objects':[{'id':str(i),'type':'room','label':'Office','properties':
+            {'net_area_m2':float(i),'storey':'Upper floor','quantity_sources':{'net_area_m2':{'value':float(i),'unit':'m2','description':'provenance '*1000}}}}
+            for i in range(1,501)]}
+        captured=[]
+        def request(content,**options):
+            captured.append(content[0]['text'])
+            return self.plan(aggregate='sum')
+        result=native_query.answer('Total area of all rooms',document,request)
+        context=json.loads(captured[0])['native_source']
+        self.assertLess(len(captured[0]),65000)
+        self.assertLessEqual(len(context['objects']),80)
+        self.assertEqual(context['types']['room']['records'],500)
+        self.assertIn('properties.net_area_m2',context['types']['room']['fields'])
+        self.assertEqual(context['types']['room']['sample_values']['properties.storey'],['Upper floor'])
+        self.assertEqual(result['value'],125250)
+        self.assertEqual(len(result['calculation']['terms']),500)
+        self.assertTrue(all('quantity_sources' not in row['properties'] for row in context['objects']))
     def setUp(self):
         self.document={'metadata':{},'objects':[
             {'id':'a','type':'room','label':'Office','properties':{'room_number':'R1','net_area_m2':12.5}},
