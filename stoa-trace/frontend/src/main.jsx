@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
 import MeasurementPanel from './MeasurementPanel.jsx';
+import ChatThread, { useConversation } from './ChatThread.jsx';
 import EvidenceCloseup from './EvidenceCloseup.jsx';
 import InferenceCost, { MessageInferenceCost } from './InferenceCost.jsx';
 import useSessionUsage from './useSessionUsage.js';
 import { messageCost, requestFailure } from './inferenceUsage.js';
-import { Button as BoardButton, Divider as BoardDivider } from './boardui/primitives.jsx';
+import { Button as BoardButton } from './boardui/primitives.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
@@ -90,8 +91,9 @@ function DocumentIcon({ doc, size = 18 }) {
   return formatOf(doc) === 'IFC' ? <Box size={size} /> : ['PNG', 'JPG', 'JPEG', 'SVG', 'WEBP', 'TIFF', 'TIF', 'BMP', 'GIF'].includes(formatOf(doc)) ? <FileImage size={size} /> : <FileText size={size} />;
 }
 
-function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, imageVersion = 0 }) {
+function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, overviewToken, imageVersion = 0 }) {
   const viewportRef = useRef(null);
+  const loadedImageRef = useRef(null);
   const dragRef = useRef(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const [size, setSize] = useState({ width: 1000, height: 700 });
@@ -121,7 +123,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
   useEffect(() => { setImageState('loading'); setTool('pan'); }, [imageUrl]);
   useEffect(() => { setTool(captureMode ? 'measure' : manualMode ? 'manual' : 'pan'); }, [manualMode, captureMode]);
   useEffect(() => { setCaptureMode(null); setMeasurementPoints([]); }, [document?.id, page, imageVersion]);
-  useEffect(() => { fit(); }, [fit, imageUrl]);
+  useEffect(() => { fit(); }, [fit, imageUrl, overviewToken]);
   const zoomAt = useCallback((factor, cx = viewSize.width / 2, cy = viewSize.height / 2) => {
     const current = transformRef.current;
     const scale = Math.min(15, Math.max(0.01, current.scale * factor));
@@ -184,7 +186,12 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
     const scale = Math.min(8, Math.min(viewSize.width * 0.65 / width, viewSize.height * 0.65 / height));
     applyTransform({ scale, x: viewSize.width / 2 - (box[0] + box[2]) / 2 * size.width * scale, y: viewSize.height / 2 - (box[1] + box[3]) / 2 * size.height * scale });
   }, [focusedBoxKey, size.width, size.height, viewSize.width, viewSize.height, applyTransform]);
-  useEffect(() => { if (imageState === 'ready') { setShowEvidence(true); focusEvidence(); } }, [focusToken, imageState, focusEvidence]);
+  const lastFocusToken = useRef(focusToken);
+  useEffect(() => {
+    if (focusToken === lastFocusToken.current || imageState !== 'ready' || loadedImageRef.current !== imageUrl
+        || !viewportRef.current?.clientWidth || !viewportRef.current?.clientHeight) return;
+    lastFocusToken.current = focusToken; setShowEvidence(true); focusEvidence();
+  }, [focusToken, imageState, imageUrl, focusEvidence]);
   const activeRegion = draftRegion || region;
   const spatialEvidenceCount = evidence.filter(item => evidenceBBox(item) || item.polygon?.length).length;
   return <div className="drawing-workspace">
@@ -201,7 +208,7 @@ function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvi
     </div>
     <div ref={viewportRef} className={`canvas-viewport tool-${tool}`} tabIndex={0} role="region" aria-label={manualMode ? 'Mark a missing object. Drag a box or click a point on the drawing.' : 'Drawing viewer. Drag to pan, scroll to zoom. Use plus, minus, or zero to fit.'} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { setDraftRegion(null); dragRef.current = null; }} onKeyDown={event => { if (event.key === '+' || event.key === '=') { event.preventDefault(); zoomAt(1.25); } if (event.key === '-') { event.preventDefault(); zoomAt(0.8); } if (event.key === '0') { event.preventDefault(); fit(); } }}>
       {imageUrl && <div className={`drawing-stage ${imageState === 'ready' ? 'is-ready' : ''}`} style={{ width: size.width, height: size.height, transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}>
-        <img key={imageUrl} src={imageUrl} alt={`${documentName(document)}, page ${page}`} draggable={false} onLoad={event => { setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight }); setImageState('ready'); }} onError={() => setImageState('error')} />
+        <img key={imageUrl} src={imageUrl} alt={`${documentName(document)}, page ${page}`} draggable={false} onLoad={event => { loadedImageRef.current = imageUrl; setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight }); setImageState('ready'); }} onError={() => setImageState('error')} />
         {showEvidence && <svg className="evidence-shapes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">{evidence.map(item => {
           const box = evidenceBBox(item); const isSelected = item._key === selectedEvidence;
           return item.polygon?.length ? <polygon key={item._key} points={item.polygon.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : box ? <rect key={item._key} x={box[0] * 1000} y={box[1] * 1000} width={(box[2] - box[0]) * 1000} height={(box[3] - box[1]) * 1000} className={`${isSelected ? 'selected-shape' : ''} ${item._excluded ? 'excluded-shape' : ''} evidence-kind-${evidenceKind(item)}`} /> : null;
@@ -317,7 +324,10 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const [answerOpen, setAnswerOpen] = useState(false);
+  const [answerOpen, setAnswerOpen] = useState(true);
+  const [pendingQuestion, setPendingQuestion] = useState(null);
+  const initialConversationRestore = useRef(false);
+  const conversationEndRef = useRef(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const fileInputRef = useRef(null);
   const questionRef = useRef(null);
@@ -353,6 +363,23 @@ function App() {
     setExcluded(savedExclusions(result)); setManualAdditions(savedAdditions(result)); setReviewNote(result.review?.note || ''); setReviewUndo([]); cancelManual(); setComparisonEvidence(null);
   }, [cancelManual]);
   useEffect(() => () => { activeAskRef.current?.controller.abort(); activeHistoryRef.current?.abort(); }, []);
+  useEffect(() => {
+    if (!libraryOpen) return;
+    const panel = window.document.querySelector('.document-library');
+    const previous = window.document.activeElement;
+    panel?.querySelector('input[type="search"]')?.focus();
+    const keydown = event => {
+      if (event.key === 'Escape') { event.preventDefault(); setLibraryOpen(false); return; }
+      if (event.key !== 'Tab') return;
+      const controls = [...(panel?.querySelectorAll('button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), a[href]') || [])];
+      if (!controls.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && (window.document.activeElement === first || !panel.contains(window.document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (window.document.activeElement === last || !panel.contains(window.document.activeElement))) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', keydown);
+    return () => { window.removeEventListener('keydown', keydown); if (previous?.isConnected) previous.focus(); };
+  }, [libraryOpen]);
   useEffect(() => {
     if (!manualMode && !pendingManual) return;
     const escape = event => { if (event.key === 'Escape') { event.preventDefault(); cancelManual(); } };
@@ -391,11 +418,13 @@ function App() {
   }, [selectedId, refreshVersion]);
   useEffect(() => { if (!asking) return; setElapsed(0); const timer = setInterval(() => setElapsed(value => value + 1), 1000); return () => clearInterval(timer); }, [asking]);
   const selectDocument = useCallback((id, keepAnswer = false, requestedPage = 1) => {
+    initialConversationRestore.current = true;
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
     if (!keepAnswer) { setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
   }, [cancelAsk, cancelHistory, cancelManual]);
   const selectEvidence = useCallback(item => {
     if (answerRef.current?.source_changed) return;
+    setAnswerOpen(false);
     cancelAsk(); cancelHistory(); cancelManual();
     setSelectedEvidence(item._key); setFocusToken(value => value + 1);
     if (String(item._key).startsWith('comparison-')) setComparisonEvidence(item);
@@ -406,8 +435,10 @@ function App() {
   const ask = async (event, crossCheck = false) => {
     event?.preventDefault();
     if (!question.trim() || !selectedId || asking) return;
+    initialConversationRestore.current = true;
     cancelHistory(); cancelManual(); setAsking(true); setAskError(''); setAskErrorUsage(undefined); setAnswerOpen(true); sessionUsage.trackRequest();
     const questionText = question.trim(); const documentId = selectedId; const sourceName = documentName(selectedDocument);
+    setPendingQuestion({ question: questionText, documentName: sourceName }); setQuestion('');
     const context = contextRef.current, sequence = ++askSequenceRef.current, controller = new AbortController();
     activeAskRef.current = { sequence, controller, context };
     try {
@@ -416,9 +447,7 @@ function App() {
       activeAskRef.current = null; setAsking(false);
       setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
       const primaryEvidence = allEvidence(result).find(item => evidenceBBox(item)) || allEvidence(result)[0];
-      setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null); setFocusToken(value => value + 1);
-      if (primaryEvidence?.document_id && String(primaryEvidence.document_id) !== String(documentId)) selectDocument(primaryEvidence.document_id, true, primaryEvidence.page);
-      else if (evidenceBBox(primaryEvidence) && primaryEvidence?.page && Number(primaryEvidence.page) !== page) setPage(Number(primaryEvidence.page));
+      setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null);
       setHistory(items => mergeHistory(items, [historyItem(result, { question: questionText, documentId, documentName: sourceName, timestamp: Date.now() })]));
     } catch (error) { if (error.name !== 'AbortError' && activeAskRef.current?.sequence === sequence) { setAskError(error.message); setAskErrorUsage(error.usage ?? null); } }
     finally { sessionUsage.refresh(); if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
@@ -426,10 +455,10 @@ function App() {
   const acceptMeasuredAnswer = useCallback(result => {
     if (String(result.document_id) !== String(selectedId)) return;
     cancelAsk(); cancelHistory(); cancelManual();
-    setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion(result.question);
+    setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion('');
     setAnswerDocumentName(documentName(result.document)); loadReviewDraft(result); setAskError(''); setAskErrorUsage(undefined); setAnswerOpen(true);
     const primary = arrayOf(result.evidence)[0];
-    setSelectedEvidence(primary ? evidenceKey(primary, 0) : null); setFocusToken(value => value + 1);
+    setSelectedEvidence(primary ? evidenceKey(primary, 0) : null);
     setHistory(items => mergeHistory(items, [historyItem(result, { timestamp: Date.now() })]));
   }, [selectedId, cancelAsk, cancelHistory, cancelManual, loadReviewDraft]);
   const askRegion = next => { cancelAsk(); cancelHistory(); cancelManual(); setRegion(next); };
@@ -520,23 +549,45 @@ function App() {
       const primaryEvidence = result.source_changed ? null : allEvidence(result).find(source => !source.excluded && evidenceBBox(source)) || allEvidence(result)[0];
       const documentId = result.document_id || item.documentId;
       selectDocument(primaryEvidence?.document_id || documentId, true, primaryEvidence?.page || result.provenance?.page);
-      setQuestion(result.question || item.question); setAnswerQuestion(result.question || item.question); setAnswerDocumentName(result.document?.name || item.documentName); setAnswer(result); setAnswerDocumentId(documentId); loadReviewDraft(result); setFocusToken(value => value + 1);
+      setQuestion(''); setPendingQuestion(null); setAnswerQuestion(result.question || item.question); setAnswerDocumentName(result.document?.name || item.documentName); setAnswer(result); setAnswerDocumentId(documentId); loadReviewDraft(result);
       setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null); setAnswerOpen(true);
       setHistory(items => mergeHistory(items, [historyItem(result, item)]));
-      requestAnimationFrame(() => questionRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' }));
+
     } catch (error) { if (error.name !== 'AbortError' && activeHistoryRef.current === controller) setAskError(`Could not load the saved answer: ${error.message}`); }
     finally { if (activeHistoryRef.current === controller) { activeHistoryRef.current = null; setRestoringHistory(false); } }
   };
   const changePage = newPage => { cancelAsk(); cancelHistory(); cancelManual(); setPage(Math.max(1, Math.min(pageCount, newPage))); setRegion(null); };
   const sourceCredit = detail?.credit || detail?.attribution || detail?.license_credit;
+  const conversation = useConversation({ sessionId: sessionUsage.sessionId, snapshot: sessionUsage.snapshot,
+    answer, answerQuestion, documentName: answerDocumentName, request });
+  useEffect(() => {
+    if (initialConversationRestore.current || answer || asking) return;
+    const latest = [...conversation.records].reverse().find(item => item.status === 'completed' && item.answerId);
+    if (!latest || !conversation.answers[latest.answerId]) return;
+    initialConversationRestore.current = true;
+    const restored = conversation.answers[latest.answerId];
+    restoreHistory({ id: restored.id, question: latest.question, documentId: restored.document_id, documentName: restored.document?.name || latest.documentName });
+  }, [conversation.records, conversation.answers, answer, asking]);
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (asking) conversationEndRef.current?.scrollIntoView({ block: 'end', behavior: 'auto' });
+      else if (answer) conversationEndRef.current?.parentElement?.querySelector('.chat-turn.is-active')?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+  }, [asking, answer?.id]);
+  useEffect(() => {
+    const input = questionRef.current;
+    if (!input) return;
+    input.style.height = 'auto'; input.style.height = `${Math.min(150, Math.max(48, input.scrollHeight))}px`;
+  }, [question]);
 
-  return <div className="app-shell">
-    <header className="app-header"><div className="brand"><div className="brand-symbol" aria-hidden="true"><span /><span /><span /></div><span>trace<span className="brand-period">.</span></span><span className="brand-divider" /><span className="brand-description">Drawing review</span></div><div className="header-right"><span className={`connection-state ${health?.status === 'offline' ? 'is-offline' : ''}`}><span />{health?.status === 'offline' ? 'Reconnecting' : health ? 'Workspace ready' : 'Connecting'}</span><span className="project-label">Project workspace</span></div></header>
-    <div className="mobile-toolbar"><button type="button" onClick={() => { setLibraryOpen(!libraryOpen); setAnswerOpen(false); }}><FolderOpen size={17} /> Drawings</button><span>{selectedDocument ? formatOf(selectedDocument) : 'Workspace'}</span><button type="button" onClick={() => { setAnswerOpen(!answerOpen); setLibraryOpen(false); }}><MessageSquareText size={17} /> Ask Trace</button></div>
-    {(libraryOpen || answerOpen) && <button className="panel-scrim" aria-label="Close panel" onClick={() => { setLibraryOpen(false); setAnswerOpen(false); }} />}
+
+  return <div className="app-shell" data-mobile-view={answerOpen ? 'conversation' : 'drawing'}>
+    <header className="app-header"><div className="header-left"><BoardButton variant="ghost" size="small" className="library-toggle" aria-expanded={libraryOpen} onClick={() => { initialConversationRestore.current = true; setLibraryOpen(value => !value); }}><Menu size={18} /> Drawings</BoardButton><div className="brand"><span>trace<span className="brand-period">.</span></span></div></div><div className="header-right">{health?.status === 'offline' && <span className="connection-state is-offline">Connection unavailable</span>}<InferenceCost snapshot={sessionUsage.snapshot} unavailable={sessionUsage.unavailable} /></div></header>
+    <div className="mobile-toolbar" aria-label="Workspace view"><button type="button" aria-pressed={answerOpen} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(true); setLibraryOpen(false); }}><MessageSquareText size={17} /> Conversation</button><button type="button" aria-pressed={!answerOpen} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(false); setLibraryOpen(false); }}><FileImage size={17} /> Drawing</button></div>
+    {libraryOpen && <button className="panel-scrim" aria-label="Close drawing library" onClick={() => setLibraryOpen(false)} />}
     <div className="workspace-layout">
-      <aside className={`document-library ${libraryOpen ? 'is-open' : ''}`} aria-label="Drawing library">
-        <div className="library-heading"><div><span className="eyebrow">Project files</span><h1>Drawings <span>{total.toLocaleString()}</span></h1></div><IconButton label="Close drawing library" className="mobile-close" onClick={() => setLibraryOpen(false)}><X size={18} /></IconButton></div>
+      <aside className={`document-library ${libraryOpen ? 'is-open' : ''}`} aria-label="Drawing library" inert={!libraryOpen ? true : undefined}>
+        <div className="library-heading"><div><h1>Drawings <span>{total.toLocaleString()}</span></h1></div><IconButton label="Close drawing library" onClick={() => setLibraryOpen(false)}><X size={18} /></IconButton></div>
         <label className="search-field"><Search size={16} /><span className="sr-only">Search drawings</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a drawing…" />{search && <button type="button" aria-label="Clear search" onClick={() => setSearch('')}><X size={13} /></button>}</label>
         <label className="collection-filter"><span>Collection</span><select aria-label="Drawing collection" value={collection} onChange={event => setCollection(event.target.value)}><option value="">All collections{collections.length ? ` (${collections.reduce((sum, source) => sum + Number(source.count || 0), 0).toLocaleString()})` : ''}</option>{collections.map(source => <option key={source.source} value={source.source}>{collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})</option>)}</select></label>
         <div className="library-list-heading"><span>{searchTerm ? 'Search results' : collection ? collectionLabel(collection) : 'All documents'}</span><span>{documentsLoading ? <LoaderCircle size={12} className="spin" /> : `${documents.length} shown`}</span></div>
@@ -547,34 +598,33 @@ function App() {
           {documents.map(doc => <button key={doc.id} type="button" className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`} onClick={() => selectDocument(doc.id)} title={documentName(doc)} aria-pressed={String(doc.id) === String(selectedId)}><span className={`document-icon format-${formatOf(doc).toLowerCase()}`}><DocumentIcon doc={doc} /></span><span className="document-item-text"><strong>{documentName(doc)}</strong><span>{formatOf(doc)}<span className="mini-dot" />{readable(doc.source || (doc.indexed ? 'Indexed' : 'Ready to open'))}</span></span>{doc.indexed && <span className="indexed-dot" title="Indexed" aria-label="Indexed" />}</button>)}
           {documents.length < total && <button type="button" className="load-more" onClick={loadMore} disabled={documentsLoading}>{documentsLoading ? 'Loading…' : 'Load more drawings'}<ChevronDown size={14} /></button>}
         </div>
-        <div className="library-footer"><input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><BoardButton variant="secondary" className="upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</BoardButton>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
+        <div className="library-footer"><input ref={fileInputRef} type="file" tabIndex={-1} multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><BoardButton variant="secondary" className="upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</BoardButton>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
       </aside>
       <main className="main-drawing" aria-label="Selected drawing">
-        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><div className="empty-illustration"><Layers3 size={42} /></div><span className="eyebrow">INSPECT THE SOURCE</span><h2>Open a drawing</h2><p>Choose a project file or upload a plan.<br />Ask a quantity question and inspect its source.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
+        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} overviewToken={answer?.id} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><h2>Open a drawing</h2><p>Choose a project file or upload a plan.<br />Ask a quantity question and inspect its source.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
       </main>
       <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Ask Trace and inspect answers">
-        <div className="answer-panel-heading"><div><span className="assistant-mark"><Crosshair size={17} /></span><h2>Ask the drawing</h2></div><IconButton label="Close answer panel" className="mobile-close" onClick={() => setAnswerOpen(false)}><X size={18} /></IconButton><span className="evidence-badge"><ShieldCheck size={12} /> Source-linked</span></div>
-        <InferenceCost snapshot={sessionUsage.snapshot} unavailable={sessionUsage.unavailable} />
+        <div className="answer-panel-heading"><div><h1>Conversation</h1><p>Ask, inspect, then verify.</p></div><BoardButton variant="ghost" size="small" className="conversation-library-button" onClick={() => { initialConversationRestore.current = true; setLibraryOpen(true); }}><FolderOpen size={16} /> Change drawing</BoardButton></div>
         <div className="answer-panel-scroll">
-          <form className="question-form" onSubmit={event => ask(event, crossCheck)}><label className="question-label" htmlFor="question-input">What do you need to know?</label><div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask about rooms, quantities, dimensions, or materials…" value={question} onChange={event => setQuestion(event.target.value)} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck); }} rows={3} /><div className="question-input-footer"><span>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole document'}</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={17} className="spin" /> : <ArrowUp size={18} />}</button></div></div><div className="query-options"><label><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><span className="keyboard-hint">⌘ ↵ to ask</span></div><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>Optional. May use a model request; scopes must match.</small></span></label><label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>Search again for missed or incorrect objects. Uses one extra model call.</small></span></label></form>
-          {askError && <div className="inline-error query-error" role="alert"><strong>Couldn’t complete the question</strong><span>{askError}</span>{askErrorUsage !== undefined && <MessageInferenceCost usage={askErrorUsage} label="Failed message" />}<button type="button" onClick={event => ask(event, crossCheck)} disabled={asking}>Try again</button></div>}
-          {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Tracing the answer</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
-          {!answer && !asking && <section className="suggestions-section"><div className="section-label"><span>START WITH A QUESTION</span><CircleHelp size={14} /></div>{suggestions.length ? <div className="question-suggestions">{suggestions.slice(0, 5).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={14} /></button>)}</div> : <div className="question-empty"><div className="subtle-target"><Crosshair size={22} /></div><strong>From question to source.</strong><p>Ask in your own words. Trace will find the relevant objects or drawing regions and show its work.</p><div className="workflow-steps"><span><span>1</span> Ask a question</span><span><span>2</span> Inspect the evidence</span><span><span>3</span> Verify the result</span></div></div>}</section>}
-          {answer && !asking && <section className="answer-result" aria-live="polite">
-            <div className="result-topline"><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
+
+          {!answer && !asking && !conversation.records.length && <section className="chat-empty"><span className="chat-assistant-label">Trace</span><h2>What do you need from this drawing?</h2><p>Ask about quantities, dimensions or rooms. Open the evidence to inspect the source.</p>{!selectedDocument && <BoardButton onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload a drawing</BoardButton>}<div className="question-suggestions">{(suggestions.length ? suggestions : ['How many doors are shown?', 'What is the area of the largest labelled room?', 'Highlight the windows.']).slice(0, 3).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={15} /></button>)}</div></section>}
+          <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={restoreHistory} quantityUnit={quantityUnit}>
+          {answer && !asking && <section className="answer-result chat-assistant-message" aria-live="polite">
+            <div className="result-topline"><span className="chat-assistant-label">Trace</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
             {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
             {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
-            <div className="answer-source-context"><strong>{answerQuestion}</strong><span>{answerDocumentName}{answer.provenance?.scope === 'page' ? ` · page ${answer.provenance.page}` : ''}{answer.provenance?.region ? ' · selected region' : ''}</span></div>
+
             {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{quantityUnit(answer)}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
             <MessageInferenceCost usage={answer.usage} />
-            <UsageDetails answer={answer} />
+            <details className="answer-section-details"><summary>Calculation and usage</summary><UsageDetails answer={answer} />
             {answer.calculation && <div className="calculation"><span>Calculation</span><code>{calculationText(answer.calculation, answer)}</code></div>}
-            {warnings.length > 0 && <div className="answer-warnings">{warnings.map((warning, i) => <p key={i}><CircleHelp size={14} /><span>{shortText(warning.message || warning)}</span></p>)}</div>}
+            </details>
+            {warnings.length > 0 && <details className="answer-warnings"><summary><CircleHelp size={15} />{warnings.length} {warnings.length === 1 ? 'source note' : 'source notes'} to check</summary>{warnings.map((warning, i) => <p key={i}><span>{shortText(warning.message || warning)}</span></p>)}</details>}
             <ReconciliationDetails answer={answer} onSelect={selectEvidence} onResolve={resolveComparison} resolving={resolving} disabled={reviewing || hasReviewChanges || !!pendingManual} />
             <div className="evidence-section">
-              <div className="section-label"><span>SOURCE EVIDENCE</span><span>{evidence.length} {evidence.length === 1 ? 'source item' : 'source items'}</span></div>
+              <div className="section-label"><span>Source evidence</span><span>{evidence.length} {evidence.length === 1 ? 'source item' : 'source items'}</span></div>
               <div className="evidence-legend"><span><i className="native-key" /> Native source</span><span><i className="visual-key" /> Visual candidate</span><span><i className="manual-key" /> Added in review</span></div>
               {evidence.length > 0 && evidence.some(item => !evidenceBBox(item)) && <p className="evidence-coverage">{evidence.every(item => !evidenceBBox(item)) ? 'These records have no linked drawing location. Inspect their element IDs and properties.' : 'Some records have no linked drawing location. Inspect their element IDs and properties.'}</p>}
               {evidence.length ? <div className="evidence-list" aria-label="Answer source items">{evidence.map(item => <div key={item._key} className={`evidence-item evidence-kind-${evidenceKind(item)} ${item._key === selectedEvidence ? 'is-selected' : ''} ${excluded.includes(item._key) ? 'is-excluded' : ''}`}>
@@ -582,7 +632,7 @@ function App() {
                 {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
                 {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}<EvidenceCloseup answer={answer} evidence={item} request={request} /></div>}
               </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
-              {answer.can_review && !answer.source_changed && <div className="review-workspace">
+              {answer.can_review && !answer.source_changed && <details className="review-workspace" open={hasReviewChanges || !!pendingManual || undefined}><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
                 <div className="review-counts"><span>Original count<strong>{answer.original_value ?? answer.value}</strong></span><span>{hasReviewChanges ? 'Draft count' : answer.human_reviewed ? 'Reviewed count' : 'Included count'}<strong>{reviewedCount}</strong></span></div>
                 <p className="review-help">Review changes the included set. Detection completeness remains unverified.</p>
                 <div className="review-actions"><button type="button" className="button" onClick={startManual} disabled={reviewing || resolving || !selectedId}><Plus size={15} /> Add missed object</button><IconButton label="Undo last object change" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}><ArrowLeft size={16} /></IconButton><button type="button" className="text-button" onClick={restoreOriginal} disabled={reviewing || resolving || (!excluded.length && !manualAdditions.length && !reviewNote)}>Restore original</button></div>
@@ -600,12 +650,24 @@ function App() {
                 <button type="button" className="button primary review-button" onClick={review} disabled={reviewing || resolving || (!hasReviewChanges && answer.human_reviewed)}>{reviewing ? <LoaderCircle size={15} className="spin" /> : <ShieldCheck size={15} />}{reviewing ? 'Saving review…' : 'Save reviewed count'}</button>
                 <div className="review-save-state" role="status">{hasReviewChanges ? 'Unsaved review changes' : answer.review?.reviewed_at ? `Saved ${dateText(answer.review.reviewed_at)}` : 'Original answer is preserved when you save a review.'}</div>
                 {answer.review && <details className="review-summary"><summary>Saved review changes</summary><p>{answer.review.original_value ?? answer.original_value} original → {answer.review.reviewed_value ?? answer.value} reviewed</p><p>{answer.review.added_count || 0} added · {answer.review.excluded_count || 0} excluded</p>{answer.review.note && <p>{answer.review.note}</p>}</details>}
-              </div>}
+              </details>}
             </div>
           </section>}
+          </ChatThread>
+          {askError && <div className="inline-error query-error" role="alert"><strong>{askError.startsWith('Stopped waiting') ? 'Stopped waiting' : 'Couldn’t complete the question'}</strong><span>{askError}</span>{askErrorUsage !== undefined && <MessageInferenceCost usage={askErrorUsage} label="Failed message" />}<button type="button" onClick={event => { setQuestion(pendingQuestion?.question || answerQuestion); questionRef.current?.focus(); }} disabled={asking}>Edit and retry</button></div>}
+          {asking && <div className="chat-pending-question"><span className="chat-user-label">You</span><p>{pendingQuestion?.question}</p><span className="chat-user-context">{pendingQuestion?.documentName}</span></div>}
+          {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Tracing the answer</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
+
+          <div ref={conversationEndRef} className="conversation-end" />
           {restoringHistory && <p className="history-loading" role="status"><LoaderCircle size={14} className="spin" /> Checking the saved answer and source…</p>}
-          {history.length > 0 && !asking && <section className="recent-questions"><BoardDivider align="start" className="recent-questions-divider">Recent questions</BoardDivider>{history.map(item => <button type="button" key={item.id || item.timestamp} title={`${item.question} · ${item.documentName}`} onClick={() => restoreHistory(item)}><MessageSquareText size={14} /><span><strong>{item.question}</strong><small>{item.documentName}</small><small className="history-cost">{messageCost(item.answer?.usage)}</small></span><ChevronRight size={13} /></button>)}</section>}
+          {history.length > 0 && !asking && <details className="recent-questions"><summary>Saved answers</summary>{history.map(item => <button type="button" key={item.id || item.timestamp} title={`${item.question} · ${item.documentName}`} onClick={() => restoreHistory(item)}><MessageSquareText size={14} /><span><strong>{item.question}</strong><small>{item.documentName}</small><small className="history-cost">{messageCost(item.answer?.usage)}</small></span><ChevronRight size={13} /></button>)}</details>}
         </div>
+        <form className="question-form" onSubmit={event => ask(event, crossCheck)}>
+          <div className="composer-context"><FileText size={14} /><span title={documentName(selectedDocument)}>{selectedDocument ? documentName(selectedDocument) : 'Choose a drawing to start'}</span>{selectedDocument && <small>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole drawing'}</small>}</div>
+          <label className="sr-only" htmlFor="question-input">What do you need to know?</label>
+          <div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask a question about this drawing…" value={question} onChange={event => { initialConversationRestore.current = true; setQuestion(event.target.value); }} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); ask(event, crossCheck); } }} rows={2} /><div className="composer-actions"><IconButton label="Upload drawings" onClick={() => fileInputRef.current?.click()} disabled={uploading}><Plus size={18} /></IconButton><span>Enter to send · Shift + Enter for a new line</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={18} className="spin" /> : <ArrowUp size={18} />}</button></div></div>
+          <details className="analysis-options"><summary>Analysis options{region ? ' · selected area' : crossCheck || verifyVisual ? ' · custom' : ''}<ChevronDown size={14} /></summary><div className="analysis-options-body"><label className="query-options"><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>May use a model request; scopes must match.</small></span></label><label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>One extra model pass. May change or withhold the count.</small></span></label></div></details>
+        </form>
         <footer className="answer-panel-footer"><ShieldCheck size={14} /><span>Inspect sources before making site decisions.</span></footer>
       </aside>
     </div>
