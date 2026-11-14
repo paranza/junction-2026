@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "name": "Native development regression after generalization guards",
+  "reference_code_commit": "d6f5b0c908ec3f2e3fa907e22d5ab16e01314616",
+  "tested_code_commit": "c78b0b7c37b7397b60130abb199470b844375c35",
+  "generated_at": "2026-11-14T08:16:02.971710+00:00",
+  "mode": "native",
+  "evaluation_scope": "Development cases only; reference filtered from the pre-freeze baseline. No reserved subset scoring.",
+  "manifest_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+  "case_ids_sha256": "4a21b90bae7367e52bf9b91adb63ec5be9f8ac48e17c95be4bf55c8026a7b944",
+  "selected_cases": 7066,
+  "api_solver_revisions": [
+    "41fffb967c844f4f2697"
+  ],
+  "tested_files_sha256": {
+    "server/app.py": "b140a3f4c045c37deef68ed74d6a82b114b6f76d0df743b65fdf68e97dc9113d",
+    "server/store.py": "314416f87328281d68757a1c17412f69c37d9ac3f7f58036625d8cf8b78cf476",
+    "server/native_qa.py": "6f170ccf3c3b9d8f96b7a452c5572a08c9d8b43db0b3ef87b9c0211332fbcb55",
+    "server/extraction.py": "fe7c4e5f2e922a7d166f5a33a5154cccf74e50e58d282e8077d98c499a69675f",
+    "server/inventory.py": "96125828c5f5f37d2d5f636e81ce961ab25e8f49549048564497dd46c0d6df3e",
+    "server/llm.py": "beaf66a7e5dcc6bfeab279b1cf4cc2be9a5683a767aa5a1c33a67b7d485f0299",
+    "server/rendering.py": "a17737d5ecae3153f5f2c1aeb1326fbde7c317c603ff9cae4b1056b33a52b511",
+    "server/verification.py": "1e8b5a605a5c4a247c6e742c46820bc490f45644fff8585a2e35f30eae41d3f4"
+  },
+  "before": {
+    "cases": 7066,
+    "answered": 1592,
+    "numeric_cases": 6801,
+    "numeric_answered": 1589,
+    "numeric_correct": 1517,
+    "accuracy_all": 0.22305543302455522,
+    "accuracy_answered": 0.9546884833228445,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    }
+  },
+  "after": {
+    "cases": 7066,
+    "answered": 1592,
+    "numeric_cases": 6801,
+    "numeric_answered": 1589,
+    "numeric_correct": 1517,
+    "accuracy_all": 0.22305543302455522,
+    "accuracy_answered": 0.9546884833228445,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    }
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "before": {
+        "cases": 3534,
+        "answered": 0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 3534,
+        "answered": 0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "numeric_correct_delta": 0
+    },
+    "ifc_bench": {
+      "before": {
+        "cases": 249,
+        "answered": 1,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 249,
+        "answered": 1,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "numeric_correct_delta": 0
+    },
+    "ifc_models": {
+      "before": {
+        "cases": 1049,
+        "answered": 505,
+        "numeric_cases": 1049,
+        "numeric_answered": 505,
+        "numeric_correct": 483,
+        "accuracy_all": 0.4604385128693994,
+        "accuracy_answered": 0.9564356435643564,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 1049,
+        "answered": 505,
+        "numeric_cases": 1049,
+        "numeric_answered": 505,
+        "numeric_correct": 483,
+        "accuracy_all": 0.4604385128693994,
+        "accuracy_answered": 0.9564356435643564,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "numeric_correct_delta": 0
+    },
+    "opening_design": {
+      "before": {
+        "cases": 64,
+        "answered": 12,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 64,
+        "answered": 12,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "numeric_correct_delta": 0
+    },
+    "swiss_dwellings": {
+      "before": {
+        "cases": 2170,
+        "answered": 1074,
+        "numeric_cases": 2170,
+        "numeric_answered": 1074,
+        "numeric_correct": 1024,
+        "accuracy_all": 0.471889400921659,
+        "accuracy_answered": 0.9534450651769087,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "after": {
+        "cases": 2170,
+        "answered": 1074,
+        "numeric_cases": 2170,
+        "numeric_answered": 1074,
+        "numeric_correct": 1024,
+        "accuracy_all": 0.471889400921659,
+        "accuracy_answered": 0.9534450651769087,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_hits": 0,
+          "cost_estimate_usd": 0.0,
+          "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+        }
+      },
+      "numeric_correct_delta": 0
+    }
+  },
+  "previously_correct_regressions": [],
+  "numeric_correct_delta": 0,
+  "changed_case_outcomes": [],
+  "no_source_lost_correct_answers": true,
+  "reserved_subset_scored": false,
+  "limits": [
+    "Native-mode only; hosted vision accuracy and arbitrary upload accuracy are not established by this run.",
+    "Question/source/label identity verified by the existing paired comparator.",
+    "Prior preview exposure remains; this is not an untouched holdout or competition score.",
+    "Before reference is selected from the earlier full run, so request-order/cache latency is not directly comparable."
+  ]
+}
