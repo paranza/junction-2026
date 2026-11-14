@@ -34,3 +34,7 @@ These six cases share a procedural renderer. The other 12 development questions 
 The [independent frozen corpus](../evaluation/unseen-generalization.md) separates development from reserved inputs, with labels outside the repository and inference. Its reserved split has not yet been released for scoring. The preview quarantine is a separate, prospective split. Report exact count accuracy and supported-question coverage, with unsupported controls separate; answered-only precision cannot substitute for those measures.
 
 DWG still needs a paired supported export or a converter. General automatic polygon segmentation, every drawing convention and arbitrary question coverage remain incomplete. These gaps must be measured and improved; they are not hidden behind an accuracy claim.
+
+## Final native regression for this delivery
+
+Application code `4f0d8e2` answered 3,026/7,066 development questions, with **2,929/6,801 correct numeric answers** including abstentions as failures. All 2,903 previously correct numeric answers were retained. The IFC fixes corrected 22 previous wrong answers and answered four previously unanswered cases correctly. No request errors or model calls occurred. See [final IFC regression aggregates](../../stoa-trace/ops/reports/riccardo-delivery/native-development-after-ifc-summary.md). This remains far below the 99.9% supported-question target and is a native development result, separate from the six-format visual test.

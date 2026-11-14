@@ -5,7 +5,7 @@
 | Assigned work | Status and evidence |
 | --- | --- |
 | Integrate teammate changes | Native normalizer and visual inventory integrated, with filename-independent scope, constraint checks and provider-aware caches. Team deletion of the separate prototype retained. |
-| Baseline and evaluation | Full pre-freeze native baseline recorded. Latest completed 7,066-question development run: 2,903/6,801 numeric correct, 3,022 answered, no old-correct regressions, zero errors/model calls. Six-format visual development run: six exact door counts, 12 real model calls. Summaries under `stoa-trace/ops/reports/riccardo-delivery/`. No team message sent. |
+| Baseline and evaluation | Full pre-freeze native baseline recorded. Latest completed 7,066-question development run: 2,929/6,801 numeric correct, 3,026 answered, no old-correct regressions, zero errors/model calls. Six-format visual development run: six exact door counts, 12 real model calls. Summaries under `stoa-trace/ops/reports/riccardo-delivery/`. No team message sent. |
 | Freeze about 15% of groups | 48 of 317 preview groups reserved prospectively, 924 questions. Already exposed preview data is explicitly distinguished from the separate frozen unseen-file corpus. |
 | Stoa and licence questions | Questions prepared in `sponsor-questions.md`; no response invented, no message sent. Requires an actual organizer/sponsor conversation. |
 | Existing Verda deployment | Existing VM and database retained. See `deployment-verification.md` for the last actual deployment. Scheduled merge checks are configured. |

@@ -1,0 +1,888 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-14T09:11:27.568716+00:00",
+  "tested_code_commit": "4f0d8e2",
+  "comparison_code_commit": "48d932c3",
+  "evaluation": "Frozen development partition only; no reserved scoring",
+  "cases": 7066,
+  "summary": {
+    "cases": 7066,
+    "answered": 3026,
+    "coverage": 0.42824794791961507,
+    "numeric_cases": 6801,
+    "numeric_answered": 3023,
+    "numeric_correct": 2929,
+    "accuracy_all": 0.4306719600058815,
+    "accuracy_answered": 0.968905061197486,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "review_flagged_answers": 0,
+    "errors": 0,
+    "methods": {
+      "native": 4040,
+      "native_ifc_quantity": 826,
+      "native_ifc_entity_count": 137,
+      "native_pdf_schedule_area": 7,
+      "native_cad_area_annotations": 568,
+      "native_cad_symbol_inventory": 620,
+      "native_cad_room_labels": 742,
+      "native_pdf_schedule_rows": 3,
+      "native_pdf_schedule_row": 2,
+      "native_cad_unit_outlines": 120,
+      "native_ifc_project_records": 1
+    },
+    "statuses": {
+      "insufficient_evidence": 4040,
+      "supported": 3026
+    },
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 0,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 7066,
+      "total": 80147.15,
+      "p50": 4.44,
+      "p95": 41.42
+    },
+    "evidence": {
+      "items": 25771,
+      "answers_with_evidence": 3008,
+      "answers_with_geometry": 2222,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 9976,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "paired": {
+    "previous_correct": 2903,
+    "retained_correct": 2903,
+    "correct_regressions": 0,
+    "previous_wrong_now_correct": 22,
+    "previous_unanswered_now_correct": 4
+  },
+  "by_source": {
+    "cubicasa5k": {
+      "cases": 3534,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 3534,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 3534
+      },
+      "statuses": {
+        "insufficient_evidence": 3534
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 3534,
+        "total": 12974.16,
+        "p50": 2.95,
+        "p95": 7.11
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_bench": {
+      "cases": 249,
+      "answered": 1,
+      "coverage": 0.004016064257028112,
+      "numeric_cases": 0,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": null,
+      "accuracy_answered": null,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 249,
+      "text_answered_for_manual_review": 1,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 248,
+        "native_ifc_project_records": 1
+      },
+      "statuses": {
+        "insufficient_evidence": 248,
+        "supported": 1
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 249,
+        "total": 6192.34,
+        "p50": 9.33,
+        "p95": 48.93
+      },
+      "evidence": {
+        "items": 3,
+        "answers_with_evidence": 1,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 3,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "ifc_models": {
+      "cases": 1049,
+      "answered": 963,
+      "coverage": 0.9180171591992373,
+      "numeric_cases": 1049,
+      "numeric_answered": 963,
+      "numeric_correct": 957,
+      "accuracy_all": 0.9122974261201144,
+      "accuracy_answered": 0.9937694704049844,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 86,
+        "native_ifc_quantity": 826,
+        "native_ifc_entity_count": 137
+      },
+      "statuses": {
+        "insufficient_evidence": 86,
+        "supported": 963
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 1049,
+        "total": 38698.84,
+        "p50": 17.07,
+        "p95": 76.4
+      },
+      "evidence": {
+        "items": 11653,
+        "answers_with_evidence": 963,
+        "answers_with_geometry": 178,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 9973,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "opening_design": {
+      "cases": 64,
+      "answered": 12,
+      "coverage": 0.1875,
+      "numeric_cases": 48,
+      "numeric_answered": 10,
+      "numeric_correct": 10,
+      "accuracy_all": 0.20833333333333334,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 16,
+      "text_answered_for_manual_review": 2,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_pdf_schedule_area": 7,
+        "native": 52,
+        "native_pdf_schedule_rows": 3,
+        "native_pdf_schedule_row": 2
+      },
+      "statuses": {
+        "supported": 12,
+        "insufficient_evidence": 52
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 64,
+        "total": 1343.91,
+        "p50": 8.23,
+        "p95": 52.06
+      },
+      "evidence": {
+        "items": 99,
+        "answers_with_evidence": 12,
+        "answers_with_geometry": 12,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "swiss_dwellings": {
+      "cases": 2170,
+      "answered": 2050,
+      "coverage": 0.9447004608294931,
+      "numeric_cases": 2170,
+      "numeric_answered": 2050,
+      "numeric_correct": 1962,
+      "accuracy_all": 0.904147465437788,
+      "accuracy_answered": 0.9570731707317073,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_cad_area_annotations": 568,
+        "native_cad_symbol_inventory": 620,
+        "native_cad_room_labels": 742,
+        "native_cad_unit_outlines": 120,
+        "native": 120
+      },
+      "statuses": {
+        "supported": 2050,
+        "insufficient_evidence": 120
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 2170,
+        "total": 20937.89,
+        "p50": 5.8,
+        "p95": 19.99
+      },
+      "evidence": {
+        "items": 14016,
+        "answers_with_evidence": 2032,
+        "answers_with_geometry": 2032,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_type": {
+    "area": {
+      "cases": 1541,
+      "answered": 1373,
+      "coverage": 0.890979883192732,
+      "numeric_cases": 1541,
+      "numeric_answered": 1373,
+      "numeric_correct": 1355,
+      "accuracy_all": 0.8792991563919533,
+      "accuracy_answered": 0.9868900218499636,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 168,
+        "native_ifc_quantity": 798,
+        "native_pdf_schedule_area": 7,
+        "native_cad_area_annotations": 568
+      },
+      "statuses": {
+        "insufficient_evidence": 168,
+        "supported": 1373
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 1541,
+        "total": 32793.92,
+        "p50": 12.93,
+        "p95": 53.76
+      },
+      "evidence": {
+        "items": 6378,
+        "answers_with_evidence": 1373,
+        "answers_with_geometry": 721,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 1596,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "count": {
+      "cases": 5210,
+      "answered": 1622,
+      "coverage": 0.3113243761996161,
+      "numeric_cases": 5210,
+      "numeric_answered": 1622,
+      "numeric_correct": 1546,
+      "accuracy_all": 0.2967370441458733,
+      "accuracy_answered": 0.9531442663378545,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 3588,
+        "native_ifc_entity_count": 137,
+        "native_cad_symbol_inventory": 620,
+        "native_cad_room_labels": 742,
+        "native_pdf_schedule_rows": 3,
+        "native_cad_unit_outlines": 120
+      },
+      "statuses": {
+        "insufficient_evidence": 3588,
+        "supported": 1622
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 5210,
+        "total": 38923.11,
+        "p50": 3.5,
+        "p95": 14.13
+      },
+      "evidence": {
+        "items": 18740,
+        "answers_with_evidence": 1604,
+        "answers_with_geometry": 1499,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 7729,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "length": {
+      "cases": 16,
+      "answered": 14,
+      "coverage": 0.875,
+      "numeric_cases": 16,
+      "numeric_answered": 14,
+      "numeric_correct": 14,
+      "accuracy_all": 0.875,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 2,
+        "native_ifc_quantity": 14
+      },
+      "statuses": {
+        "insufficient_evidence": 2,
+        "supported": 14
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 16,
+        "total": 674.0,
+        "p50": 46.08,
+        "p95": 56.19
+      },
+      "evidence": {
+        "items": 324,
+        "answers_with_evidence": 14,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 324,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "text": {
+      "cases": 265,
+      "answered": 3,
+      "coverage": 0.011320754716981131,
+      "numeric_cases": 0,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": null,
+      "accuracy_answered": null,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 265,
+      "text_answered_for_manual_review": 3,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 262,
+        "native_pdf_schedule_row": 2,
+        "native_ifc_project_records": 1
+      },
+      "statuses": {
+        "insufficient_evidence": 262,
+        "supported": 3
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 265,
+        "total": 6429.24,
+        "p50": 9.29,
+        "p95": 45.63
+      },
+      "evidence": {
+        "items": 5,
+        "answers_with_evidence": 3,
+        "answers_with_geometry": 2,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 3,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "volume": {
+      "cases": 34,
+      "answered": 14,
+      "coverage": 0.4117647058823529,
+      "numeric_cases": 34,
+      "numeric_answered": 14,
+      "numeric_correct": 14,
+      "accuracy_all": 0.4117647058823529,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 20,
+        "native_ifc_quantity": 14
+      },
+      "statuses": {
+        "insufficient_evidence": 20,
+        "supported": 14
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 34,
+        "total": 1326.88,
+        "p50": 40.78,
+        "p95": 75.72
+      },
+      "evidence": {
+        "items": 324,
+        "answers_with_evidence": 14,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 324,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "by_language_hint": {
+    "de": {
+      "cases": 383,
+      "answered": 352,
+      "coverage": 0.9190600522193212,
+      "numeric_cases": 383,
+      "numeric_answered": 352,
+      "numeric_correct": 337,
+      "accuracy_all": 0.8798955613577023,
+      "accuracy_answered": 0.9573863636363636,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 31,
+        "native_cad_area_annotations": 96,
+        "native_cad_symbol_inventory": 105,
+        "native_cad_room_labels": 131,
+        "native_cad_unit_outlines": 20
+      },
+      "statuses": {
+        "insufficient_evidence": 31,
+        "supported": 352
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 383,
+        "total": 3966.06,
+        "p50": 5.71,
+        "p95": 19.54
+      },
+      "evidence": {
+        "items": 1917,
+        "answers_with_evidence": 352,
+        "answers_with_geometry": 352,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "en": {
+      "cases": 3689,
+      "answered": 1520,
+      "coverage": 0.4120357820547574,
+      "numeric_cases": 3425,
+      "numeric_answered": 1517,
+      "numeric_correct": 1470,
+      "accuracy_all": 0.4291970802919708,
+      "accuracy_answered": 0.9690177982860909,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 264,
+      "text_answered_for_manual_review": 3,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 2169,
+        "native_ifc_quantity": 413,
+        "native_ifc_entity_count": 69,
+        "native_pdf_schedule_area": 7,
+        "native_cad_area_annotations": 284,
+        "native_cad_symbol_inventory": 310,
+        "native_cad_room_labels": 371,
+        "native_pdf_schedule_rows": 3,
+        "native_pdf_schedule_row": 2,
+        "native_cad_unit_outlines": 60,
+        "native_ifc_project_records": 1
+      },
+      "statuses": {
+        "insufficient_evidence": 2169,
+        "supported": 1520
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 3689,
+        "total": 42865.32,
+        "p50": 4.74,
+        "p95": 41.24
+      },
+      "evidence": {
+        "items": 12996,
+        "answers_with_evidence": 1511,
+        "answers_with_geometry": 1117,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 5049,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "et": {
+      "cases": 315,
+      "answered": 313,
+      "coverage": 0.9936507936507937,
+      "numeric_cases": 315,
+      "numeric_answered": 313,
+      "numeric_correct": 313,
+      "accuracy_all": 0.9936507936507937,
+      "accuracy_answered": 1.0,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_ifc_quantity": 288,
+        "native_ifc_entity_count": 25,
+        "native": 2
+      },
+      "statuses": {
+        "supported": 313,
+        "insufficient_evidence": 2
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 315,
+        "total": 5710.2,
+        "p50": 14.86,
+        "p95": 45.55
+      },
+      "evidence": {
+        "items": 3298,
+        "answers_with_evidence": 313,
+        "answers_with_geometry": 68,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 2601,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "fi": {
+      "cases": 1767,
+      "answered": 0,
+      "coverage": 0.0,
+      "numeric_cases": 1767,
+      "numeric_answered": 0,
+      "numeric_correct": 0,
+      "accuracy_all": 0.0,
+      "accuracy_answered": null,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 1767
+      },
+      "statuses": {
+        "insufficient_evidence": 1767
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 1767,
+        "total": 6504.81,
+        "p50": 2.93,
+        "p95": 6.86
+      },
+      "evidence": {
+        "items": 0,
+        "answers_with_evidence": 0,
+        "answers_with_geometry": 0,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "fr": {
+      "cases": 340,
+      "answered": 319,
+      "coverage": 0.9382352941176471,
+      "numeric_cases": 340,
+      "numeric_answered": 319,
+      "numeric_correct": 305,
+      "accuracy_all": 0.8970588235294118,
+      "accuracy_answered": 0.9561128526645768,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_cad_room_labels": 117,
+        "native_cad_area_annotations": 88,
+        "native_cad_symbol_inventory": 95,
+        "native_cad_unit_outlines": 19,
+        "native": 21
+      },
+      "statuses": {
+        "supported": 319,
+        "insufficient_evidence": 21
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 340,
+        "total": 3822.06,
+        "p50": 5.88,
+        "p95": 33.92
+      },
+      "evidence": {
+        "items": 2685,
+        "answers_with_evidence": 313,
+        "answers_with_geometry": 313,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "it": {
+      "cases": 374,
+      "answered": 354,
+      "coverage": 0.946524064171123,
+      "numeric_cases": 374,
+      "numeric_answered": 354,
+      "numeric_correct": 339,
+      "accuracy_all": 0.9064171122994652,
+      "accuracy_answered": 0.9576271186440678,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 0,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native_cad_area_annotations": 100,
+        "native_cad_room_labels": 123,
+        "native_cad_symbol_inventory": 110,
+        "native_cad_unit_outlines": 21,
+        "native": 20
+      },
+      "statuses": {
+        "supported": 354,
+        "insufficient_evidence": 20
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 374,
+        "total": 3821.33,
+        "p50": 5.59,
+        "p95": 35.44
+      },
+      "evidence": {
+        "items": 2406,
+        "answers_with_evidence": 351,
+        "answers_with_geometry": 351,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 0,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    },
+    "unknown": {
+      "cases": 198,
+      "answered": 168,
+      "coverage": 0.8484848484848485,
+      "numeric_cases": 197,
+      "numeric_answered": 168,
+      "numeric_correct": 165,
+      "accuracy_all": 0.8375634517766497,
+      "accuracy_answered": 0.9821428571428571,
+      "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+      "text_cases": 1,
+      "text_answered_for_manual_review": 0,
+      "review_flagged_answers": 0,
+      "errors": 0,
+      "methods": {
+        "native": 30,
+        "native_ifc_quantity": 125,
+        "native_ifc_entity_count": 43
+      },
+      "statuses": {
+        "insufficient_evidence": 30,
+        "supported": 168
+      },
+      "usage": {
+        "model_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_hits": 0,
+        "cost_estimate_usd": 0.0,
+        "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+      },
+      "latency_ms": {
+        "requests": 198,
+        "total": 13457.38,
+        "p50": 41.91,
+        "p95": 81.87
+      },
+      "evidence": {
+        "items": 2469,
+        "answers_with_evidence": 168,
+        "answers_with_geometry": 21,
+        "answers_with_invalid_geometry": 0,
+        "items_without_geometry": 2326,
+        "human_verified_citation_correctness": null,
+        "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+      }
+    }
+  },
+  "limits": "Native mode only. Numeric abstentions count as failures. Text requires manual review. Geometry syntax is not independent evidence correctness. Preview data informed development; reserved external corpus remains unscored."
+}

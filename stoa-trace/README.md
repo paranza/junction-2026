@@ -89,7 +89,7 @@ drawings invalidate extraction, answers and previews.
 Answer details show model calls, token usage, application cache hits and initial
 visual extraction usage separately. Dollar cost is unknown unless token rates
 are explicitly configured in the server environment. The optional rates in
-`.env.example` produce estimates, not invoice totals. Hosting/storage costs are
+`.env.example`, bound to the exact provider/model with `STOA_PRICE_MODEL`, produce estimates, not invoice totals. Hosting/storage costs are
 separate. Stop waiting discards stale UI responses; it cannot cancel a model
 request already running on the server.
 
