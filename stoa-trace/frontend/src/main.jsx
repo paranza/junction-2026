@@ -57,6 +57,7 @@ import EvidenceCloseup from './EvidenceCloseup.jsx';
 import { MessageInferenceCost } from './InferenceCost.jsx';
 import useSessionUsage from './useSessionUsage.js';
 import { messageCost, requestFailure } from './inferenceUsage.js';
+import { quantityRows, quantitiesCsv } from './quantityExport.js';
 import { Button as BoardButton } from './boardui/primitives.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, displayQuantity, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue, draftCountSummary } from './reviewState.js';
 
@@ -69,6 +70,7 @@ const request = async (url, options = {}) => {
 };
 const jsonRequest = (url, body, options = {}) => request(url, { ...options, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const arrayOf = value => Array.isArray(value) ? value : [];
+const saveFile = (blob, name) => { const url = URL.createObjectURL(blob); const link = window.document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
 const basename = path => String(path || '').split(/[\\/]/).pop();
 const documentName = doc => {
   const name = doc?.name || basename(doc?.path) || 'Untitled drawing';
@@ -1088,6 +1090,8 @@ function App({thread, chatWorkspace}) {
   const sourceCredit = detail?.credit || detail?.attribution || detail?.license_credit;
   const conversation = useConversation({ sessionId: sessionUsage.sessionId, snapshot: sessionUsage.snapshot,
     answer, answerQuestion, documentName: answerDocumentName, request });
+  // Numbers follow the reader's locale so the file opens as numbers in their spreadsheet.
+  const exportQuantities = () => saveFile(new Blob([quantitiesCsv(quantityRows(conversation.records, conversation.answers), (1.1).toLocaleString().includes(',') ? ',' : '.')], { type: 'text/csv;charset=utf-8' }), `metria-quantities-${new Date().toISOString().slice(0, 10)}.csv`);
   useEffect(() => {
     if (initialConversationRestore.current || answer || asking) return;
     const latest = latestRestorableRecord(sessionUsage.snapshot, sessionUsage.sessionId);
@@ -1224,7 +1228,7 @@ function App({thread, chatWorkspace}) {
                   {selectedDocument.source !== 'uploads' && <span className="eyebrow">{readable(selectedDocument.source || 'Library')}</span>}
                 </div>
 
-                <div className="topbar-actions"><ThreadActions thread={thread} workspace={chatWorkspace} onBrowse={()=>setLibraryOpen(true)} />
+                <div className="topbar-actions"><ThreadActions thread={thread} workspace={chatWorkspace} onBrowse={()=>setLibraryOpen(true)} onExport={conversation.records.some(record => conversation.answers[record.answerId]) ? exportQuantities : null} />
                   {pageCount > 1 && (
                     <div className="page-stepper">
                       <button type="button" className="icon-btn" disabled={page <= 1} aria-label="Previous page" onClick={() => changePage(page - 1)}>

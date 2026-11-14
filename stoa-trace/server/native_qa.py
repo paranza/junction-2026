@@ -98,7 +98,8 @@ def _quantity_key(question, target):
         prefix = "gross" if re.search(r"\bgross\b", q) else "net"
         if target == "IfcWall":
             return prefix+"_side_area_m2" if re.search(r"\bside\b", q) else None
-        return prefix+"_area_m2"
+        # The wall area of a room is not its floor area.
+        return None if re.search(r"\bwalls?\b", q) else prefix+"_area_m2"
     return None
 
 
@@ -869,11 +870,18 @@ def answer_native(question: str, document: dict, source_path: Path, data_root: P
         lambda: _native_cad(question, document),
         lambda: _native_schedule(question, document),
         lambda: _native_ruled_schedule(question, document),
+        lambda: _takeoff(question, document, source_path, data_root),
     ):
         result = handler()
         if result is not None:
             return result
     return None
+
+
+def _takeoff(question, document, source_path, data_root):
+    """Last in line: it only sees questions every handler above has refused."""
+    from .takeoff import answer
+    return answer(question, document, lambda net: answer_native(net, document, source_path, data_root))
 
 
 native_answer = answer_native
