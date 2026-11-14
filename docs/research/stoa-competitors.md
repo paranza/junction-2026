@@ -1,6 +1,8 @@
 # Public Stoa project assessment
 
-Refreshed **14 November 2026, approximately 09:33-09:40 Europe/Helsinki / 07:33-07:40 UTC**. This is public-source research, not independently rerun competitor evaluation. The [snapshot](stoa-competitor-snapshot.json) records exact HEADs and check times. Our comparison version is `35a663f`.
+Current update: [Saturday evening refresh, 14 November](stoa-competitors-2026-11-14-evening.md). The original morning assessment below is retained for provenance. Repository classifications, product names, metrics and deployment observations have changed.
+
+Refreshed **14 November 2026, approximately 09:33-09:40 Europe/Helsinki / 07:33-07:40 UTC**. This is public-source research, not independently rerun competitor evaluation. The [morning snapshot](stoa-competitor-snapshot-2026-11-14-morning.json) records exact HEADs and check times. Our comparison version is `35a663f`.
 
 ## What changed since the first pass
 
@@ -116,3 +118,7 @@ Useful next experiments are category-specific readers, targeted bathroom crops a
 Refreshed GitHub names/descriptions/README searches for Stoa/Junction, exact challenge title, recent creation dates, IFC, blueprint, drawing, quantity, takeoff and dataset wording. Reviewed forks and public repository lists for 14 known owners; commit/issue search and general web indexing were also used. Broad Stoa/Junction returned **22 raw repositories, 29 including forks**; the seven extra forks were unrelated directory copies. Exact challenge-title README search returned **seven**. Recent IFC/Junction wording found PlanGraph; Stoa/drawing wording found the mock agent. The [snapshot queries](stoa-competitor-snapshot.json) are repeatable seeds, not an exhaustive claim.
 
 GitHub API rate limits resumed during this refresh. Public `git ls-remote` and GitHub Atom feeds verified HEADs and commit dates where API metadata was unavailable. Search indexing lags, non-default branches may contain additional work, related repositories may belong to the same team, and private work is invisible. No competitor source was executed, no paid inference was used for this research, and no competitor result or deployment was independently rerun.
+
+## 14 November, 18:27 Helsinki update
+
+See the [evening assessment](stoa-competitors-2026-11-14-evening.md) and refreshed machine-readable snapshot. The pass qualified 21 challenge-related non-fork repositories, separated two related forks, verified three published demo URLs in the browser and compared against Metria main `1913388`. Text/BIM answers, schedules and archive reading are now active competitor areas. Earlier claims of empty competitive territory must not guide current decisions.

@@ -1,5 +1,7 @@
 # Stoa differentiation: what is taken, what is open
 
+Historical morning assessment. **Superseded for current decisions by the [14 November evening refresh](stoa-competitors-2026-11-14-evening.md)**. In particular, the statements below that no team scores IFC-Bench text or handles archive scans are obsolete. The original comparison is preserved rather than silently rewritten.
+
 Written **14 November 2026, about 10:30 Europe/Helsinki**, from public GitHub repositories and one live deployment. It builds on the [current competitor assessment](stoa-competitors.md), which has per-repository detail, pinned HEADs and source links. This page answers one question: **where can Trace still be different?**
 
 The usual caveats apply. Competitor numbers are self-reported on different question populations and were not rerun by us. Do not rank teams by headline percentages.
@@ -112,3 +114,9 @@ Hour49 spent about **EUR 54 of GPU and USD 23 of hosted models** to reach 85% on
 ## Sources and method
 
 GitHub repository, code and README search (Stoa, Junction 2026, blueprint, IFC, DXF, takeoff, floor plan, swiss_dwellings), plus a README keyword scan over 94 recent Junction repositories. Per-source Hour49 numbers come from their committed [answering run](https://github.com/Hour49/Junction26/blob/main/eval/results/runs/20261114-082045-answering-pipeline.json). Feature presence comes from file trees and READMEs, not from running competitor code. Private repositories and unindexed work are invisible.
+
+## 14 November, 18:27 Helsinki update
+
+The evening refresh found additional implementations, including PINPOINT, ProofPlan, Stoa Takeoff, Measure and Stoa Drawing QA. OQVAR and Take-off check now use trained detectors and planners; Blueprints Talk and Léargas now have substantial application source. Metria's published end-to-end numeric preview result is 93.4%, with 88.2% on its 54 separated raster plans, not the older diagnostic shown above. Different team samples cannot form a fair leaderboard.
+
+The current recommendation is to improve fresh-image windows and doors, strengthen question/region interpretation, complete a fast correction-and-export flow, and measure latency and model requests on the exact deployment. All recommendations and evidence are in the evening assessment; no product changes or new evaluations were made by the research pass.

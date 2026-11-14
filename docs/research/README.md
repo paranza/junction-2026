@@ -2,10 +2,12 @@
 
 Research for Junction 2026, Stoa's Make Blueprints Talk challenge. All times in the current report are explicit; Europe/Helsinki is UTC+02:00 during this event.
 
-- [Differentiation: what is taken, what is open](stoa-differentiation.md): feature counts across teams, accuracy by source, open gaps and recommended plan.
-- [Current competitor assessment](stoa-competitors.md): actual approaches, overnight changes, benchmark caveats and implications for our Trace project.
+- [Current competitor assessment, Saturday evening](stoa-competitors-2026-11-14-evening.md): refreshed public repositories, three browser-verified demo sites, comparison with current Metria and prioritized improvements.
+- [Morning differentiation assessment](stoa-differentiation.md): historical feature counts and recommendations. Its claims about unoccupied task areas are superseded by the evening refresh.
+- [Morning competitor assessment](stoa-competitors.md): preserved overnight findings and pinned sources, with a dated pointer to the evening update.
 - [Original research and comparison](initial-research.md): archived first-pass findings and the improvement plan. Several statements were superseded; use the current assessment for decisions.
 - [Current machine-readable snapshot](stoa-competitor-snapshot.json): public repository names, default branches, pinned HEADs, check times and repeatable discovery queries.
+- [Morning snapshot, 14 November](stoa-competitor-snapshot-2026-11-14-morning.json): preserved before the evening refresh.
 - [Original seven HEADs](initial-heads-2026-11-13.json): the comparison point from 13 November, 23:33 UTC.
 
 We inspect public source text and public commit metadata. A repository is not proof of an independently registered competing team. Code presence, README plans, synthetic mocks, published results and a working deployment are different evidence. Competitor scores have not been independently reproduced. We do not execute competitor code or copy their source into this repository.
