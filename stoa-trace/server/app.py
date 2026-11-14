@@ -393,7 +393,39 @@ def _native_region_answer(question, data, source, page, region):
     return inventory.native_region_count(question, data, page, region)
 
 
-def _guard_visual_measurements(result):
+def _rectangle_from_quoted_dimensions(result, question):
+    """Recompute explicit rectangular dimensions instead of accepting model math."""
+    if result.get('operation') != 'area' or not re.search(r'\brectang(?:le|ular)\b', question, re.I):
+        return None
+    from .verification import _text_candidates, normalized
+    from .measurements import length_in_metres
+    evidence = result.get('evidence') or []
+    if not evidence or len({item.get('page', 1) for item in evidence}) != 1:
+        return None
+    quote = '\n'.join(str(item.get('quoted_text') or '') for item in evidence)
+    # An explicit area reading remains the preferred source operand.
+    if list(_text_candidates(quote, 'area')):
+        return None
+    role = next((role for role in ('net', 'gross') if re.search(r'\b' + role + r'\b', question, re.I)), None)
+    if role and role not in normalized(quote):
+        return None
+    dimensions = list(_text_candidates(quote, 'length'))
+    if len(dimensions) != 2:
+        return None
+    try:
+        value = math.prod(length_in_metres(item['value'], item['unit']) for item in dimensions)
+    except ValueError:
+        return None
+    revised = copy.deepcopy(result)
+    revised.update(value=value, unit='m²', status='needs_review', needs_review=True,
+                   answer=f'{value:g} m² for the stated rectangle, calculated from the two quoted dimensions. Check their source regions and the rectangular boundary.',
+                   calculation=' × '.join(f"{item['value']:g} {item['unit']}" for item in dimensions) + f' = {value:g} m²',
+                   measurement_basis='explicit_quoted_rectangle_dimensions')
+    revised.setdefault('warnings', []).append('The rectangular shape was specified in the question; the quoted dimensions still require source review. No DPI or typical object size supplies the scale.')
+    return revised
+
+
+def _guard_visual_measurements(result, question=''):
     """Do not turn an unscaled image estimate into a measured quantity.
 
     Native verified operands remain usable. Unverified image readings require
@@ -402,6 +434,9 @@ def _guard_visual_measurements(result):
     Quoted image text still needs human review because OCR is not verification.
     """
     operation = result.get('operation')
+    rectangular = _rectangle_from_quoted_dimensions(result, question)
+    if rectangular is not None:
+        return rectangular
     if operation not in {'area', 'length', 'volume'} or result.get('value') is None:
         return result
     evidence = result.get('evidence') or []
@@ -454,7 +489,7 @@ def _compute_analysis(payload, question, data, source):
             result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
             if result is None:
                 result = llm.answer_with_model(question, data, source, payload.page, payload.scope, payload.region)
-            result = _guard_visual_measurements(result)
+            result = _guard_visual_measurements(result, question)
             if payload.verify_visual:
                 from .visual_audit import audit_visual_count
                 result = audit_visual_count(question, result, data, source, payload.page, payload.scope, payload.region)

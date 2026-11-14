@@ -52,9 +52,11 @@ class BackendUpgrade(unittest.TestCase):
 
     def test_visual_inventory_reused_between_categories_and_answer_cache_has_fresh_id(self):
         with patch('server.native_qa.answer_native', return_value=None), patch.object(inventory, 'image_inputs', return_value=self.images), patch.object(llm, '_request', return_value=self.inventory_result()) as model:
-            first = self.ask().json()
-            second = self.ask('How many doors?').json()
-            repeated = self.ask().json()
+            # This check isolates inventory/answer reuse; audited-count caching
+            # is exercised separately with the default second pass enabled.
+            first = self.ask(verify_visual=False).json()
+            second = self.ask('How many doors?', verify_visual=False).json()
+            repeated = self.ask(verify_visual=False).json()
         self.assertEqual(model.call_count, 1)
         self.assertEqual(first['value'], 1)
         self.assertEqual(second['value'], 1)
