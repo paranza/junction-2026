@@ -1,0 +1,173 @@
+{
+ "slice": "questions (skeptic re-check of explore__questions.json). Work dir: eda/questions/verify/ . I resumed from the earlier attempt's scripts and re-ran every script I relied on. Run window: 01:09 to about 01:24 EET.",
+ "verdicts": [
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with v_basic.py. 7,990 lines on 320 files. By type: count 6,076, area 1,599, text 265, volume 34, length 16. By extension: .png 4,270, .pdf 2,644, .ifc 1,076. No DXF, DWG, SVG or JPG paths. Every path exists on disk.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own stopword language detector (v_lang.py). 3,838/3,838 non-English lines come directly after an English line with the same path and answer, and type and unit agree 3,838/3,838. In v_twin_map.py I find 94 (English template, language) pairs, and each maps to exactly 1 local template (the analyst counts 93 because we normalize differently). A naive apostrophe regex marked 22 twins as having different slots. All 22 were fake slots created by French elisions (d'appartements ... d'étage), so the slots really are identical.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F3",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 0 of 311 files have more than one non-English language. The language of the swiss room labels matches the twin's language in 65/65 files (de 22, fr 22, it 21; v_swiss_lang.py).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own reproduction code (v_ifc_check.py using ifcopenshell.geom footprints and shapely, saved to ifc_res.json and re-scored by v_rescore_ifc.py): 513/513 testable English questions, including 99/99 asked on PDFs, with 12 untestable on FZK-Haus. v_ifc_rule.py checks the single rule 'Qto NetFloorArea if present, else geometry footprint' on 415 area answers: 415/415 correct, 0 failures (Esplanades 290 by geometry, Molio 125 by Qto). Molio has 579 IfcStair in total and 15 top-level, and the answer is 15. Clinic: IfcFlowTerminal 119 = answer. ifc_bench/ac20_arc.ifc is 'Projekt Buerogebaeude' (an office building), not FZK-Haus, so the FZK-Haus IFC really is missing.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "corrected",
+   "independent_evidence": "Measured with v_svg3.py. Each rendered PDF has a same-stem SVG twin. Its elements are class-tagged (IfcSpace groups with data-name, plus IfcDoor, IfcWall, IfcWindow and so on). Of the 111 English questions on the 3 PDFs, the SVG answers 86 (room areas from IfcSpace polygons at 1:100, storey totals, storey element counts), and 86/86 are correct (Esplanades 65, Molio 19, FZK 2). The other 25 need the IFC: 20 whole-model counts and 5 storey quantity totals (slab or wall volume, wall length, wall side area). The PDFs contain 0 'm²' tokens (confirmed). Room names do not appear verbatim as 'LongName (Name)' in the PDF text (0/74); both parts appear separately (74/74).",
+   "corrected_claim": "Whole-model counts (20 English lines) and storey quantity totals (5) asked on rendered PDFs need the source IFC. Storey-level questions (77% of PDF-asked English lines) can be answered from the same-stem SVG twin, 86/86 correct. 2 of the 12 FZK-Haus English lines can be answered without the missing IFC. Sibling resolution still matters, but the IFC is not the only way."
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with an inline run on whole-page PyMuPDF spans over all 65 PDFs. Exact span match gives 405/405, substring 359/405 and case-insensitive substring 303/405, the same as the analyst. Exact text-line match and a word-boundary regex also give 405/405. Apartments ('Whg./App. X') 65/65 (v_swiss_full.py). Room ids found 130/130 (v_swiss_areas.py). My first parser cropped the bottom 21% of the page and dropped to 400/405. Whole-page search is required.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F8",
+   "verdict": "corrected",
+   "independent_evidence": "Measured. Printed-area parsing (v_swiss_areas.py) finds 553 of 1,618 numbered rooms printed (34.2%; the analyst has 550/1,601). Asked rooms with a printed area: 46/130, and all 46 are within 2%. Floor totals on the 10 fully printed files: 10/10. The 'geometry needed' part is now tested on the DXF twin. The ROOM_OUTLINE layer is in metres (INSUNITS 6) and gives room areas 130/130 within 2%, with 128/130 within 0.005 m², so ground truth was almost certainly computed from these polygons. Label-area sums 65/65 and apartment areas 106/112 (v_swiss_dxf.py). The analyst's floor-total rule ('all numbered rooms minus outdoor labels') gets only 61/65 across all files. The 4 failures over-count by 5.4 to 28 m² because of numbered rooms with no label or with an elevator label (shafts and voids that the drawing does not name). Adding lift or unlabelled exclusions does worse (49 to 56/65; v_swiss_dxf_rules.py).",
+   "corrected_claim": "About a third of swiss rooms have printed areas. The DXF twin's ROOM_OUTLINE polygons reproduce room areas (130/130) and label sums (65/65) almost exactly. Floor totals (61/65) and apartment areas (106/112) fail where shafts, voids or elevators are unlabelled, so the exclusion rule cannot be fully recovered from labels."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "corrected",
+   "independent_evidence": "Measured with v_numeric.py, grouping by exact English template. The in-sample mode baseline is 1,469/3,058 = 48.0% (analyst 47.0%). The honest leave-one-file-out mode baseline is 1,303/3,058 = 42.6%. cubicasa5k alone, leave-one-file-out: 1,127/2,135 = 52.8%.",
+   "corrected_claim": "A prior-only guess scores about 43% exact on English counts on unseen files (53% on cubicasa). The 47% figure is in-sample. Report per-family accuracy against the held-out baseline."
+  },
+  {
+   "finding_id": "F9",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 258/3,058 English count answers are 0 (8.4%). Zero rates: WC rooms 68/112 (61%), balconies 39/68 (57%), saunas 72/165 (44%), bedrooms 26/154 (17%). Never 0: cubicasa doors (176 files, min 2), swiss bathtubs (56, min 1), showers (21, min 1) and labels (min 1). No area, length or volume answer is 0.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F12",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 103/795 English m² answers are under 5 m² (13.0%) and 33.3% are under 10 m². Minimum 1.51.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F13",
+   "verdict": "corrected",
+   "independent_evidence": "Measured with my own scope classifier (v_ground.py). 1,256/4,152 English questions (30.3%) need a named entity, against the analyst's 32%. Per scope: label set 11.3%, IFC room 9.7%, swiss room id 3.1%, apartment 2.7%, IFC storey 2.5%, schedule row or type 1.0%. 'Verbatim in the text layer' holds for swiss room ids, IFC storey names and A-801 door ids. It does not hold for IFC room names on the PDFs (see F6).",
+   "corrected_claim": "About 30 to 32% of English questions name an entity. Swiss ids and IFC storey names appear verbatim. IFC room names must be matched as two separate text items, LongName and Name."
+  },
+  {
+   "finding_id": "F18",
+   "verdict": "corrected",
+   "independent_evidence": "Measured. The inventory has 913 files and 773 drawings, 320 of them with questions. 7,990 x 14,000/913 files = 122.5k, which matches about 120k, but file-level coverage is then 320/913 = 35.0%. Drawing-level coverage is 41.4%, which matches about 40%, but the volume then scales to 7,990 x 14,000/773 = 144.7k. The two 'matches' use different denominators.",
+   "corrected_claim": "The preview is roughly proportional, but the two checks cannot both hold under one reading of '14,000 drawings'. The hidden set is about 120k to 145k questions. Treat it as an inference."
+  },
+  {
+   "finding_id": "F11",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 0 metric quantity questions lack a unit token. All 9 ft² questions (A-801) lack one, and their answers are integers. m² answers have at most 2 decimals, except 5 IFC answers with 3.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F17",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. 0 repeated (path, question) pairs. In the 36 swiss files where every apartment is asked, the sum of apartment areas divided by the floor total ranges from 0.372 to 1.0 (median 0.899) and never exceeds 1. Each IFC (model, storey) pair is asked on exactly one file (v_qonly.py).",
+   "corrected_claim": ""
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "swiss label counts",
+   "analyst_result": "405/405 exact; substring 359/405",
+   "independent_result": "405/405 exact (whole page); substring 359; case-insensitive 303",
+   "notes": "The search must cover the whole page. Cropping the title band dropped it to 400/405. The DXF ROOM_TEXT layer has the same labels."
+  },
+  {
+   "question_family": "swiss apartment count",
+   "analyst_result": "65/65",
+   "independent_result": "65/65",
+   "notes": "Count of 'Whg./App. X' spans."
+  },
+  {
+   "question_family": "swiss room area by id",
+   "analyst_result": "46/46 within 2% where printed; 84 untested",
+   "independent_result": "46/46 printed; DXF ROOM_OUTLINE 130/130 within 2% (128/130 within 0.005 m²)",
+   "notes": "Use the DXF twin. Look up the room id text, then take the smallest outline that contains it. The polygon doubles as the evidence highlight."
+  },
+  {
+   "question_family": "swiss aggregated areas (label sums, floor totals, apartments)",
+   "analyst_result": "label sums 23/23, floor totals 10/10 on printed files; apartments untested",
+   "independent_result": "Printed: floor totals 10/10. DXF: label sums 65/65, floor totals 61/65, apartments 106/112 (apartment = numbered non-outdoor rooms inside the UNIT_OUTLINE that contains 'Whg./App. X')",
+   "notes": "The failures are unlabelled shafts, voids and elevators. Area of the unit outline itself: 18/112; all rooms including outdoor: 30/112."
+  },
+  {
+   "question_family": "swiss symbol counts (analyst: not tested)",
+   "analyst_result": "not tested",
+   "independent_result": "Windows = WINDOW polylines / 3: 65/65. Bathtubs = 69-vertex FIXTURE polylines: 56/56 (signature taken from 1 file). Toilets + washbasins = 48-vertex polylines: 65/65 combined, but my aspect-ratio split scored only 26/64 on held-out files. Doors = DOOR arcs: 37/65, and the arc count is always at least the truth. Showers untested.",
+   "notes": "v_swiss_dxf.py, v_swiss_fixtures.py, v_swiss_wc_split.py. The shape rules are fitted to this preview and may not generalize."
+  },
+  {
+   "question_family": "ifc_models counts and quantities",
+   "analyst_result": "513/513 (99/99 on PDF)",
+   "independent_result": "513/513 with my own code; the deterministic area rule gets 415/415; the SVG twin answers 86/86 storey-level PDF questions",
+   "notes": "12 FZK-Haus lines are untestable from the IFC; 2 of them can be answered from the SVG."
+  },
+  {
+   "question_family": "opening_design A-801 schedules (analyst: not tested)",
+   "analyst_result": "not tested (tokens present)",
+   "independent_result": "31/31 by code from text-layer row parsing (door schedule 17 counts, finish schedule 14 counts, areas and composites, ft² exact); 6/6 door text lookups correct by inspection",
+   "notes": "4 finish-legend text lookups were not checked, and A700 and A-701 (23 lines) are untested. Ground-truth text is reformatted ('5\\'-10 3/8\"' against the schedule's 5' - 10 3/8\"; 'Fieldhouse' against FIELDHOUSE), so exact string scoring would fail."
+  },
+  {
+   "question_family": "cubicasa5k counts (analyst: not tested)",
+   "analyst_result": "not tested; mode baseline only",
+   "independent_result": "Blind visual reading by me of 4 images (seed 99; answers written to blind_answers*.json before scoring): 29/32. The leave-one-file-out mode baseline gets 17/32 on the same questions.",
+   "notes": "The sample is tiny. Misses: windows 5 vs 4, bedrooms 2 vs 0 (rooms not labelled MH count as 0), doors 14 vs 15."
+  },
+  {
+   "question_family": "ifc_bench text (analyst: not tested)",
+   "analyst_result": "not tested",
+   "independent_result": "3/3 numeric facts in duplex answers reproduced by plain IFC queries (14 IfcDoor, 4 bedroom spaces, 4 bathroom spaces)",
+   "notes": "How free-text answers are scored is still unknown."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "Every swiss drawing has a DXF twin with semantic layers in metres (ROOM_OUTLINE, UNIT_OUTLINE, ROOM_TEXT, DOOR, WINDOW, FIXTURE). These layers answer most swiss area and several symbol questions without vision.",
+   "evidence": "v_swiss_dxf.py: room areas 130/130 (128 within 0.005 m²), label sums 65/65, floor totals 61/65, apartment areas 106/112, windows 65/65, bathtubs 56/56. All 65 DXFs are on disk.",
+   "implication": "Route swiss questions asked on the PDF or the PNG to the DXF sibling. This covers about 744 area lines and 130 window lines at near-exact accuracy, and the matched polygons are ready-made evidence boxes. Doors, toilet versus washbasin, and showers still need work."
+  },
+  {
+   "claim": "The rendered IFC plans have class-tagged SVG twins. These answer storey-level questions directly and give element-level highlights.",
+   "evidence": "v_svg3.py: 86/86 correct on 111 English PDF-asked questions at a fixed 1:100 scale. Only the 20 whole-model counts and 5 quantity totals need the IFC.",
+   "implication": "The evidence overlay can use SVG element ids (data-name) instead of re-projecting IFC geometry. The 1:100 scale is assumed, not read from the file, so it must be checked on new models."
+  },
+  {
+   "claim": "opening_design schedule questions can be reproduced exactly from the PDF text layer with simple row parsing.",
+   "evidence": "v_a801.py and v_a801_finish.py: 31/31 computed answers (counts, ft² sums, '3 rooms, 4541 SF', argmax) plus 6/6 door lookups. Rows start with a door number, or with an 'NNN SF' line followed by a room number.",
+   "implication": "Table parsing with row and column provenance is enough for this family. Ground-truth text is normalized (spacing, case), so answers should copy schedule values and get formatting tolerance from the scorer. This needs confirming with Stoa."
+  },
+  {
+   "claim": "cubicasa images are often not upright. Ground truth counts room types by label, not by layout.",
+   "evidence": "Of the 4 images sampled with seed 99: 1 rotated 180°, 1 rotated 90°, 1 mirrored (MH reads 'HM'), 1 upright. Bedrooms: truth 0 where the layout suggested 2 rooms not labelled MH.",
+   "implication": "OCR or the vision model must try rotations and mirroring before reading Finnish labels. Count only labelled room types (MH, KH, WC and so on), and show the label boxes as evidence. A VLM reading reached 29/32 against a 17/32 prior, which suggests vision is viable for the largest family."
+  },
+  {
+   "claim": "Parsing quoted slots with apostrophe pairs breaks on French and Italian labels and elisions.",
+   "evidence": "14 lines quote 'Cage d'escalier'. A naive quote regex found 22 fake slot mismatches between twins, all from French elisions such as d'appartements and d'étage (v_twin_map.py, v_qonly.py).",
+   "implication": "Extract slots against the known template frames, or validate candidates against the drawing's text, instead of using a generic regex for '...' pairs. Hidden questions in other languages will have more of these."
+  }
+ ],
+ "overall_reliability": "High for the structural facts. Counts, twins, templates, zero rates, the IFC reproduction (513/513) and swiss label counts (405/405) all reproduced independently. I made four corrections. (1) F6: a same-stem SVG twin answers 77% of PDF-asked IFC questions (86/86), so the IFC is required only for whole-model counts and quantity totals. (2) F8: the floor-total rule scores only 61/65 when tested on all files, and the DXF twin, not printed text, is what solves swiss areas. (3) F10: the honest held-out prior is 42.6%, not 47%. (4) F18 mixes file and drawing denominators. Several families the analyst left untested are now tested: swiss areas and symbols via DXF, A-801 schedules, and a small blind cubicasa reading. Limits: the cubicasa result is n=32 on 4 images. The DXF fixture signatures were learned on this preview and may not generalize. Showers, swiss doors, A700 and A-701, and IFC-Bench scoring remain untested. A few numbers came from inline runs that were not saved as script files: DXF area precision, whole-page matching variants, the combined 48-vertex count, the duplex IFC probe and the blind baseline. Environment risk: the dataset sits in iCloud Desktop, and many files were evicted at the start (223/242 cubicasa files, 44/196 swiss). Reading them triggers downloads, so offline batch runs can stall. This may be why the earlier attempt was cut off."
+}

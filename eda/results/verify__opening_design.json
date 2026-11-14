@@ -1,0 +1,149 @@
+{
+ "slice": "opening_design (independent skeptic check of the analyst report; own code under eda/opening_design/verify/; started 01:21, finished 01:32 EET)",
+ "verdicts": [
+  {
+   "finding_id": "F1",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. My own extractor (mytab.py) is separate from the analyst's lattice finder. It maps words and vertical rules through page.rotation_matrix, clusters rows by word y-centre and assigns columns by the rule x positions inside hand-picked regions. Scored against questions.jsonl (counts exact, areas within 2%, text by requiring every GT code or number token after normalizing feet-inch spacing): A-801 41/41 (q801b.log), A700 19/20 (q700.log, the same HM vs 'HM (hollow metal)' miss), A-701 0/3 from text. Total 60/64, the same as the analyst.",
+   "corrected_claim": "Confirmed: 60/64 (41/41, 19/20, 0/3). Two caveats. First, the result depends on lenient text grading: under normalized exact match (case, spacing and punctuation ignored), the analyst's own outputs get 11/16 text answers, not 14/16, which gives 57/64 overall (58 once the '[n=4]' debug suffix is removed). Second, both reproductions used hand-picked table regions and per-template query code, so neither shows how an NL-to-query step would do."
+  },
+  {
+   "finding_id": "F2",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured on my rebuilt A700 door type schedule: 26 rows whose Count column sums to 657. U01 = 71. The 'MARVIN ESSENTIAL SLIDING' description matches 8 rows summing to 27 (3rd floor: 15). Vistagrande 1st floor = 10 + 9 = 19. Window schedule: 6 rows summing to 235, and sum of N x count = 379. Counting rows instead gets 0/17 count questions (0/16 without the arithmetic question). A word scan found Count or Qty header words on 4 schedule pages: A700, the Aalseth room and window schedule page, the LaundryMat door schedule and a 3_Offices Bluebeam markup page.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F3",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: the Room Number column gives 5 doors for room 128 (GT 5); the '128.' prefix gives 3. Doors 122.C and 124.B also say FIELDHOUSE in the Room Name column, so filtering on Room Name gives 5 as well.",
+   "corrected_claim": "Confirmed. Note that the Room Name column agrees with the Room Number column here. Only the door-number prefix gives the wrong answer."
+  },
+  {
+   "finding_id": "F4",
+   "verdict": "corrected",
+   "independent_evidence": "Measured with my own extraction. Permit version 2015-08-14: 41 door rows and 31 rooms. Current version: 38 doors and 29 rooms. The 2015-07-20 transfer PDF, page 3 (dated 06/15/2015), has 41 unique door numbers. Answering the 41 A-801 questions from the permit version gets 20/41. My separate title-block detector (largest bottom-right sheet-number label, at least 12 pt) found a sheet number on 80/117 pages, with 16 (project, sheet) pairs in more than 1 file covering 33 pages; the analyst reported 82 pages, 16 pairs and 34 pages.",
+   "corrected_claim": "Revision risk confirmed: 20/41 from the permit version and 3 versions of A-801 (41/41/38 door rows). Correction: the analyst's example, Fieldhouse 29,699 vs 29,690 SF, is within 2% and scores as correct. So do the total area (49,665 vs 49,560) and the locker rooms (1,160 vs 1,181, 1.8%). 3 of the 20 'correct' permit answers therefore carry wrong values. The scored failures are things like Clinic 5,919 vs 2,470, Fitness 4,068 vs 5,183, Wrestling 2,292 vs 3,814, door count 41 vs 38 and AL frames 23 vs 17."
+  },
+  {
+   "finding_id": "F5",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured. Default get_text() reads row 122.B as '... B1, AL-1/GL-1, A, 11, A': the empty Frame Matl cell is dropped, so a reader that assigns cells by position puts frame type 'A' in the frame-material column. My grid shows 6 rows with an empty Frame Matl (122.B, 122.C, 124.A, 128.B, 130.A, 130.B). get_text(sort=True) puts all 38 door numbers on one line. A full scan gives rotation 0: 44, 90: 64 and 270: 9 pages, so 73/117 are rotated.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F6",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: 'WATER CLOSET' appears 10 times in the A-701 text, and search_for also finds 10. 'LAVATORY' appears 0 times and 'SHOWER' 4 times. I made my own crops from the view-tag positions (6A tag at display 308,1991; 6B at 308,1410), saved as my_6A.png and my_6B.png. By eye, 6A has 2 water closets and 2 lavatories inside the restrooms, plus 2 wall-mounted items outside the left wall; 6B has 1 water closet, 1 lavatory and 1 shower. That matches GT 3/3. No VLM was run, and my crop windows were chosen by hand.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F7",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: 6 of the 16 text answers add a meaning to a code (Q18, 36, 37, 38, 39, 54). The A-801 text contains 'ALUMINIUM SLIDING' but not 'ALUMINIUM SLIDING DOOR'. 'HOLLOW' does not appear in any of the 9 CTR PDFs; it appears only in 4 Sports_Complex files. The sheet prints 5' - 10 3/8\" and GT is 5'-10 3/8\".",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F9",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with my own full scan (corpus.log): 55 PDFs and 117 pages, 12 pages with empty text, 285 annotations on 19 pages (165 with text), sheet sizes 22x34 51, 30x42 29, 11x17 19, letter 8, other 10. I did not re-check the vector/mixed/raster split or the 311,469-image page.",
+   "corrected_claim": "Confirmed. Nuance on F13's 'fully vector': the 3 question sheets hold 1,066, 1,066 and 653 image placements. These are title-block logos (x of at least 2,583 of 3,024 on A-801 and A-701) and, on A700, a 3535x94 px background band behind the project title, which is real text. Table and drawing content is vector."
+  },
+  {
+   "finding_id": "F10",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured: of the 20 DWG headers, 2 are AC1021 and 18 are AC1027. ezdxf.readfile raises OSError on 20/20. dwg2dxf, ODAFileConverter and teigha are not on PATH, and none is in /Applications. The 180x90 thumbnails were not re-checked.",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F11",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured with ifcopenshell (ifc.log). 1810 S Park.ifc: IFC2X3, 21.5 MB, Revit 2018, unit scale 0.3048 (feet), 73 IfcWall including 72 IfcWallStandardCase, 17 IfcDoor, 0 IfcWindow, 0 IfcSpace, 2 storeys. stairs.blend.ifc: IFC4, scale 0.0254 (inches), Blender BIM. The other 3 files are from FreeCAD, one of them in the 'bad IFC models - for autopsy only' folder (39 walls, 2 windows).",
+   "corrected_claim": ""
+  },
+  {
+   "finding_id": "F14",
+   "verdict": "confirmed",
+   "independent_evidence": "Measured on a seed-7 sample of 25 files per source: opening_design median 219 words and 4,444 paths per page, 20/53 sampled pages rotated (73/117 overall); swiss_dwellings median 129 words and 386 paths, 0/25 rotated; ifc_models median 106 words and 198 paths, 0/3 rotated.",
+   "corrected_claim": "The direction holds. The ifc_models comparison rests on only 3 PDFs in the preview (n=3), and swiss_dwellings words per page depend on the sample (129 in mine vs 110)."
+  }
+ ],
+ "answerability_rechecks": [
+  {
+   "question_family": "Schedule row count with filter (A-801 door and finish schedules), n=20",
+   "analyst_result": "20/20",
+   "independent_result": "20/20",
+   "notes": "Own row/column rebuild. Traps confirmed: empty cells, comma-separated notes, room 128 (5 by Room Number column vs 3 by prefix)."
+  },
+  {
+   "question_family": "Area lookup, filtered sum, total (finish room schedule), n=9",
+   "analyst_result": "9/9",
+   "independent_result": "9/9 (all exact)",
+   "notes": "The 2 'Redundant Room' rows have no SF value and are excluded; the total is 49,560. The permit version still passes 4 of these 9 because of the 2% tolerance (3 of them with different values)."
+  },
+  {
+   "question_family": "Aggregate text (count + area, argmax), n=2",
+   "analyst_result": "2/2",
+   "independent_result": "2/2",
+   "notes": "'3 rooms, 4541 SF' and 'Room 128 FIELDHOUSE (29690 SF)' match after case normalization."
+  },
+  {
+   "question_family": "Single-cell lookup (dimension, hardware group, material, fire rating, window size), n=8",
+   "analyst_result": "7/8",
+   "independent_result": "7/8",
+   "notes": "Same miss: the sheet says HM and GT is 'HM (hollow metal)'. 'HOLLOW' appears in none of the 9 CTR PDFs, so the expansion is general knowledge. Feet-inch values need spacing normalized."
+  },
+  {
+   "question_family": "Code + legend meaning, n=5",
+   "analyst_result": "5/5 (token match)",
+   "independent_result": "4/5 with the meaning attached (5/5 on codes only)",
+   "notes": "My code joined the 4 finish-key codes but did not join B3 to its door-type elevation label. That label text exists on the sheet, so the join is possible. Under normalized exact match, the analyst's outputs get 3/5: GT adds 'door' to Q18 and drops the parenthetical in Q39."
+  },
+  {
+   "question_family": "Quantity-column sums incl. arithmetic (A700), n=17",
+   "analyst_result": "17/17 (naive row counting 0/16)",
+   "independent_result": "17/17 (naive row counting 0/17)",
+   "notes": "GT 'door leaves' for SWING types = 418, the plain Count sum. Treating the double doors (U13 x1, U28 x17) as 2 leaves gives 436, which is wrong."
+  },
+  {
+   "question_family": "Symbol count in a named plan view (A-701), n=3",
+   "analyst_result": "0/3 from text; 3/3 by the analyst's own visual count",
+   "independent_result": "0/3 from text; 3/3 by my own visual count on my own crops",
+   "notes": "There are 10 'WATER CLOSET' strings vs true counts of 2 and 1. In 6A, 2 wall-mounted items sit outside the restrooms, so the question's scope words matter. No VLM was tested."
+  },
+  {
+   "question_family": "Same 41 A-801 questions answered from the archived permit revision",
+   "analyst_result": "20/41",
+   "independent_result": "20/41",
+   "notes": "3 of the 20 'correct' answers have wrong values that fall inside the 2% tolerance."
+  }
+ ],
+ "missed": [
+  {
+   "claim": "PyMuPDF's built-in table finder fails on these sheets, so custom table rebuilding is required, not optional.",
+   "evidence": "Measured (ft.py, ft0.py, ft0.log): page.find_tables() found 0 tables on A-801 and on A700 at native /Rotate 90, taking 21 s and 47 s. With rotation reset in memory, it found 0 on A-801 (42 s) and on A700 only 1 'table': the 2052x2916 pt sheet border holding title-block text (53 s). My word-plus-rule rebuild recovered every schedule in under 1 s.",
+   "implication": "Do not plan around the library's table detection or another default table extractor. Build rotation-aware word-and-rule table rebuilding, test it on rotated Revit prints, and set a per-page time limit."
+  },
+  {
+   "claim": "Question wording can imply a unit that the ground truth does not apply. The ground truth follows the literal column aggregation unless the question defines a conversion.",
+   "evidence": "Measured (q700.log): 'how many door leaves of the types whose description starts with SWING' has GT 418, the plain Count sum over 9 SWING rows. Counting the 2 double types (U13 x1, U28 x17) as 2 leaves gives 436. The window question that explicitly defines 'N-wide = N units' does use multiplication (379).",
+   "implication": "Default to literal column sums. Apply conversions only when the question defines them, and state in the evidence which interpretation was used. Add this case to the regression set."
+  },
+  {
+   "claim": "Wrapped cells produce continuation lines with no key, and these must be merged into the row above.",
+   "evidence": "Measured (a801_rows.txt, a700_rows.txt): the A700 U46 description wraps to a second line ('6-10 OPENING ONLY AT 1ST AND 2ND FLOOR ONLY)') that has no Count or mark. The A-801 finish schedule prints 'Redundant / Room' on 2 lines, so 31 lines have text in the Area column for 29 rooms. The keynote notes for GL-1 and GL-2 wrap too. A line-based count gives 27 vs 26 rows on A700 and 31 vs 29 rooms on A-801.",
+   "implication": "Before querying, merge keyless lines into the previous row and widen that row's highlight box. Otherwise descriptions are cut off (U46 would lose its floor qualifier) and phantom rows get counted."
+  },
+  {
+   "claim": "The 60/64 headline depends on lenient text grading.",
+   "evidence": "Measured: the analyst's computed text answers (read from reproduce_results.csv) match GT under normalized exact match (case, spacing and punctuation ignored) on 11/16, vs 14/16 under their token rule. The mismatches are Q18 (GT adds 'door'), Q22 (a '[n=4]' debug suffix), Q39 (GT drops the legend's parenthetical), Q43 (unanswered) and Q54 (HM).",
+   "implication": "Expect 57 to 60 of 64 depending on the official grader. The output formatter should give 'code (lowercase legend meaning)', normalize feet-inch values and never leak debug annotations. Ask Stoa how free text is graded."
+  },
+  {
+   "claim": "Matching on the keyword 'SCHEDULE' finds non-tables, and Count or Qty columns occur on several schedule pages in this source.",
+   "evidence": "Measured (sched_scan.log): 19 pages contain 'SCHEDULE'. The regex '[A-Z]+ SCHEDULE' also matches note text such as 'PVC SCHEDULE', 'CPVC SCHEDULE', 'AS SCHEDULE(D)' and 'BE SCHEDULE(D)'. Pages with Count or Qty header words: A700, Aalseth (room and window schedules), LaundryMat (door schedule) and a 3_Offices Bluebeam markup page (door, fixture and room schedules).",
+   "implication": "Anchor schedule detection on ruled tables with a title row, not on the keyword. Hidden questions on these other schedules would hit the Count-sum convention, including one markup PDF where the annotation layer may matter."
+  }
+ ],
+ "overall_reliability": "High. Every consequential number I re-measured with my own code matches the analyst's or differs only slightly: 60/64 (41/41, 19/20, 0/3), 20/41 from the permit revision, 0 correct with naive row counting, room 128 at 5 vs 3, Count sums of 657/71/27/379, and the corpus statistics (117 pages, 73 rotated, 12 with no text, 285 annotations on 19 pages). The DWG, IFC and fixture-count facts also hold. Three corrections: the Fieldhouse revision example falls within the 2% tolerance (3 of the 20 permit 'correct' answers carry wrong values); text answers reach 11/16, not 14/16, under exact-match grading; and the title-block counts differ slightly (my 80 pages and 33 pages in repeated sheets vs 82 and 34). Shared limits: both of us picked table regions and query logic per template, judged the A-701 counts by eye without a VLM, and had only 3 question sheets. Neither result shows how a general NL system or a vision model would do. Not checked by me: the vector/mixed/raster page split, the 7.4% non-horizontal text lines, the DWG thumbnails, the 750-region table scan, the IFC-to-PDF door cross-check and the transient read failure (F16)."
+}

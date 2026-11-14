@@ -1,0 +1,321 @@
+{
+ "slice": "opening_design (data/opening_design: real drawing sets and CAD files of a US architecture practice; 81 files, 64 questions on 3 PDF sheets)",
+ "summary": "opening_design is the only source in the preview made of real professional drawing sets. It has 16 projects and 81 files: 55 PDFs (117 pages), 20 DWG, 5 IFC and 1 DXF. Most files sit in dated transmittal folders, and the same sheet often appears in several revisions. Only 3 single-page sheets carry questions, all Revit prints on 30x42 paper rotated 90 degrees: A-801 door and finish schedules (41 questions), A700 schedules (20) and A-701 restrooms (3).\n\nUsing only the PDF text layer and the stroked table rules, I reproduced 60 of 64 answers: A-801 41/41, A700 19/20, A-701 0/3. Table cells were rebuilt from word coordinates in display space, and every cell keeps its bounding box, so each answer can be highlighted on the sheet. The A700 miss is a format convention: I computed HM and the ground truth is \"HM (hollow metal)\", but that expansion does not appear anywhere on the sheet. The 3 A-701 misses need fixtures counted from drawn symbols. Counting text does not work: \"WATER CLOSET\" appears 10 times as a label on the sheet, while the true counts are 2 and 1. A crop located automatically from the view-title text shows plans 6A and 6B in full, and my own visual count on those crops matches the ground truth 3/3.\n\nMeasured traps that change design decisions:\n- The A700 counts are sums of a Count column. Counting matching rows gets 0/16.\n- Answering the A-801 questions from the archived permit revision of the same sheet gets 20/41.\n- Plain text extraction drops empty cells. With sort=True it outputs rotated tables column by column.\n- The room-number column, not the door-number prefix, defines \"doors for room 128\" (5 vs 3).\n\nOther formats: no installed tool can read the DWGs. 4 of the 5 IFC files are small test or deliberately broken models; the 5th is a real Revit export with no spaces. The DXF holds only 9 block references.\n\nCaveat: question-to-query mapping in my reproduction is hand-written regex per question template. It proves the data is extractable and shows the ground-truth conventions. It does not show that a general natural-language system would score 60/64.",
+ "key_stats": [
+  {
+   "metric": "Files in slice",
+   "value": "81: 55 PDF, 20 DWG, 5 IFC, 1 DXF; 16 projects"
+  },
+  {
+   "metric": "PDF pages",
+   "value": "117 (43 single-page files, 12 multi-page files, max 15 pages)"
+  },
+  {
+   "metric": "Questions",
+   "value": "64 on 3 PDFs: A-801 41, A700 20, A-701 3; types count 39, area 9 (ft2), text 16"
+  },
+  {
+   "metric": "Reproduced from text layer + vector rules",
+   "value": "60/64 (A-801 41/41, A700 19/20, A-701 0/3)"
+  },
+  {
+   "metric": "A700 count questions answered by naive row counting",
+   "value": "0/16 (ground truth sums the Count column)"
+  },
+  {
+   "metric": "A-801 questions answered from the archived 2015-08-14 permit revision",
+   "value": "20/41 correct"
+  },
+  {
+   "metric": "Versions of A-801 in the folder tree",
+   "value": "3 (06/15/2015 in a 3-page transfer PDF, 8/14/2015 permit, 2/15/2016 current); door rows 41, 41, 38"
+  },
+  {
+   "metric": "(project, sheet) pairs present in more than one file",
+   "value": "16; 34 of 82 pages with a detected sheet number belong to them"
+  },
+  {
+   "metric": "Folder roles",
+   "value": "transfer 43, archive 19, models 9, current set 9, prints 1; 61/81 files in dated folders (2014-10-14 to 2020-02-06)"
+  },
+  {
+   "metric": "Pages with /Rotate 90 or 270",
+   "value": "73/117 (62%); 0% in sampled swiss_dwellings and ifc_models PDFs"
+  },
+  {
+   "metric": "Page content",
+   "value": "vector 61, mixed vector+raster 44, raster 12; no text layer on 12 pages; 2 pages with >20% unmapped characters"
+  },
+  {
+   "metric": "Text lines not horizontal after applying rotation",
+   "value": "1,465 of 19,899 (7.4%) on 71 pages"
+  },
+  {
+   "metric": "PDF annotations (markups)",
+   "value": "285 on 19 pages, 165 carry text (not returned by page.get_text)"
+  },
+  {
+   "metric": "Sheet sizes (pages)",
+   "value": "22x34 51, 30x42 29, 11x17 19, Letter 8, other 10"
+  },
+  {
+   "metric": "Median words / vector paths per page",
+   "value": "opening_design 219 / 3,854 vs swiss_dwellings 110 / 386 vs ifc_models 106 / 198"
+  },
+  {
+   "metric": "Max image objects on one page",
+   "value": "311,469 (Bluebeam markup PDF; 19 pages have >1,000)"
+  },
+  {
+   "metric": "DWG readable with installed tools",
+   "value": "0/20 (2 R2007, 18 R2013; ezdxf fails, ODA converter absent; 18 hold only 180x90 px thumbnails); 0/20 have a same-name PDF"
+  },
+  {
+   "metric": "Pages with a SCHEDULE-titled table (generic finder)",
+   "value": "13/117 pages in 12 files"
+  },
+  {
+   "metric": "View titles found by text on A-701",
+   "value": "13/13 real views (+1 false positive); auto crops of 6A and 6B contain the full plans"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "Every A-801 and A700 schedule question is answerable from the vector text layer plus stroked table rules: 60/64 reproduced overall, 58/58 on schedule-derived questions except one format miss.",
+   "evidence": "reproduce.py re-run on 2026-11-14. Tables come from tables_auto.find_tables (connected components of stroked rules, lattice cells, words assigned to cells by centre, display coordinates). Per family: A-801 row count with filter 20/20, area lookup/sum 9/9, cell lookup 5/5, code+legend 5/5, aggregate text 2/2; A700 quantity sums 17/17, cell lookup 2/3; A-701 0/3. Scoring: counts exact, areas within 2%, text by my token rule. Results are in reproduce_results_by_family.csv.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "For schedule sheets, extract tables deterministically with a bounding box per cell. Have the LLM write a small structured query over the rows (filter, count, sum, argmax) instead of reading raw text, and highlight the cells used as evidence. Caveat: my question-to-query mapping was hand-written per template, so the NL-to-query step still has to be built and tested on unseen phrasings."
+  },
+  {
+   "id": "F2",
+   "claim": "When a schedule has a Count (quantity) column, the ground truth sums it. Counting matching rows is wrong.",
+   "evidence": "A700 door type schedule: 26 rows whose Count column sums to 657 (ground truth for all items 657). Type U01 is one row with Count 71 (ground truth 71). 'Marvin Essential sliding' spans 8 rows summing to 27. Naive row counting gets 0/16 on A700. Window units = sum of N x count = 379 (ground truth 379). The generic scan found Count columns in other schedules in this source too (Aalseth window schedule, LaundryMat door schedule).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Detect quantity columns and sum them by default for 'how many ... are scheduled', then show every summed cell. This convention will recur on unseen Revit schedules."
+  },
+  {
+   "id": "F3",
+   "claim": "Room membership comes from the Room Number column, not the door-number prefix.",
+   "evidence": "Doors for room 128: 5 by the Room Number column (122.C, 124.B, 128.A, 128.B, 128.C; ground truth 5) but 3 by the '128.' prefix. Room 118 gives 5 either way.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Filter on the column the question names and never infer it from identifiers. This rule must be in the query-generation prompt and covered by tests."
+  },
+  {
+   "id": "F4",
+   "claim": "Revisions are a major accuracy risk: the same sheet exists in several versions with different values.",
+   "evidence": "A-801 exists in 3 files: a 06/15/2015 schedule (page 3 of a 3-page 2015-07-20 transfer PDF), the 8/14/2015 permit set and the 2/15/2016 current set. Door rows are 41, 41 and 38. Answering the 41 A-801 questions from the permit version gives 20/41 (Fieldhouse area 29,699 vs 29,690 SF; Clinic area 5,919 vs 2,470). Overall, 16 (project, sheet) pairs appear in more than one file.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer only from the file in the question's path and never pool by sheet number across a project. Show the sheet date and revision table in the evidence so an engineer can confirm the version."
+  },
+  {
+   "id": "F5",
+   "claim": "Raw text extraction order breaks tables on these rotated Revit prints. Coordinates are needed.",
+   "evidence": "In default get_text() each cell is on its own line, but empty cells are dropped. 6 A-801 door rows have an empty frame-material cell (e.g. 122.B), so later values shift column. get_text(sort=True) outputs the table column by column (all door numbers on one line) because the page has /Rotate 90. 73/117 pages are rotated. The evidence overlay built with rotation_matrix lands exactly on the 14 type-A1 rows (img/evidence_A801_typeA1.png).",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Never give an LLM the raw text of a schedule. Rebuild the grid from word boxes mapped through page.rotation_matrix, and use the same transform for highlight boxes."
+  },
+  {
+   "id": "F6",
+   "claim": "A-701 fixture counts need visual symbol counting in a named view. Text and simple vector clustering fail, but a crop anchored on the view title works.",
+   "evidence": "The plan has no fixture labels. 'WATER CLOSET' occurs 10 times on the sheet (leaders in elevations and details) while the true counts are 2 (6A) and 1 (6B). Clustering the olive fixture strokes merged fixtures (e.g. one 330-stroke component spanning 8.2 x 5.8 ft). view_locator.py found all 13 view titles from text, plus 1 false positive. Its crops of 6A and 6B contain the full plans, and my visual count on them matches the ground truth 3/3. Plan 6A also shows two wall-mounted items outside the restroom wall (elevation 4A labels a water fountain). The ground truth excludes them because the question says 'inside the two restrooms'.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Route 'how many X are drawn in view Y' questions to a vision model on a crop anchored on the view title, and return the crop as evidence. Widen crop margins: the 6A crop cut the outside items at its left edge. No VLM was actually run here."
+  },
+  {
+   "id": "F7",
+   "claim": "Ground-truth text answers follow a 'code + plain meaning' style with normalized feet-inch values.",
+   "evidence": "6 of 16 text answers append a meaning to a code, taken from on-sheet legends but paraphrased. Example: the legend says 'ALUMINIUM SLIDING' and the ground truth is 'B3 (aluminium sliding door)'; for W2 the ground truth drops the legend's parenthetical. One answer expands an abbreviation absent from the sheet: HM -> 'hollow metal', with 0 occurrences of HOLLOW on A700. Dimensions are normalized: the sheet prints 5' - 10 3/8\" and the ground truth is 5'-10 3/8\". Composite answers look like '3 rooms, 4541 SF' and 'Room 128 Fieldhouse (29690 SF)'.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Answer formatter: give the code plus its legend meaning, and flag when the meaning comes from general knowledge rather than the sheet. Normalize feet-inch strings. For multi-part questions, give every requested part."
+  },
+  {
+   "id": "F8",
+   "claim": "Area answers come from 'NNN SF' schedule cells, and placeholder cells are excluded from totals.",
+   "evidence": "Finish room schedule: 29 rows, 27 with an SF area and 2 'Redundant Room'. Total of rows with an area = 49,560 (ground truth 49,560). Placeholder cells such as 'F1 - VARIES - SEE PLAN' and 'SEE ELEV.' exist, and exact-match filters reproduce all 9 area answers.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Parse area units, treat non-numeric placeholders as missing, and say in the evidence which rows were excluded."
+  },
+  {
+   "id": "F9",
+   "claim": "The PDF set is heterogeneous: rotated large sheets, raster scans, markup layers and pathological pages.",
+   "evidence": "pdf_pages.csv: 61 vector, 44 mixed and 12 raster pages. 12 pages have no text layer (scans, a vendor kitchen drawing, a 3D view render, one vector sketch with no text). 2 pages have garbled text. 7.4% of text lines are not horizontal. There are 285 annotations on 19 pages (165 with text: Bluebeam FreeText, clouds, ink), and up to 311,469 image objects on one page. Producers: Bluebeam 26 files; PScript5 + Ghostscript (Revit prints) 15.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "The pipeline needs a rotation transform, a raster fallback (OCR or VLM; none is installed here), annotation text from page.annots() (not in get_text), and per-page time limits."
+  },
+  {
+   "id": "F10",
+   "claim": "The DWG files cannot be used with the installed tools.",
+   "evidence": "All 20 DWG files: 2 AC1021 (R2007), 18 AC1027 (R2013). ezdxf.readfile fails with OSError on every one, and the ODA File Converter is not installed. 18 embed only a 180x90 px PNG thumbnail. 0/20 have a same-name PDF; 2 share a sheet number with a PDF from another date.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "If the hidden set asks about DWGs, a converter (ODA File Converter or LibreDWG) is needed. Otherwise answer that the file is unreadable rather than guess."
+  },
+  {
+   "id": "F11",
+   "claim": "The IFC files and the DXF add little that is linked to the PDF questions.",
+   "evidence": "There are 5 IFC files. One is a real Revit 2018 IFC2X3 export (Facilities_Building, 21.5 MB, feet, 2 storeys, 72 standard walls, 17 doors whose Tag is a Revit element id, 0 IfcSpace, 0 IfcWindow) in the same transmittal folder as an 11-page PDF set with no door schedule. Three are FreeCAD or IfcOpenShell test models, one of them in a folder named 'bad IFC models - for autopsy only'. One is a Blender stair model in inches. The DXF is R12 with 9 INSERT entities, no text and no units.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "IFC questions in this source could only be element counts, types and storeys. Units vary (foot, inch, metre), so normalize them. Areas cannot come from IfcSpace here. Do not trust geometry of the 'bad' model."
+  },
+  {
+   "id": "F12",
+   "claim": "The generic ruled-table finder carries over to other schedules in this source, with merge and split failures.",
+   "evidence": "tables_scan.csv: SCHEDULE-titled tables on 13 pages in 12 files. Simple Revit schedules extract cleanly (Aalseth room and window schedules, Vacation_Rental glazing schedule, LaundryMat door schedule, CTR bearing wall schedule). Failures: adjacent schedules merged into one region (2 cases seen), a structural pier schedule with drawn diagrams split into a 63x32 grid of mostly empty cells, and a multi-line header with scrambled word order ('dimensions Stud'). 750 table-like regions overall, most of them title-block or consultant boxes. I inspected 5 files by eye only.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Anchor tables on title rows and add a split step for side-by-side schedules. Validate header detection, and keep a VLM table-reading fallback for complex structural schedules."
+  },
+  {
+   "id": "F13",
+   "claim": "The questions are sheet-specific, dense per sheet, and often include the code and its legend meaning.",
+   "evidence": "Every question names the sheet number and project ('On sheet A-801 of the Xcel Sports Complex drawings'). The 3 sheets average 21 questions each. 15 of 20 A-801 count questions give the code with its meaning in parentheses. All 3 question sheets are single-page 30x42, /Rotate 90 and fully vector. A title-block heuristic found the sheet number on 82/117 pages.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Questions may also omit the code ('how many swing doors'), so the product should map legend descriptions to codes itself. For multi-page sets, select the page by the title-block sheet number."
+  },
+  {
+   "id": "F14",
+   "claim": "This source is much harder than the generated PDF sources, so methods tuned on those will break here.",
+   "evidence": "compare_sources.csv: median words per page 219 vs 110 (swiss_dwellings) and 106 (ifc_models). Median vector paths 3,854 vs 386 and 198. Rotated pages 62% vs 0%. 12 page sizes vs 2-3. The other sources come from matplotlib or a dataset builder; these come from Revit, Bluebeam and scanners.",
+   "kind": "inferred",
+   "confidence": "medium",
+   "implication": "Keep a regression set from this source even though it holds only 0.8% of preview questions (64 of 7,990). It is the closest to what a construction engineer actually uses."
+  },
+  {
+   "id": "F15",
+   "claim": "The licence allows a demo, with attribution, and the sheets contain personal contact details.",
+   "evidence": "data/opening_design/LICENSE.md: CC BY-SA 4.0 (credit OpeningDesign and the project team named in each title block; shared adaptations must stay CC BY-SA), MIT for Schultz_Residence. Title blocks list consultants' names, emails and phone numbers. Folder names and markups include personal names.",
+   "kind": "measured",
+   "confidence": "high",
+   "implication": "Credit OpeningDesign in demo crops. Avoid showing contact blocks or markup author names in public material."
+  },
+  {
+   "id": "F16",
+   "claim": "File reads can fail transiently in this environment.",
+   "evidence": "In the earlier run, 'The Downtowner - Sheet - S100 - STRUCTURE ONLY.pdf' failed with 'no objects found'. Today it opens normally (1.95 MB, valid %PDF-1.4 header, 609 words). The cause is not proven; the dataset sits under a possibly cloud-synced Desktop folder and the earlier run coincided with a network outage.",
+   "kind": "measured",
+   "confidence": "medium",
+   "implication": "Retry failed opens and report a read failure explicitly. Never turn it into an empty or 'not found' answer."
+  }
+ ],
+ "answerability": [
+  {
+   "question_family": "Schedule row count with filter (A-801 door and finish schedules)",
+   "n_questions": 20,
+   "best_source_format": "PDF vector text layer + stroked table rules",
+   "method": "Lattice table rebuilt from word boxes in display coordinates. Exact-match filters on normalized cells; the Notes column is split on commas; room membership comes from the Room Number column.",
+   "tested": "20/20",
+   "notes": "Questions usually give the code and its meaning. Traps: empty cells, multi-valued notes, room 128 doors (5 by column vs 3 by prefix)."
+  },
+  {
+   "question_family": "Area lookup, filtered sum, total (finish room schedule)",
+   "n_questions": 9,
+   "best_source_format": "PDF vector text layer",
+   "method": "Parse 'NNN SF' cells; exclude 'Redundant Room' placeholders; sum or look up by room number or name",
+   "tested": "9/9 within 2% (all exact)",
+   "notes": "Ground truth is a plain number in ft2. Answering from the archived permit revision would get several of these wrong."
+  },
+  {
+   "question_family": "Aggregate text answers (count + area, argmax)",
+   "n_questions": 2,
+   "best_source_format": "PDF vector text layer",
+   "method": "Same table; composite formatting such as '3 rooms, 4541 SF' and 'Room 128 Fieldhouse (29690 SF)'",
+   "tested": "2/2",
+   "notes": "Typed as text, so the grader must parse both parts."
+  },
+  {
+   "question_family": "Single-cell lookup (dimension, hardware group, material, fire rating, unit size)",
+   "n_questions": 8,
+   "best_source_format": "PDF vector text layer",
+   "method": "Row by key (door number or type mark), column by header; normalize feet-inch spacing",
+   "tested": "7/8",
+   "notes": "The miss is 'HM' vs ground truth 'HM (hollow metal)'; the expansion is not on the sheet. One question asks the height of 4 doors, and the ground truth gives the single shared value."
+  },
+  {
+   "question_family": "Code + legend meaning (door type legend, finish key)",
+   "n_questions": 5,
+   "best_source_format": "PDF vector text layer (legend tables and door-type elevation labels)",
+   "method": "Join the schedule code to the legend: finish key table, and the text block under each 'DOOR TYPE xx' label",
+   "tested": "5/5 (token match)",
+   "notes": "Ground truth paraphrases and lowercases the legend text, sometimes adding words or dropping a parenthetical, so the text grader must be lenient."
+  },
+  {
+   "question_family": "Quantity-column sums incl. arithmetic (A700 door type and window schedules)",
+   "n_questions": 17,
+   "best_source_format": "PDF vector text layer",
+   "method": "Sum the Count column over rows matched by type mark or description substring (floor, product name, 'SWING' prefix); N-wide x count arithmetic",
+   "tested": "17/17 (naive row counting 0/16)",
+   "notes": "A700 has two door schedules with different mark systems (01-30 vs U01-U46) and a revision cloud; pick the table whose marks match the question."
+  },
+  {
+   "question_family": "Symbol count in a named plan view (A-701 restroom fixtures)",
+   "n_questions": 3,
+   "best_source_format": "Rendered crop of the view (raster), located by view-title text",
+   "method": "view_locator.py finds the title '6A RESTROOMS', crops the view and counts fixtures visually; the crop is the evidence",
+   "tested": "0/3 from text or vector clustering; 3/3 by my own visual count on the auto crops (no VLM run)",
+   "notes": "Scope words matter: 'inside the two restrooms' excludes 2 wall-mounted items outside. Fixture label text (10x 'WATER CLOSET') is misleading."
+  }
+ ],
+ "risks": [
+  "The 60/64 reproduction used hand-written regex handlers per question template. It proves extractability and shows the ground-truth conventions, not that a general NL-to-query system will score this well on new phrasings.",
+  "Only 3 sheets (64 questions) carry questions in this source. Hidden questions on other sheet types here (wall sections, foundation details, site plans, markups, multi-page sets) were not tested.",
+  "Text answers were scored with my own token-match rule; the official free-form grading is unknown.",
+  "The A-701 visual counts were mine, from viewing the crops. No vision model was run, so VLM accuracy on fixture symbols is untested.",
+  "No DWG converter (ODA File Converter or LibreDWG) and no OCR engine are installed. The 20 DWGs and 12 raster or no-text pages were only profiled, not answered.",
+  "The generic table finder merges side-by-side schedules and fragments structural schedules. Cell-level accuracy was checked only on the 4 question tables plus an eyeball of 5 others.",
+  "The IFC-to-PDF cross-check (17 IfcDoor vs doors on the Facilities_Building plans) was not done.",
+  "One PDF failed to open in the earlier run and opened fine now, so the environment can return transient read errors.",
+  "The source contains personal names and contact details (title blocks, folder names, markup authors), and the licence is CC BY-SA 4.0 with attribution. Demo material needs credit and redaction."
+ ],
+ "questions_for_stoa": [
+  "At evaluation time, is each question always tied to one file path (as in questions.jsonl), or must the system pick the right sheet and revision from a project folder with several versions?",
+  "How are free-form text answers graded: an LLM judge, token match or exact string? Would 'HM' be accepted where the ground truth is 'HM (hollow metal)', and is the code alone enough when the ground truth adds the legend meaning?",
+  "For schedules with a Count column, is the intended answer always the scheduled quantity rather than the number of rows? (The preview ground truth suggests yes.)",
+  "Will the hidden set include questions on the DWG, IFC or DXF files of this source, and if so, which DWG converter is expected or allowed?",
+  "Will raster or scanned sheets (12 of 117 pages here) carry questions, and is OCR or a vision model expected?",
+  "Does the full dataset contain more opening_design projects and sheets than the preview, and what share of hidden questions come from this source?",
+  "Should area answers be a bare number in ft2 (as in the ground truth) or include the unit as written on the sheet (SF)?"
+ ],
+ "artifacts": [
+  "eda/opening_design/reproduce.py",
+  "eda/opening_design/tables_auto.py",
+  "eda/opening_design/sched.py",
+  "eda/opening_design/reproduce_results.csv",
+  "eda/opening_design/reproduce_results_by_family.csv",
+  "eda/opening_design/reproduce_results_alt801.csv",
+  "eda/opening_design/table_A801_door_schedule.csv",
+  "eda/opening_design/table_A801_finish_room_schedule.csv",
+  "eda/opening_design/table_A700_door_type_schedule.csv",
+  "eda/opening_design/table_A700_window_schedule.csv",
+  "eda/opening_design/A801_legends.json",
+  "eda/opening_design/a801_versions.txt",
+  "eda/opening_design/structure.csv",
+  "eda/opening_design/pdf_pages.csv",
+  "eda/opening_design/profile_summary.log",
+  "eda/opening_design/text_quality.csv",
+  "eda/opening_design/compare_sources.csv",
+  "eda/opening_design/tables_scan.csv",
+  "eda/opening_design/view_locator.py",
+  "eda/opening_design/img/A701_auto_6A.png",
+  "eda/opening_design/img/A701_auto_6B.png",
+  "eda/opening_design/img/evidence_A801_typeA1.png",
+  "eda/opening_design/img/A801_overview.png",
+  "eda/opening_design/img/A700_overview.png",
+  "eda/opening_design/img/A701_overview.png",
+  "eda/opening_design/dwg_probe.log",
+  "eda/opening_design/ifc_probe.log",
+  "eda/opening_design/ifc_pdf_link.py",
+  "eda/opening_design/dxf_probe.log"
+ ]
+}
