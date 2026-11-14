@@ -371,7 +371,7 @@ def _evidence(result, doc_id):
 
 def _source_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'source_scope.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'deep_reader.py', 'native_qa.py', 'source_scope.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -651,10 +651,13 @@ def _compute_analysis(payload, question, data, source, previous=None):
                   'evidence':[],'can_review':False,'warnings':[]}
     if result is None and payload.mode != 'native':
         try:
-            result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
+            from . import deep_reader
+            result = deep_reader.answer(question, native_data, source, payload.page, payload.scope, payload.region)
             if result is None:
-                result = llm.answer_with_model(question, data, source, payload.page, payload.scope, payload.region)
-            result = _guard_visual_measurements(result, question)
+                result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)
+                if result is None:
+                    result = llm.answer_with_model(question, data, source, payload.page, payload.scope, payload.region)
+                result = _guard_visual_measurements(result, question)
             if payload.verify_visual:
                 from .visual_audit import audit_visual_count
                 result = audit_visual_count(question, result, data, source, payload.page, payload.scope, payload.region)
@@ -733,9 +736,11 @@ def _ask_question(payload: AskRequest, answer_id: str):
     canonical_question = to_english(question)
     from .inventory import config_signature
     from .visual_audit import config_signature as audit_signature
+    from .deep_reader import config_signature as inspection_signature
     key = store.analysis_key('answer', {'document': doc['id'], 'source': data.get('source_fingerprint'),
                             'extractor': data.get('extractor_revision'), 'solver': _solver_revision(),
                             'model': llm.provider_signature(), 'inventory': config_signature(),
+                            'source_inspection': inspection_signature(),
                             'audit': audit_signature() if payload.verify_visual else None,
                             'prompt': llm.PROMPT_REVISION, 'question': canonical_question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
