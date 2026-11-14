@@ -265,6 +265,20 @@ class IfcScopeAndNesting(unittest.TestCase):
         root = Path(tempfile.gettempdir())
         return answer_native(question, self.doc(), root/'scope.ifc', root)
 
+    def test_slab_volume_wording_and_quoted_room_names(self):
+        doc = self.doc()
+        doc['objects'] += [
+            {'id': 's1', 'guid': 's1', 'type': 'IfcSlab', 'label': 'Slab', 'properties': {'storey_guid': 'S1', 'net_volume_m3': 2.5}},
+            {'id': 's2', 'guid': 's2', 'type': 'IfcSlab', 'label': 'Slab', 'properties': {'storey_guid': 'S1', 'net_volume_m3': 1.5}},
+            {'id': 'r1', 'guid': 'r1', 'type': 'IfcSpace', 'label': 'INVA-WC',
+             'properties': {'storey_guid': 'S1', 'name': '103', 'long_name': 'INVA-WC', 'net_area_m2': 6.0}}]
+        root = Path(tempfile.gettempdir())
+        ask = lambda q: answer_native(q, doc, root/'scope.ifc', root)
+        # "slabs" used to be rejected by the wording check before the quantities were summed
+        self.assertAlmostEqual(ask("What is the total net volume of all slabs on '1.korrus', in m³?")['value'], 4.0)
+        # a quoted room name containing "WC" is a room, not a request about toilets
+        self.assertAlmostEqual(ask("What is the net floor area of the room 'INVA-WC (103)' on '1.korrus', in m²?")['value'], 6.0)
+
     def test_parts_nested_in_another_product_are_not_counted(self):
         self.assertEqual(self.answer("How many stairs are there in the model 'Demo'?")['value'], 1)
 

@@ -898,14 +898,15 @@ def _ifc(path, root):
                         continue
                     for property_name, value in values.items():
                         normalized_name = re.sub(r"[^a-z]", "", property_name.casefold())
-                        if normalized_name in ("netfloorarea", "netarea", "pindala", "nettoflache", "nutzflache"):
+                        # ArchiCAD writes the zone's net area as "Measured Net Area" on every zone.
+                        if normalized_name in ("netfloorarea", "netarea", "measurednetarea", "pindala", "nettoflache", "nutzflache"):
                             if type(value) in (int, float):
                                 parsed = float(value)
                             elif isinstance(value, str) and re.fullmatch(r"\s*\d+(?:[.,]\d+)?\s*", value):
                                 parsed = float(value.strip().replace(",", "."))
                             else:
                                 continue
-                            candidates.append((0 if normalized_name.startswith("net") else 1,
+                            candidates.append((0 if normalized_name.startswith(("net", "measurednet")) else 1,
                                                parsed, f"{set_name}.{property_name}"))
                 if candidates and result["metadata"]["area_unit_scale"] is not None:
                     _, value, property_path = min(candidates)
