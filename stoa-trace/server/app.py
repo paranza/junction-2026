@@ -560,12 +560,18 @@ def _guard_visual_measurements(result, question=''):
     if operation not in {'area', 'length', 'volume'} or result.get('value') is None:
         return result
     evidence = result.get('evidence') or []
-    from .verification import ground_native_evidence
+    from .verification import ground_native_evidence, user_declared_dimension
     for item in evidence:
         if item.get('source_verified'):
             continue
         quote = str(item.get('quoted_text') or '').strip()
         checked, _ = ground_native_evidence({'id': 'visual-quote', 'text': quote}, item, operation)
+        if quote and checked.get('value') is None and user_declared_dimension(item, question, operation):
+            result = copy.deepcopy(result)
+            result.update(status='needs_review', needs_review=True,
+                          measurement_basis='quoted_value_user_declared_drawing_units')
+            result.setdefault('warnings', []).append('Drawing units were supplied in the question. The quoted value, selected annotation and unit convention need source review.')
+            continue
         if not quote or checked.get('value') is None:
             result = copy.deepcopy(result)
             result.update(value=None, status='insufficient_evidence', needs_review=True,

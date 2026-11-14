@@ -28,6 +28,10 @@ _UNITS = {
 
 def unit_spec(unit):
     key = normalized(unit).replace(' ', '').replace('^', '').replace('²', '2').replace('³', '3')
+    key = {'inches': 'in', 'inch': 'in', 'feet': 'ft', 'foot': 'ft',
+           'metres': 'm', 'meters': 'm', 'millimetres': 'mm', 'millimeters': 'mm',
+           'centimetres': 'cm', 'centimeters': 'cm', 'squarefeet': 'ft2',
+           'squaremetres': 'm2', 'squaremeters': 'm2', 'sq.ft': 'ft2'}.get(key, key)
     return _UNITS.get(key)
 
 
@@ -101,18 +105,90 @@ def _typed_candidates(properties, operation, prefix='properties'):
                'role': 'gross' if 'gross' in name else 'net' if 'net' in name else None}
 
 
-_SCALAR = re.compile(r'(?<![\w.])([0-9]+(?:[.,][0-9]+)?)\s*(m[²³23]|ft[²³23]|sq\.?\s*ft|sf|sqm|mm|cm|metres?|meters?|ft|in|m)\b', re.I)
+_NUMBER = r'[0-9]+(?:[.,][0-9]+)*'
+_SCALAR = re.compile(r'(?<![\w.,/])(' + _NUMBER + r')\s*(m[²³23]|ft[²³23]|sq\.?\s*ft|sf|sqm|mm|cm|metres?|meters?|millimetres?|millimeters?|centimetres?|centimeters?|feet|foot|inches|inch|ft|in|m)\b', re.I)
+_IMPERIAL = re.compile(r'''(?<![\w./])(?:(\d+)\s*['′]\s*(?:-\s*)?)?(\d+(?:\.\d+)?(?:\s+\d+/\d+)?|\d+/\d+)\s*["″]''')
+
+
+def printed_number(token, unit):
+    """Parse explicit engineering numbers without guessing ambiguous metric groups."""
+    if ',' in token and '.' in token:
+        # The final separator is decimal; the other must form groups of three.
+        decimal, grouping = (',', '.') if token.rfind(',') > token.rfind('.') else ('.', ',')
+        integer, fraction = token.rsplit(decimal, 1)
+        if not re.fullmatch(r'\d{1,3}(?:' + re.escape(grouping) + r'\d{3})+', integer):
+            return None
+        token = integer.replace(grouping, '') + '.' + fraction
+    elif ',' in token:
+        spec = unit_spec(unit)
+        imperial = spec and spec[1] in {.3048, .0254, .09290304, .028316846592}
+        if re.fullmatch(r'\d{1,3}(?:,\d{3})+', token) and imperial:
+            token = token.replace(',', '')
+        elif token.count(',') == 1:
+            token = token.replace(',', '.')
+        else:
+            return None
+    try:
+        value = float(token)
+    except ValueError:
+        return None
+    return value if finite_number(value) else None
 
 
 def _text_candidates(text, operation):
+    if operation == 'length':
+        for match in _IMPERIAL.finditer(text):
+            try:
+                parts = match.group(2).split()
+                last = parts[-1]
+                if '/' in last:
+                    numerator, denominator = map(int, last.split('/'))
+                    inches = numerator / denominator + (float(parts[0]) if len(parts) == 2 else 0)
+                else:
+                    inches = float(last)
+                value = 12 * int(match.group(1) or 0) + inches
+            except (ValueError, ZeroDivisionError):
+                continue
+            yield {'value': value, 'unit': 'in', 'property_path': 'native_text', 'role': None}
     for match in _SCALAR.finditer(text):
         unit = re.sub(r'[.\s]', '', match.group(2).lower())
         if unit in {'metres', 'meters'}:
             unit = 'm'
         spec = unit_spec(unit)
-        if spec and spec[0] == operation:
-            yield {'value': float(match.group(1).replace(',', '.')), 'unit': unit,
+        value = printed_number(match.group(1), unit)
+        if spec and spec[0] == operation and value is not None:
+            yield {'value': value, 'unit': unit,
                    'property_path': 'native_text', 'role': None}
+
+
+def user_declared_dimension(assertion, question, operation):
+    """A declared drawing unit can qualify a bare length, never verify its OCR.
+
+    Output preferences such as 'answer in mm' do not declare source units.
+    Multiple/conflicting declarations and quotes with other explicit lengths
+    require source review instead of guessing a convention.
+    """
+    if operation != 'length':
+        return False
+    declarations = re.findall(
+        r'\bdimensions?\s+(?:(?:on|in)\s+(?:this|the)\s+(?:drawing|plan)\s+)?'
+        r'(?:are|is|shown\s+in|in)\s+(?:in\s+)?'
+        r'(millimetres?|millimeters?|centimetres?|centimeters?|metres?|meters?|mm|cm|m|inches|feet)\b',
+        question, re.I)
+    specs = {unit_spec(unit) for unit in declarations}
+    if len(specs) != 1 or None in specs:
+        return False
+    quote = str(assertion.get('quoted_text') or '')
+    if not quote or list(_text_candidates(quote, 'length')):
+        return False
+    source_unit = declarations[0]
+    for match in re.finditer(r'(?<![\w.,/])' + _NUMBER + r'(?![\w.,/])', quote):
+        value = printed_number(match.group(), source_unit)
+        converted = convert_quantity(value, source_unit, assertion.get('unit'))
+        if converted is not None and finite_number(assertion.get('value')) and math.isclose(
+                converted, assertion['value'], rel_tol=1e-8, abs_tol=1e-8):
+            return True
+    return False
 
 
 def ground_native_evidence(linked, assertion, operation, question=''):
