@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadChatWorkspace } from '../src/chatLoading.js';
+import { loadChatWorkspace, readChatWorkspaceIndex } from '../src/chatLoading.js';
+test('a corrupt or partial local index cannot crash workspace navigation',()=>{
+ for(const value of ['{',JSON.stringify({projects:[null],threads:[null]}),JSON.stringify({projects:[],threads:[{id:'old'}]})]) {
+  assert.deepEqual(readChatWorkspaceIndex({getItem:()=>value}),{projects:[],threads:[]});
+ }
+});
 test('refresh reads existing chats without creating or changing a thread',async()=>{
  const calls=[];const data={projects:[],threads:[{id:'existing'}]};
  assert.equal(await loadChatWorkspace(async(...args)=>{calls.push(args);return data}),data);

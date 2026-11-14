@@ -494,8 +494,8 @@ class CadPreviewRegistration(unittest.TestCase):
             self.assertGreater(rooms[0]['bbox'][0],.19)
             self.assertLess(rooms[0]['bbox'][0],.25)
 
-    def test_standalone_and_degenerate_fits_retain_unlocated_records(self):
-        for standalone,degenerate in ((True,False),(False,True)):
+    def test_degenerate_fits_retain_unlocated_records(self):
+        for standalone,degenerate in ((False,True),):
             with self.subTest(standalone=standalone),tempfile.TemporaryDirectory() as folder:
                 root=Path(folder); path=self.drawing(root,degenerate,pdf=not standalone)
                 doc=extract_document(path,root)
@@ -505,5 +505,42 @@ class CadPreviewRegistration(unittest.TestCase):
                 self.assertTrue(all(o['properties']['net_area_m2']==16 for o in rooms))
                 self.assertFalse(doc['metadata']['cad_projection_registered'])
                 self.assertTrue(doc['warnings'])
+
+    def test_standalone_room_polygons_match_the_actual_rendered_pdf(self):
+        from server.rendering import dxf_render
+        from server import app
+        import pymupdf
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);path=self.drawing(root,pdf=False)
+            document=extract_document(path,root)
+            rooms=[obj for obj in document['objects'] if obj['type']=='room']
+            self.assertTrue(document['metadata']['cad_projection_registered'])
+            self.assertTrue(all(obj.get('bbox') and obj['properties']['preview_registration'] for obj in rooms))
+            pdf,_=dxf_render(path)
+            with pymupdf.open(stream=pdf,filetype='pdf') as rendered:
+                page=rendered[0];points=[]
+                for drawing in page.get_drawings():
+                    for item in drawing['items']:
+                        for value in item[1:]:
+                            if isinstance(value,pymupdf.Point):points.append((value.x/page.rect.width,value.y/page.rect.height))
+                            elif isinstance(value,pymupdf.Quad):points.extend((point.x/page.rect.width,point.y/page.rect.height) for point in (value.ul,value.ur,value.ll,value.lr))
+                            elif isinstance(value,pymupdf.Rect):points.extend((point.x/page.rect.width,point.y/page.rect.height) for point in (value.tl,value.tr,value.bl,value.br))
+                for corner in rooms[0]['polygon']:
+                    self.assertTrue(any(math.hypot(corner[0]-x,corner[1]-y)<0.0001 for x,y in points))
+            box=rooms[0]['bbox'];region=[box[0]-.001,box[1]-.001,box[2]+.001,box[3]+.001]
+            with patch.object(app.store,'DATA_ROOT',root):
+                scoped=app._native_region_context(document,path,1,region)
+                self.assertEqual([obj['id'] for obj in scoped['objects'] if obj['type']=='room'],[rooms[0]['id']])
+                result=app._native_region_answer('What is the area of the largest labelled room?',document,path,1,region)
+            self.assertEqual(result['value'],16)
+
+    def test_unrelated_paired_image_is_not_assumed_registered(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);path=self.drawing(root,pdf=False)
+            Image.new('RGB',(200,200),'white').save(path.with_suffix('.png'))
+            document=extract_document(path,root)
+            self.assertFalse(document['metadata']['cad_projection_registered'])
+            self.assertFalse(any(obj.get('bbox') for obj in document['objects']))
 
 if __name__=='__main__': unittest.main()

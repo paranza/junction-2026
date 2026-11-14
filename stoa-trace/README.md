@@ -6,7 +6,11 @@ Construction drawing questions with inspectable source evidence. The workspace c
 
 ## Integrated Metria workspace
 
-Antonio’s Metria branding and interactive drawing workspace are integrated with the current native parsers and question handling. Saved conversations, per-message and session inference accounting, Cloudinary close-ups, source-bound calibration, inspector tools and review history use the existing backend. Display filters and metric/imperial conversion do not alter source quantities.
+The primary interface contains Chats, Dataset and Spending. Start a chat with the plus beside Chats, attach a drawing, then ask questions and open the answer's Evidence panel. Existing conversations are nested beneath Chats. Region selection scopes registered native room queries to the selected area. There is no project or settings page in the current UI; older project records and API routes remain compatible.
+
+Unknown wording over native quantities can use a Gemini-planned query executed by Python over source records. Supported query operators are count, value, sum, min, max and mean, with source-field filters. This does not establish arbitrary-question or arbitrary-drawing accuracy. See the [chat and region recovery verification](../docs/delivery/chat-and-region-recovery.md) for the actual checks and limits.
+
+Antonio’s Metria branding and interactive drawing workspace are integrated with the current native parsers and question handling. Saved conversations, inference accounting, Cloudinary close-ups, source focus and review history use the existing backend. Calibration and inspector APIs remain available for integrations. Display conversion does not alter source quantities.
 
 The `stoa-trace/` folder, `STOA_` settings, existing private configuration paths and storage identifiers remain compatible. Keep your private `.env` and runtime when updating, then run `ops/refresh_local.py` and restart the server.
 

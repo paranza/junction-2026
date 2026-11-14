@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { acceptHydratedAnswer, conversationKey, mergeConversation, pendingAnswerIds, readConversation, recordFromAnswer, recordsFromSnapshot, saveConversation } from '../src/conversationState.js';
+import { acceptHydratedAnswer, latestRestorableRecord, conversationKey, mergeConversation, pendingAnswerIds, readConversation, recordFromAnswer, recordsFromSnapshot, saveConversation } from '../src/conversationState.js';
 
 const session = 'd3a56502-b8c6-4405-884c-e6e73f566288';
 const record = (id, extra = {}) => ({ id, answerId: id, question: `Question ${id}`, timestamp: 1000, status: 'completed', documentName: 'plan.pdf', ...extra });
@@ -68,4 +68,12 @@ test('late hydration cannot replace a newer reviewed answer or cross answer iden
   assert.strictEqual(acceptHydratedAnswer(reviewed, 'answer', original), reviewed);
   assert.strictEqual(acceptHydratedAnswer(reviewed, 'different', original), reviewed);
   assert.deepEqual(acceptHydratedAnswer({}, 'answer', { id: 'different', value: 999 }), {});
+});
+
+test('refresh restores the newest server answer rather than a stale cached turn',()=>{
+ const snapshot={session_id:session,by_message:[{message_id:'old',answer_id:'old',question:'Old question',created_at:10,status:'completed'},{message_id:'new',answer_id:'new',question:'New question',created_at:20,status:'completed'}]};
+ assert.equal(latestRestorableRecord(snapshot,session).answerId,'new');
+ snapshot.by_message[1].status='pending';
+ assert.equal(latestRestorableRecord(snapshot,session),null);
+ assert.equal(latestRestorableRecord(null,session),null);
 });

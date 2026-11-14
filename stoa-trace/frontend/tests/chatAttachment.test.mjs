@@ -11,7 +11,7 @@ test('confirmed attachment opens without a follow-up history request', async () 
     return {thread:saved};
   }, {threads:[{id:'a',document_id:null}],active:'a',documentId:'drawing',identity:'new'});
   assert.equal(result.thread, saved);
-  assert.deepEqual(calls,[['/api/workspace/chats/a','PATCH',{document_id:'drawing'}]]);
+  assert.deepEqual(calls,[['/api/workspace/attachments','POST',{session_id:'a',next_session_id:'new',document_id:'drawing'}]]);
 });
 
 test('retry after a lost response reuses the same thread identity', async () => {
@@ -22,12 +22,16 @@ test('retry after a lost response reuses the same thread identity', async () => 
   const result=await attachChatDrawing(request,options);
   assert.equal(result.thread.id,'stable');
   assert.equal(result.switched,true);
-  assert.equal(calls[0][2].session_id,'stable');
+  assert.equal(calls[0][2].next_session_id,'stable');
   assert.deepEqual(calls[0],calls[1]);
 });
 
-test('opening a drawing already in this project reuses its chat', async () => {
+test('the server resolves the correct chat even when the local index is stale', async () => {
   const existing={id:'b',document_id:'second',project_id:'p'};
-  const result=await attachChatDrawing(()=>{throw new Error('Unexpected request')},{threads:[{id:'a',document_id:'first',project_id:'p'},existing],active:'a',documentId:'second',identity:'new'});
+  const result=await attachChatDrawing(async()=>({thread:existing}),{threads:[],active:'a',documentId:'second',identity:'new'});
   assert.equal(result.thread,existing);
+});
+
+test('an attachment cannot silently open a different drawing', async () => {
+  await assert.rejects(attachChatDrawing(async()=>({thread:{id:'a',document_id:'wrong'}}),{active:'a',documentId:'requested',identity:'new'}));
 });

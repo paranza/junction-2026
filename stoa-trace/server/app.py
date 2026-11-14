@@ -367,7 +367,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'native_query.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -423,12 +423,55 @@ def _cross_check(payload, question, native_result, data, source):
             'reason': 'The independent visual candidates agree with the native count; agreement does not prove completeness.' if native_value == visual_value else 'Native source objects and independently located visual candidates disagree. Inspect both sets and their interpretation before choosing a working quantity.'}
 
 
+def _native_region_context(data, source, page, region):
+    """Bind a selection to objects registered to the exact displayed source."""
+    if source.suffix.lower() in {'.ifc', '.dwg'}:
+        return None
+    views = rendering.visual_sources(source)
+    if not views:
+        return None
+    visible = views[0].resolve()
+    if source.suffix.lower() == '.dxf' and visible == source.resolve() and not data.get('metadata', {}).get('cad_projection_registered'):
+        return None
+    selected = []
+    for obj in data.get('objects', []):
+        if obj.get('page') != page:
+            continue
+        object_source = obj.get('source_path')
+        if object_source:
+            object_source = Path(str(object_source)).expanduser()
+            if not object_source.is_absolute():
+                object_source = store.DATA_ROOT / object_source
+            if object_source.resolve() != visible:
+                return None
+        box = obj.get('bbox')
+        if not box:
+            # An unlocated source quantity might lie in the selection.
+            from . import native_query
+            if native_query.available({'objects':[obj]}):
+                return None
+            continue
+        anchor = obj.get('properties', {}).get('preview_anchor') or [(box[0]+box[2])/2,(box[1]+box[3])/2]
+        if region[0] <= anchor[0] <= region[2] and region[1] <= anchor[1] <= region[3]:
+            selected.append(obj)
+    pages = []
+    for original in data.get('pages', []):
+        if original.get('page') != page:
+            continue
+        words = [word for word in original.get('words', []) if word.get('bbox') and
+                 region[0] <= (word['bbox'][0]+word['bbox'][2])/2 <= region[2] and
+                 region[1] <= (word['bbox'][1]+word['bbox'][3])/2 <= region[3]]
+        pages.append({**original,'words':words,'text':' '.join(word.get('text','') for word in words)})
+    return {**data,'objects':selected,'pages':pages,
+            'metadata':{**data.get('metadata', {}),'requested_scope':'region','selected_region':region}}
+
+
 def _native_region_answer(question, data, source, page, region):
-    """Only count native boxes registered to this rendered view.
+    """Resolve native queries only against geometry registered to this view.
 
     IFC object projections carry local page numbers from several separate
     views, so page=1 alone cannot resolve a selected model view. Standalone DXF
-    extents also lack registration to the renderer's fitted layout viewport.
+    geometry requires the exact placement transform from its preview renderer.
     """
     from . import inventory
     if source.suffix.lower() in {'.ifc', '.dwg'}:
@@ -437,11 +480,15 @@ def _native_region_answer(question, data, source, page, region):
     if not views:
         return None
     visible_source = views[0].resolve()
-    if source.suffix.lower() == '.dxf' and visible_source == source.resolve():
+    if source.suffix.lower() == '.dxf' and visible_source == source.resolve() and not data.get('metadata', {}).get('cad_projection_registered'):
         return None
     category = inventory.count_category(question)
     if category is None:
-        return None
+        scoped = _native_region_context(data, source, page, region)
+        if scoped is None:
+            return None
+        from .native_qa import answer_native
+        return answer_native(question, scoped, source, store.DATA_ROOT)
     for obj in data.get('objects', []):
         if obj.get('page') != page:
             continue
@@ -532,10 +579,13 @@ def _compute_analysis(payload, question, data, source):
     result = None
     native_result = None
     native_data = data
+    region_data = _native_region_context(data, source, payload.page, payload.region) if payload.region else None
     if payload.scope == 'page':
         native_data = {**data, 'metadata': {**data.get('metadata', {}), 'requested_scope': 'page'},
                        'pages': [p for p in data.get('pages', []) if p.get('page') == payload.page],
                        'objects': [o for o in data.get('objects', []) if o.get('page') == payload.page]}
+    if region_data is not None:
+        native_data = region_data
     if payload.mode != 'vision':
         if payload.region:
             result = _native_region_answer(question, data, source, payload.page, payload.region)
@@ -551,10 +601,10 @@ def _compute_analysis(payload, question, data, source):
             except llm.ModelError:
                 pass
         native_result = copy.deepcopy(result)
-    if result is None and payload.mode != 'native' and not payload.region and llm.model_available():
+    if result is None and payload.mode != 'native' and (not payload.region or region_data is not None) and llm.model_available():
         # Schedule sheets: a model plans the table query, the program executes it over the cells.
         from . import schedule_planner
-        if schedule_planner.usable_tables(data):
+        if not payload.region and schedule_planner.usable_tables(data):
             def _plan_cache_get(key):
                 return store.cached_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}))
 
@@ -562,6 +612,16 @@ def _compute_analysis(payload, question, data, source):
                 store.save_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}), 'schedule_plan', plan)
             try:
                 result = schedule_planner.answer(question, data, request=llm._request, cache=(_plan_cache_get, _plan_cache_put))
+            except llm.ModelError:
+                result = None
+        if result is None:
+            from . import native_query
+            def _native_plan_get(key):
+                return store.cached_analysis(store.analysis_key('native_query', {'plan':key,'provider':llm.provider_signature()}))
+            def _native_plan_put(key, plan):
+                store.save_analysis(store.analysis_key('native_query', {'plan':key,'provider':llm.provider_signature()}), 'native_query', plan)
+            try:
+                result = native_query.answer(question, native_data, request=llm._request, cache=(_native_plan_get,_native_plan_put))
             except llm.ModelError:
                 result = None
     if result is None and payload.mode != 'native':
@@ -921,8 +981,23 @@ def chats():
 @app.post('/api/workspace/projects')
 @app.post('/api/chat-projects')
 def create_project(payload: ChatCreate):
-    identity=store.create_chat(payload.name.strip() or 'Untitled project',project=True)
-    return {'id':identity}
+    identity=store.create_chat(payload.name.strip() or 'Untitled project',project=True,identity=str(payload.session_id) if payload.session_id else None)
+    return {'id':identity, 'project':store.get_chat_project(identity)}
+
+class DrawingAttachment(BaseModel):
+    session_id: uuid.UUID
+    next_session_id: uuid.UUID
+    document_id: str = Field(min_length=1, max_length=100)
+
+@app.post('/api/workspace/attachments')
+def attach_drawing(payload: DrawingAttachment):
+    try:
+        thread = store.attach_chat_drawing(str(payload.session_id), payload.document_id, str(payload.next_session_id))
+    except KeyError:
+        raise HTTPException(404, 'Drawing not found. Upload it again or select it from Dataset.') from None
+    except ValueError:
+        raise HTTPException(409, 'This chat identity belongs to another drawing.') from None
+    return {'thread':thread}
 
 @app.post('/api/workspace/chats')
 @app.post('/api/chats')

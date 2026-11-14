@@ -4,6 +4,7 @@ import io
 import os
 import re
 from pathlib import Path
+from functools import lru_cache
 
 import pymupdf
 from PIL import Image, ImageOps
@@ -104,6 +105,41 @@ def visual_sources(path: Path):
     return [path] if suffix != '.ifc' else []
 
 
+@lru_cache(maxsize=4)
+def _dxf_render(path, mtime_ns, size):
+    """Return the exact PDF and WCS-to-normalized-page transform used by its renderer."""
+    import ezdxf
+    from ezdxf.addons.drawing import Frontend, RenderContext, layout, config
+    from ezdxf.addons.drawing.pymupdf import PyMuPdfBackend, get_coordinate_output_space
+    cad = ezdxf.readfile(path)
+    backend = PyMuPdfBackend()
+    cfg = config.Configuration(background_policy=config.BackgroundPolicy.WHITE)
+    Frontend(RenderContext(cad), backend, config=cfg).draw_layout(cad.modelspace(), finalize=True)
+    settings = layout.Settings()
+    # Mirror the first get_replay() placement, before that call transforms its recordings.
+    output_layout = layout.Layout(backend.player().bbox(), flip_y=True)
+    page = output_layout.get_final_page(layout.Page(0, 0), settings)
+    settings.output_coordinate_space = get_coordinate_output_space(page)
+    matrix = output_layout.get_placement_matrix(page, settings=settings, top_origin=True)
+    origin = matrix.transform((0, 0, 0))
+    x_axis = matrix.transform((1, 0, 0))
+    y_axis = matrix.transform((0, 1, 0))
+    pdf = backend.get_pdf_bytes(layout.Page(0, 0))
+    with pymupdf.open(stream=pdf, filetype='pdf') as document:
+        width, height = document[0].rect.width, document[0].rect.height
+    if width <= 0 or height <= 0:
+        raise ValueError('Invalid CAD preview dimensions')
+    transform = [(x_axis.x-origin.x)/width, (y_axis.x-origin.x)/width, origin.x/width,
+                 (x_axis.y-origin.y)/height, (y_axis.y-origin.y)/height, origin.y/height]
+    return pdf, transform
+
+
+def dxf_render(path):
+    path = Path(path).resolve()
+    stat = path.stat()
+    return _dxf_render(str(path), stat.st_mtime_ns, stat.st_size)
+
+
 def render_page(path: Path, page=1, max_edge=2400):
     if page < 1:
         raise ValueError('Page numbers begin at 1')
@@ -128,14 +164,7 @@ def render_page(path: Path, page=1, max_edge=2400):
             pix = p.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False)
             return Image.frombytes('RGB', (pix.width, pix.height), pix.samples), source
     if suffix == '.dxf':
-        import ezdxf
-        from ezdxf.addons.drawing import Frontend, RenderContext, layout, config
-        from ezdxf.addons.drawing.pymupdf import PyMuPdfBackend
-        cad = ezdxf.readfile(source)
-        backend = PyMuPdfBackend()
-        cfg = config.Configuration(background_policy=config.BackgroundPolicy.WHITE)
-        Frontend(RenderContext(cad), backend, config=cfg).draw_layout(cad.modelspace(), finalize=True)
-        pdf = backend.get_pdf_bytes(layout.Page(0, 0))
+        pdf, _ = dxf_render(source)
         with pymupdf.open(stream=pdf, filetype='pdf') as doc:
             p = doc[0]
             pix = p.get_pixmap(matrix=pymupdf.Matrix(max_edge / max(p.rect.width, p.rect.height), max_edge / max(p.rect.width, p.rect.height)), alpha=False)

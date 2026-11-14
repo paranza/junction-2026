@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 from PIL import Image
 import pymupdf
@@ -42,6 +43,31 @@ class BackendUpgrade(unittest.TestCase):
 
     def ask(self, question='How many windows?', **kwargs):
         return self.client.post('/api/ask', json={'document_id': self.doc['id'], 'question': question, **kwargs})
+
+    def test_attachment_recovers_missing_chat_and_replays_without_duplicates(self):
+        identity = str(uuid.uuid4())
+        payload = {'session_id':identity, 'next_session_id':str(uuid.uuid4()), 'document_id':self.doc['id']}
+        first = self.client.post('/api/workspace/attachments', json=payload)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()['thread']['id'], identity)
+        self.assertEqual(first.json()['thread']['document_id'], self.doc['id'])
+        again = self.client.post('/api/workspace/attachments', json=payload)
+        self.assertEqual(first.json(), again.json())
+        self.assertEqual(len(self.client.get('/api/workspace/chats').json()['threads']), 1)
+
+    def test_missing_drawing_leaves_no_partial_chat(self):
+        response = self.client.post('/api/workspace/attachments', json={
+            'session_id':str(uuid.uuid4()), 'next_session_id':str(uuid.uuid4()), 'document_id':'missing'
+        })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(store.chat_workspace()['threads'], [])
+
+    def test_project_creation_is_retryable_after_a_lost_response(self):
+        payload = {'name':'Building', 'session_id':str(uuid.uuid4())}
+        first = self.client.post('/api/workspace/projects', json=payload)
+        second = self.client.post('/api/workspace/projects', json=payload)
+        self.assertEqual(first.json(), second.json())
+        self.assertEqual(len(store.chat_workspace()['projects']), 1)
 
     def test_workspace_refresh_preserves_threads_and_avoids_cached_history(self):
         project = self.client.post('/api/workspace/projects', json={'name': 'Building'}).json()['id']

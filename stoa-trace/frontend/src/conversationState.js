@@ -45,6 +45,12 @@ export function recordsFromSnapshot(snapshot, sessionId) {
     question: item.question, timestamp: Number(item.created_at) * 1000, status: item.status }));
 }
 
+export function latestRestorableRecord(snapshot, sessionId) {
+  const records = recordsFromSnapshot(snapshot, sessionId).sort((a,b)=>b.timestamp-a.timestamp);
+  const latest = records[0];
+  return latest?.status === 'completed' && latest.answerId ? latest : null;
+}
+
 export function recordFromAnswer(answer, fallbackQuestion = '', documentName = '') {
   if (!safeId(answer?.id)) return null;
   const created = answer.created_at;

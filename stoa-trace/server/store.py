@@ -373,7 +373,7 @@ def workspace_usage(days=30):
     from datetime import datetime, timezone, timedelta
     start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days-1)
     with connection() as db:
-        rows = db.execute("SELECT kind,detail,created FROM events WHERE kind IN ('model_request','model_response') ORDER BY id").fetchall()
+        rows = db.execute("SELECT id,kind,detail,created FROM events WHERE kind IN ('model_request','model_response') ORDER BY id").fetchall()
     attempts, responses = {}, {}
     for row in rows:
         try:
@@ -384,7 +384,11 @@ def workspace_usage(days=30):
             continue
         identity = detail.get('request_id')
         if not identity:
-            continue
+            if row['kind'] != 'model_request':
+                continue
+            # Earlier reservations lacked correlation IDs. Count each actual
+            # attempt, but never invent a matching response or token charge.
+            identity = f"legacy-event-{row['id']}"
         if row['kind'] == 'model_request':
             if start.timestamp() <= row['created'] < (start+timedelta(days=days)).timestamp():
                 attempts.setdefault(identity, {**detail, 'created': row['created']})
@@ -415,13 +419,49 @@ def get_chat(identity):
             raise KeyError(identity)
         return dict(row)
 
+def attach_chat_drawing(identity, document_id, next_identity):
+    """Resolve the target chat from persisted state in one transaction."""
+    chat_workspace()
+    now = time.time()
+    with connection() as db:
+        db.execute('BEGIN IMMEDIATE')
+        drawing = db.execute('SELECT id,name FROM documents WHERE id=?', (document_id,)).fetchone()
+        if not drawing:
+            raise KeyError(document_id)
+        current = db.execute('SELECT * FROM chat_threads WHERE id=?', (identity,)).fetchone()
+        if current and current['document_id'] == document_id:
+            target = identity
+        elif current and current['document_id']:
+            existing = db.execute('SELECT id FROM chat_threads WHERE document_id=? AND project_id IS ? ORDER BY updated DESC LIMIT 1', (document_id, current['project_id'])).fetchone()
+            target = existing['id'] if existing else next_identity
+            if not existing:
+                collision = db.execute('SELECT document_id,project_id FROM chat_threads WHERE id=?', (target,)).fetchone()
+                if collision and (collision['document_id'] != document_id or collision['project_id'] != current['project_id']):
+                    raise ValueError('Chat identity already belongs to another drawing')
+                db.execute('INSERT OR IGNORE INTO chat_threads VALUES(?,?,?,?,?,?)', (target, drawing['name'], current['project_id'], document_id, now, now))
+        elif current:
+            target = identity
+            title = drawing['name'] if current['title'] in ('New chat', 'Floor plan') else current['title']
+            db.execute('UPDATE chat_threads SET title=?,document_id=?,updated=? WHERE id=?', (title, document_id, now, target))
+        else:
+            target = identity
+            db.execute('INSERT INTO chat_threads VALUES(?,?,?,?,?,?)', (target, drawing['name'], None, document_id, now, now))
+    return get_chat(target)
+
+def get_chat_project(identity):
+    with connection() as db:
+        row = db.execute('SELECT * FROM chat_projects WHERE id=?', (identity,)).fetchone()
+        if not row:
+            raise KeyError(identity)
+        return dict(row)
+
 def create_chat(name, project_id=None, document_id=None, project=False, identity=None):
     import uuid
     chat_workspace()
     identity=identity or str(uuid.uuid4()); now=time.time()
     with connection() as db:
         if project:
-            db.execute('INSERT INTO chat_projects VALUES(?,?,?)',(identity,name,now))
+            db.execute('INSERT OR IGNORE INTO chat_projects VALUES(?,?,?)',(identity,name,now))
         else:
             if project_id and not db.execute('SELECT id FROM chat_projects WHERE id=?',(project_id,)).fetchone(): raise KeyError(project_id)
             if document_id and not db.execute('SELECT id FROM documents WHERE id=?',(document_id,)).fetchone(): raise KeyError(document_id)

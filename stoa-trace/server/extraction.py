@@ -780,6 +780,38 @@ def _unregistered_cad_objects(cad, displayed_source=None):
     return objects
 
 
+def _register_standalone_cad(result, path):
+    from .rendering import dxf_render, visual_sources
+    if visual_sources(path)[0].resolve() != path.resolve():
+        return False
+    _, matrix = dxf_render(path)
+    minx, miny, maxx, maxy = result['metadata']['cad_extents']
+    def world(point):
+        x, y = point
+        return [round(matrix[0]*x+matrix[1]*y+matrix[2], 8), round(matrix[3]*x+matrix[4]*y+matrix[5], 8)]
+    def normalized(point):
+        return world((minx+point[0]*(maxx-minx), maxy-point[1]*(maxy-miny)))
+    for obj in result['objects']:
+        if obj.get('polygon'):
+            obj['polygon'] = [normalized(point) for point in obj['polygon']]
+            obj['bbox'] = _bbox(obj['polygon'])
+        elif obj.get('bbox'):
+            box = obj['bbox']
+            obj['bbox'] = _bbox([normalized(box[:2]),normalized(box[2:]),normalized((box[0],box[3])),normalized((box[2],box[1]))])
+        properties = obj.setdefault('properties', {})
+        properties['preview_registration'] = True
+        if properties.get('cad_anchor'):
+            properties['preview_anchor'] = world(properties['cad_anchor'])
+    for page in result.get('pages', []):
+        for word in page.get('words', []):
+            if word.get('bbox'):
+                box = word['bbox']
+                word['bbox'] = _bbox([normalized(box[:2]),normalized(box[2:])])
+    result['metadata'].update(coordinate_system='normalized_page',cad_projection_registered=True,
+                              preview_registration=True,preview_transform=matrix)
+    return True
+
+
 _IFC_QUANTITY_PROPERTIES = {
     "netfloorarea": ("net_area_m2", "area", "m²"),
     "netarea": ("net_area_m2", "area", "m²"),
@@ -1041,14 +1073,17 @@ def extract_document(path: Path, data_root: Path) -> dict:
         return result
     result = extractor(path, data_root)
     if path.suffix.lower() == ".dxf":
-        # The standalone renderer chooses its own page margins and layout.
-        # CAD-extent coordinates have no established image-to-page transform.
-        result["objects"] = _unregistered_cad_objects(result)
-        for page in result.get("pages", []):
-            page["words"] = [{"text": word.get("text", "")} for word in page.get("words", [])]
-        result["metadata"]["coordinate_system"] = "unregistered_native_cad"
-        result["metadata"]["cad_projection_registered"] = False
-        result["warnings"].append("Native CAD quantities are available, but their coordinates are not registered to this preview. Drawing highlights are withheld.")
+        try:
+            registered = _register_standalone_cad(result, path)
+        except (ValueError, OSError, ZeroDivisionError):
+            registered = False
+        if not registered:
+            result["objects"] = _unregistered_cad_objects(result)
+            for page in result.get("pages", []):
+                page["words"] = [{"text": word.get("text", "")} for word in page.get("words", [])]
+            result["metadata"]["coordinate_system"] = "unregistered_native_cad"
+            result["metadata"]["cad_projection_registered"] = False
+            result["warnings"].append("Native CAD quantities are available, but their coordinates are not registered to this preview. Drawing highlights are withheld.")
     return result
 
 

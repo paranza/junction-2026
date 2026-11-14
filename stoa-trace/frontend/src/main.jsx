@@ -46,7 +46,11 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import ChatWorkspace, { ThreadActions } from './ChatWorkspace.jsx';
-import { WorkspaceNavigation, DatasetPage, SpendingPage, SettingsPage } from './WorkspacePages.jsx';
+import DrawingArtifact from './DrawingArtifact.jsx';
+import AgentThinking from './boardui/AgentThinking.jsx';
+import { latestRestorableRecord } from './conversationState.js';
+import { focusDrawingBox } from './canvasFocus.js';
+import { WorkspaceNavigation, DatasetPage, SpendingPage } from './WorkspacePages.jsx';
 import ChatThread, { useConversation } from './ChatThread.jsx';
 import EvidenceCloseup from './EvidenceCloseup.jsx';
 import { MessageInferenceCost } from './InferenceCost.jsx';
@@ -65,7 +69,10 @@ const request = async (url, options = {}) => {
 const jsonRequest = (url, body, options = {}) => request(url, { ...options, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const arrayOf = value => Array.isArray(value) ? value : [];
 const basename = path => String(path || '').split(/[\\/]/).pop();
-const documentName = doc => doc?.name || basename(doc?.path) || 'Untitled drawing';
+const documentName = doc => {
+  const name = doc?.name || basename(doc?.path) || 'Untitled drawing';
+  return doc?.source === 'uploads' ? name.replace(/^[a-f0-9]{12}-/i, '') : name;
+};
 const formatOf = doc => String(doc?.format || documentName(doc).split('.').pop() || '').replace(/^\./, '').toUpperCase();
 const shortText = value => value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
 const readable = value => shortText(value).replaceAll('_', ' ');
@@ -94,6 +101,11 @@ const normalizeDetails = payload => payload?.document ? { ...payload.document, p
 const calculationText = (calculation, answer) => {
   if (typeof calculation !== 'object') return shortText(calculation);
   if (calculation.formula || calculation.expression) return calculation.formula || calculation.expression;
+  if (calculation.plan?.explanation) return calculation.plan.explanation;
+  if (['sum','min','max','mean','value'].includes(calculation.operation) && calculation.result != null) {
+    const label={sum:'Sum',min:'Minimum',max:'Maximum',mean:'Average',value:'Source value'}[calculation.operation];
+    return `${label} of ${calculation.terms?.length || 1} recorded quantities: ${formatQuantityValue(calculation.result, answer.unit)} ${answer.unit || ''}`;
+  }
   if (String(calculation.operation).includes('count')) {
     const nativeClass = arrayOf(calculation.classes).find(item => String(item).startsWith('Ifc'));
     const kind = nativeClass ? nativeClass.replace(/^Ifc/, '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase() : 'model';
@@ -141,6 +153,7 @@ function DrawingCanvas({
   evidence,
   selectedEvidence,
   onSelectEvidence,
+  onClearSelection,
   hoveredEvidence,
   onHoverEvidence,
   onToggleExclude,
@@ -161,6 +174,7 @@ function DrawingCanvas({
 }) {
   const viewportRef = useRef(null);
   const loadedImageRef = useRef(null);
+  const failedImageRef = useRef(null);
   const dragRef = useRef(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const [size, setSize] = useState({ width: 1000, height: 700 });
@@ -168,11 +182,9 @@ function DrawingCanvas({
   const [transform, setTransform] = useState(transformRef.current);
   const [imageState, setImageState] = useState('loading');
   const [showEvidence, setShowEvidence] = useState(true);
-  const [spotlightMode, setSpotlightMode] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [tool, setTool] = useState('pan');
   const [draftRegion, setDraftRegion] = useState(null);
-  const [pointerCoords, setPointerCoords] = useState(null);
   const [localHoveredKey, setLocalHoveredKey] = useState(null);
   const [captureMode, setCaptureMode] = useState(null);
   const [measurementPoints, setMeasurementPoints] = useState([]);
@@ -209,7 +221,8 @@ function DrawingCanvas({
   }, []);
 
   useEffect(() => {
-    setImageState('loading');
+    // Cached images can dispatch load/error before this passive effect runs.
+    setImageState(loadedImageRef.current === imageUrl ? 'ready' : failedImageRef.current === imageUrl ? 'error' : 'loading');
     setTool('pan');
   }, [imageUrl]);
 
@@ -219,6 +232,16 @@ function DrawingCanvas({
   useEffect(() => { if (manualMode) setCaptureMode(null); }, [manualMode]);
 
   useEffect(() => { setCaptureMode(null); setMeasurementPoints([]); setCategoryFilter('all'); setLocalHoveredKey(null); }, [document?.id, page, imageVersion]);
+
+  useEffect(() => {
+    if (!selectedEvidence) { setLocalHoveredKey(null); return; }
+    const outside = event => {
+      if (event.target?.closest?.('.shape-popover, .evidence-shape, .evidence-marker, .evidence-select')) return;
+      setLocalHoveredKey(null); onHoverEvidence?.(null); onClearSelection?.();
+    };
+    window.addEventListener('pointerdown',outside,true);
+    return()=>window.removeEventListener('pointerdown',outside,true);
+  },[selectedEvidence,onClearSelection,onHoverEvidence]);
 
   useEffect(() => {
     fit();
@@ -271,7 +294,6 @@ function DrawingCanvas({
 
   const handlePointerMove = event => {
     const [x, y] = pointInDrawing(event);
-    setPointerCoords({ x, y });
 
     const drag = dragRef.current;
     if (!drag || drag.type === 'measure') return;
@@ -322,14 +344,8 @@ function DrawingCanvas({
   const focusEvidence = useCallback(() => {
     const box = JSON.parse(focusedBoxKey);
     if (!box) return;
-    const width = Math.max(0.025, box[2] - box[0]) * size.width;
-    const height = Math.max(0.025, box[3] - box[1]) * size.height;
-    const scale = Math.min(8, Math.min((viewSize.width * 0.65) / width, (viewSize.height * 0.65) / height));
-    applyTransform({
-      scale,
-      x: viewSize.width / 2 - ((box[0] + box[2]) / 2) * size.width * scale,
-      y: viewSize.height / 2 - ((box[1] + box[3]) / 2) * size.height * scale,
-    });
+    const next=focusDrawingBox(box,size,viewSize,window.devicePixelRatio || 1);
+    if(next)applyTransform(next);
   }, [focusedBoxKey, size.width, size.height, viewSize.width, viewSize.height, applyTransform]);
 
   const lastFocusToken = useRef(0);
@@ -360,12 +376,10 @@ function DrawingCanvas({
   }, [evidence, categoryFilter]);
 
   const activeHoverKey = localHoveredKey || hoveredEvidence;
-  const activePopoverItem = filteredEvidence.find(
-    item => item._key === activeHoverKey || (item._key === selectedEvidence && !activeHoverKey)
-  );
+  const activePopoverItem = filteredEvidence.find(item => item._key === selectedEvidence);
 
   return (
-    <div className={`canvas-wrapper ${spotlightMode ? 'spotlight-active' : ''} ${highContrast ? 'high-contrast-canvas' : ''}`}>
+    <div className={`canvas-wrapper ${highContrast ? 'high-contrast-canvas' : ''}`}>
       {/* Floating Canvas Action Toolbar */}
       <div className="canvas-floating-toolbar">
         <div className="segmented-group">
@@ -373,6 +387,7 @@ function DrawingCanvas({
             type="button"
             className={`toolbar-btn ${tool === 'pan' ? 'is-active' : ''}`}
             title="Pan drawing (Drag to pan)"
+            aria-pressed={tool === 'pan'}
             onClick={() => setTool('pan')}
           >
             <MousePointer2 size={15} />
@@ -381,6 +396,7 @@ function DrawingCanvas({
             type="button"
             className={`toolbar-btn ${tool === 'region' ? 'is-active' : ''}`}
             title="Select drawing area to query"
+            aria-pressed={tool === 'region'}
             disabled={imageState !== 'ready'}
             onClick={() => setTool('region')}
           >
@@ -388,39 +404,18 @@ function DrawingCanvas({
           </button>
         </div>
 
-        <div className="toolbar-separator" />
+        {evidence.length > 0 && <><div className="toolbar-separator" />
 
         <button
           type="button"
           className={`toolbar-btn ${showEvidence ? 'is-active' : ''}`}
           title={showEvidence ? 'Hide highlighted shapes' : 'Show highlighted shapes'}
+          aria-pressed={showEvidence}
           onClick={() => setShowEvidence(!showEvidence)}
         >
           {showEvidence ? <Eye size={15} /> : <EyeOff size={15} />}
-        </button>
+        </button></>}
 
-        <button
-          type="button"
-          className={`toolbar-btn ${spotlightMode ? 'is-active' : ''}`}
-          title={spotlightMode ? 'Disable spotlight dimming' : 'Enable spotlight (dim drawing to highlight shapes)'}
-          onClick={() => setSpotlightMode(!spotlightMode)}
-        >
-          <Layers size={15} />
-        </button>
-
-        <button
-          type="button"
-          className="toolbar-btn"
-          title="Center on selected shape"
-          disabled={focusedBoxKey === 'null'}
-          onClick={() => { setShowEvidence(true); setCategoryFilter('all'); focusEvidence(); }}
-        >
-          <Crosshair size={15} />
-        </button>
-
-        <button type="button" className="toolbar-btn" title="Fit to view (0)" onClick={fit}>
-          <Maximize size={15} />
-        </button>
       </div>
 
       {/* Category Filter Chips Bar on Canvas */}
@@ -492,10 +487,11 @@ function DrawingCanvas({
               draggable={false}
               onLoad={event => {
                 loadedImageRef.current = imageUrl;
+                failedImageRef.current = null;
                 setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
                 setImageState('ready');
               }}
-              onError={() => setImageState('error')}
+              onError={() => { failedImageRef.current = imageUrl; setImageState('error'); }}
             />
 
             {/* Interactive SVG Shapes Layer */}
@@ -521,6 +517,7 @@ function DrawingCanvas({
 
                   const commonProps = {
                     key: item._key,
+                    onPointerDown: event => event.stopPropagation(),
                     style: { pointerEvents: tool === 'pan' ? undefined : 'none' },
                     className: `evidence-shape kind-${kind} ${isSelected ? 'is-selected' : ''} ${
                       isHovered ? 'is-hovered' : ''
@@ -665,17 +662,7 @@ function DrawingCanvas({
                       {activePopoverItem.page && <span>Page {activePopoverItem.page}</span>}
                     </div>
 
-                    <div className="shape-popover-actions">
-                      <button
-                        type="button"
-                        className="popover-action-btn"
-                        onClick={e => {
-                          e.stopPropagation();
-                          onSelectEvidence(activePopoverItem);
-                        }}
-                      >
-                        <Crosshair size={12} /> Focus
-                      </button>
+                    {canReview && <div className="shape-popover-actions">
                       <button
                         type="button"
                         className={`popover-action-btn ${activePopoverItem._excluded ? 'is-excluded' : ''}`}
@@ -688,7 +675,7 @@ function DrawingCanvas({
                         {activePopoverItem._excluded ? <Eye size={12} /> : <EyeOff size={12} />}
                         {activePopoverItem._excluded ? 'Include' : 'Exclude'}
                       </button>
-                    </div>
+                    </div>}
                   </div>
                 );
               })()
@@ -724,44 +711,17 @@ function DrawingCanvas({
         )}
       </div>
 
-      {/* Canvas Footer HUD */}
-      <footer className="canvas-footer">
-        <div className="canvas-hud">
-          {pointerCoords && (
-            <span className="hud-pill">
-              X: {(pointerCoords.x * 100).toFixed(1)}% Y: {(pointerCoords.y * 100).toFixed(1)}%
-            </span>
-          )}
-          {activePopoverItem && (
-            <span className="hud-pill">
-              Shape #{activePopoverItem._number}: {activePopoverItem.label || 'Selected'}
-            </span>
-          )}
-        </div>
 
-        <div className="zoom-controls">
-          <button type="button" className="icon-btn" title="Zoom out (-)" onClick={() => zoomAt(0.8)}>
-            <Minus size={14} />
-          </button>
-          <span className="zoom-pct">{Math.round(transform.scale * 100)}%</span>
-          <button type="button" className="icon-btn" title="Zoom in (+)" onClick={() => zoomAt(1.25)}>
-            <Plus size={14} />
-          </button>
-          <button type="button" className="icon-btn" title="Fit to view (0)" onClick={fit}>
-            <Maximize size={14} />
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }
 
 function EvidenceProperties({ properties }) {
   if (!properties || typeof properties !== 'object') return null;
-  const hiddenProperties = ['projection_mean_error', 'extraction_version', 'coordinate_system'];
+  const hiddenProperties = ['geometry_area_m2', 'projection_mean_error', 'extraction_version', 'coordinate_system', 'native_geometry', 'native_source_path', 'preview_registration', 'cad_anchor', 'cad_handle', 'layer', 'unit_id', 'area_source', 'geometry_area_source', 'printed_area_m2'];
   const entries = Object.entries(properties).filter(([name, value]) => value != null && typeof value !== 'object' && !hiddenProperties.includes(name)).slice(0, 10);
   if (!entries.length) return null;
-  return <dl className="property-list">{entries.map(([name, value]) => <React.Fragment key={name}><dt>{name === 'native_source_path' ? 'Native source' : readable(name)}</dt><dd>{name.endsWith('_path') ? basename(value) : typeof value === 'boolean' ? value ? 'Yes' : 'No' : shortText(value)}</dd></React.Fragment>)}</dl>;
+  return <dl className="property-list">{entries.map(([name, value]) => <React.Fragment key={name}><dt>{name === 'room_number' ? 'Room' : readable(name.replace(/_(m2|m3|mm|cm|m)$/, ''))}</dt><dd>{typeof value === 'number' && /_m2$/.test(name) ? `${formatQuantityValue(value, 'm²')} m²` : typeof value === 'boolean' ? value ? 'Yes' : 'No' : shortText(value)}</dd></React.Fragment>)}</dl>;
 }
 
 function UsageDetails({ answer }) {
@@ -802,12 +762,11 @@ function ReconciliationDetails({ answer, onSelect, onResolve, resolving, disable
 const readPreference = (name, fallback) => { try { return JSON.parse(localStorage.getItem('metria.preferences.v1') || '{}')[name] ?? fallback; } catch { return fallback; } };
 
 function App({thread, chatWorkspace}) {
-  const [route, setRoute] = useState(() => ['chats','dataset','spending','settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'chats');
+  const [route, setRoute] = useState(() => ['chats','dataset','spending'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'chats');
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const navigate = (next) => { setRoute(next); location.hash = next; setLibraryOpen(false); setSettingsOpen(false); };
-  useEffect(() => { const changed = () => { const next=location.hash.slice(1); setRoute(['chats','dataset','spending','settings'].includes(next)?next:'chats'); }; window.addEventListener('hashchange',changed); return()=>window.removeEventListener('hashchange',changed); }, []);
+  const navigate = (next) => { setRoute(next); location.hash = next; setLibraryOpen(false); };
+  useEffect(() => { const changed = () => { const next=location.hash.slice(1); setRoute(['chats','dataset','spending'].includes(next)?next:'chats'); }; window.addEventListener('hashchange',changed); return()=>window.removeEventListener('hashchange',changed); }, []);
   const [health, setHealth] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [unitSystem, setUnitSystem] = useState(() => readPreference('units','metric'));
   const [confidenceThreshold, setConfidenceThreshold] = useState(() => readPreference('confidence',0));
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -841,7 +800,6 @@ function App({thread, chatWorkspace}) {
   const [askError, setAskError] = useState('');
   const [askErrorUsage, setAskErrorUsage] = useState(undefined);
   const sessionUsage = useSessionUsage(request, asking, thread?.id);
-  const [elapsed, setElapsed] = useState(0);
   const [history, setHistory] = useState([]);
   const [excluded, setExcluded] = useState([]);
   const [manualAdditions, setManualAdditions] = useState([]);
@@ -861,7 +819,7 @@ function App({thread, chatWorkspace}) {
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const [answerOpen, setAnswerOpen] = useState(false);
+  const [answerOpen, setAnswerOpen] = useState(true);
   const [pendingQuestion, setPendingQuestion] = useState(null);
   const initialConversationRestore = useRef(false);
   const conversationEndRef = useRef(null);
@@ -957,15 +915,18 @@ function App({thread, chatWorkspace}) {
     request(`/api/questions/${encodeURIComponent(selectedId)}`, { signal: controller.signal }).then(data => setSuggestions(arrayOf(data.questions || data.suggestions || data).map(item => typeof item === 'string' ? item : item.question).filter(Boolean))).catch(() => {});
     return () => controller.abort();
   }, [selectedId, refreshVersion]);
-  useEffect(() => { if (!asking) return; setElapsed(0); const timer = setInterval(() => setElapsed(value => value + 1), 1000); return () => clearInterval(timer); }, [asking]);
   const selectDocument = useCallback(async (id, keepAnswer = false, requestedPage = 1) => {
     if (id && !keepAnswer && await chatWorkspace.document(id)) return;
     initialConversationRestore.current = true;
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
     if (!keepAnswer) { setFocusToken(0); setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
   }, [cancelAsk, cancelHistory, cancelManual, chatWorkspace]);
+  const clearEvidenceSelection = useCallback(() => {
+    setSelectedEvidence(null); setHoveredEvidence(null); setFocusToken(0); setComparisonEvidence(null);
+  }, []);
   const selectEvidence = useCallback(item => {
     if (answerRef.current?.source_changed) return;
+    if (selectedEvidence === item._key) { clearEvidenceSelection(); return; }
     setAnswerOpen(false);
     setHoveredEvidence(null);
     cancelAsk(); cancelHistory(); cancelManual();
@@ -974,7 +935,7 @@ function App({thread, chatWorkspace}) {
     const targetDocument = item.document_id || answerDocumentId;
     if (targetDocument && String(targetDocument) !== String(selectedId)) selectDocument(targetDocument, true, item.page);
     else if (evidenceBBox(item) && item.page && Number(item.page) !== page) { setPage(Number(item.page)); setRegion(null); }
-  }, [answerDocumentId, selectedId, page, selectDocument, cancelAsk, cancelHistory, cancelManual]);
+  }, [selectedEvidence, clearEvidenceSelection, answerDocumentId, selectedId, page, selectDocument, cancelAsk, cancelHistory, cancelManual]);
   const ask = async (event, crossCheck = false, overrideQuestion) => {
     const questionText = (overrideQuestion ?? question).trim();
     event?.preventDefault();
@@ -1110,12 +1071,12 @@ function App({thread, chatWorkspace}) {
     answer, answerQuestion, documentName: answerDocumentName, request });
   useEffect(() => {
     if (initialConversationRestore.current || answer || asking) return;
-    const latest = [...conversation.records].reverse().find(item => item.status === 'completed' && item.answerId);
+    const latest = latestRestorableRecord(sessionUsage.snapshot, sessionUsage.sessionId);
     if (!latest || !conversation.answers[latest.answerId]) return;
     initialConversationRestore.current = true;
     const restored = conversation.answers[latest.answerId];
     restoreHistory({ id: restored.id, question: latest.question, documentId: restored.document_id, documentName: restored.document?.name || latest.documentName });
-  }, [conversation.records, conversation.answers, answer, asking]);
+  }, [sessionUsage.snapshot, sessionUsage.sessionId, conversation.answers, answer, asking]);
   useEffect(() => {
     requestAnimationFrame(() => {
       if (asking) conversationEndRef.current?.scrollIntoView({ block: 'end', behavior: 'auto' });
@@ -1131,7 +1092,7 @@ function App({thread, chatWorkspace}) {
 
   useEffect(() => {
     const onKeyDown = event => {
-      if (event.key === 'Escape') setSettingsOpen(false);
+      if (event.key === 'Escape') { setSelectedEvidence(null); setHoveredEvidence(null); setFocusToken(0); setComparisonEvidence(null); }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); initialConversationRestore.current = true; setLibraryOpen(true); requestAnimationFrame(() => searchInputRef.current?.focus()); }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -1139,8 +1100,7 @@ function App({thread, chatWorkspace}) {
   }, []);
   const quickQuestions = suggestions.slice(0, 3);
   const sampleItems = ['swiss_dwellings', 'cubicasa5k', 'ifc_models'].map(source => ({ doc: documents.find(item => item.source === source), label: collectionLabel(source) })).filter(item => item.doc);
-  const showAnswerPanel = Boolean(selectedId) || Boolean(answer) || asking || conversation.records.length > 0 || Boolean(askError);
-  const panelIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>;
+  const showAnswerPanel = Boolean(selectedId);
   const formatAnswerQuantity = useCallback(response => {
     const shown = displayQuantity(response.value, response.unit, unitSystem);
     return { ...shown, unit: shown.unit !== response.unit ? shown.unit : quantityUnit(response) };
@@ -1158,104 +1118,12 @@ function App({thread, chatWorkspace}) {
               onChange={event => uploadFiles(event.target.files)}
             />
       <WorkspaceNavigation chatWorkspace={chatWorkspace} thread={thread} route={route} onNavigate={navigate} collapsed={navCollapsed} onCollapse={()=>setNavCollapsed(v=>!v)} onUpload={()=>{ navigate('chats'); fileInputRef.current?.click(); }} />
-      <header className="app-header">
-        <div className="header-left">
-          <button
-            type="button"
-            className="header-icon-btn"
-            title={sidebarOpen ? 'Hide uploads' : 'Show uploads'}
-            aria-label={sidebarOpen ? 'Hide uploads' : 'Show uploads'}
-            aria-expanded={sidebarOpen}
-            onClick={() => { initialConversationRestore.current = true; setSidebarOpen(value => !value); }}
-          >
-            {panelIcon}
-          </button>
-          <span className="brand-text">{{chats:thread?.title || 'Chats',dataset:'Dataset',spending:'Spending',settings:'Settings'}[route]}</span>
-          {route === 'chats' && selectedDocument && thread?.title !== documentName(selectedDocument) && (
-            <>
-              <span className="header-divider" />
-              <span className="header-doc">{documentName(selectedDocument)}</span>
-            </>
-          )}
-        </div>
+      {health?.status === 'offline' && <div className="workspace-global-error" role="status">Cannot reach the local server. Check that the app is running.</div>}
 
-        <div className="header-right">{route === 'chats' && <ThreadActions thread={thread} workspace={chatWorkspace}/>}
-          {health?.status === 'offline' && (
-            <span className="status-badge is-offline" title="Backend not reachable">
-              <span className="pulse-dot" />
-              Offline
-            </span>
-          )}
-
-        </div>
-      </header>
-
-      {route === 'settings' && <SettingsPage health={health}><div className="settings-controls">
-            <div className="settings-popover-title">Analysis</div>
-            <div className="setting-pill-group" role="group" aria-label="Analysis engine">
-              <button
-                type="button"
-                className={`setting-pill-btn ${!crossCheck ? 'is-active' : ''}`}
-                aria-pressed={!crossCheck}
-                onClick={() => setCrossCheck(false)}
-                disabled={asking}
-              >
-                Auto
-              </button>
-              <button
-                type="button"
-                className={`setting-pill-btn ${crossCheck ? 'is-active' : ''}`}
-                aria-pressed={crossCheck}
-                onClick={() => setCrossCheck(true)}
-                disabled={asking}
-              >
-                Compare counts
-              </button>
-            </div>
-
-            <p className="setting-row-desc">Auto uses native sources first and vision when needed. Compare counts checks native and visual counts at matching scope and may use additional model requests.</p>
-            <label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>An optional second-model pass may change or withhold a count.</small></span></label>
-            <div className="settings-popover-title">Units</div>
-            <div className="setting-pill-group" role="group" aria-label="Unit system">
-              <button
-                type="button"
-                className={`setting-pill-btn ${unitSystem === 'metric' ? 'is-active' : ''}`}
-                aria-pressed={unitSystem === 'metric'}
-                onClick={() => setUnitSystem('metric')}
-              >
-                Metric
-              </button>
-              <button
-                type="button"
-                className={`setting-pill-btn ${unitSystem === 'imperial' ? 'is-active' : ''}`}
-                aria-pressed={unitSystem === 'imperial'}
-                onClick={() => setUnitSystem('imperial')}
-              >
-                Imperial
-              </button>
-            </div>
-
-            <p className="setting-row-desc">Display conversion leaves source quantities and calculations unchanged.</p>
-            <div className="settings-popover-title">Highlight confidence</div>
-            <div className="setting-slider-row">
-              <input
-                className="setting-slider"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={confidenceThreshold}
-                aria-label="Minimum confidence for highlighted shapes"
-                onChange={event => setConfidenceThreshold(Number(event.target.value))}
-              />
-              <span className="setting-slider-val">{confidenceThreshold}%</span>
-            </div>
-            <p className="setting-row-desc">Filters visible highlights only. The answer count is unchanged; unreported confidence remains visible.</p>
-          </div></SettingsPage>}
       {route === 'dataset' && <DatasetPage onOpen={id => { initialConversationRestore.current=true; navigate('chats'); selectDocument(id); }} />}
       {route === 'spending' && <SpendingPage sessionUsage={sessionUsage} />}
       <div className="workspace-dashboard" hidden={route !== 'chats'}>
-      <div className="mobile-toolbar" aria-label="Workspace view"><button type="button" aria-pressed={answerOpen} disabled={!showAnswerPanel} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(true); setLibraryOpen(false); }}><MessageSquareText size={17} /> Conversation</button><button type="button" aria-pressed={!answerOpen} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(false); setLibraryOpen(false); }}><FileImage size={17} /> Drawing</button></div>
+      {selectedId && <div className="mobile-toolbar" aria-label="Workspace view"><button type="button" aria-pressed={answerOpen} disabled={!showAnswerPanel} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(true); setLibraryOpen(false); }}><MessageSquareText size={17} /> Conversation</button><button type="button" aria-pressed={!answerOpen} onClick={() => { initialConversationRestore.current = true; setAnswerOpen(false); setLibraryOpen(false); }}><FileImage size={17} /> Drawing</button></div>}
       <div className={`workspace-layout ${sidebarOpen ? 'sidebar-open' : ''} ${showAnswerPanel ? 'has-answer' : ''}`}>
         {sidebarOpen && <button type="button" className="sidebar-scrim" aria-label="Close drawing library" onClick={() => setSidebarOpen(false)} />}
 
@@ -1329,15 +1197,15 @@ function App({thread, chatWorkspace}) {
         </aside>
 
         <main className="main-drawing" aria-label="Drawing workspace">
-          {selectedId && detailLoading ? <div className="drawing-loading" role="status">Opening drawing…</div> : selectedDocument ? (
+          {selectedId && !selectedDocument && detailError ? <div className="drawing-loading" role="alert">{detailError}<button onClick={()=>setRefreshVersion(value=>value+1)}>Try again</button></div> : selectedId && (detailLoading || !selectedDocument) ? <div className="drawing-loading" role="status">Opening drawing…</div> : selectedDocument ? (
             <>
               <div className="drawing-topbar">
                 <div className="drawing-breadcrumbs">
                   <h2>{documentName(selectedDocument)}</h2>
-                  <span className="eyebrow">{readable(selectedDocument.source || 'Library')}</span>
+                  {selectedDocument.source !== 'uploads' && <span className="eyebrow">{readable(selectedDocument.source || 'Library')}</span>}
                 </div>
 
-                <div className="topbar-actions">
+                <div className="topbar-actions"><ThreadActions thread={thread} workspace={chatWorkspace} onBrowse={()=>setLibraryOpen(true)} />
                   {pageCount > 1 && (
                     <div className="page-stepper">
                       <button type="button" className="icon-btn" disabled={page <= 1} aria-label="Previous page" onClick={() => changePage(page - 1)}>
@@ -1374,6 +1242,7 @@ function App({thread, chatWorkspace}) {
                 evidence={canvasEvidence}
                 selectedEvidence={selectedEvidence}
                 onSelectEvidence={selectEvidence}
+                onClearSelection={clearEvidenceSelection}
                 hoveredEvidence={hoveredEvidence}
                 onHoverEvidence={setHoveredEvidence}
                 onToggleExclude={toggleIncluded}
@@ -1390,7 +1259,7 @@ function App({thread, chatWorkspace}) {
                 imageVersion={refreshVersion}
                 unitSystem={unitSystem}
               />
-              {sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}
+              {sourceCredit && selectedDocument.source !== 'uploads' && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}
             </>
           ) : (
             <div
@@ -1466,12 +1335,11 @@ function App({thread, chatWorkspace}) {
 
         </main>
 
-      <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Conversation and source evidence">
-        <div className="answer-panel-heading"><h2>Conversation</h2><button type="button" className="icon-btn mobile-close-answer" aria-label="Show drawing" onClick={() => setAnswerOpen(false)}><X size={16} /></button></div>
+      {showAnswerPanel && <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Conversation and source evidence">
         <div className="answer-panel-scroll">
 
           {!answer && !asking && !conversation.records.length && <section className="chat-empty"><span className="chat-assistant-label">Metria</span><h2>What do you need from this drawing?</h2><p>Ask about quantities, dimensions or rooms. Open the evidence to inspect the source.</p>{!selectedDocument && <BoardButton onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload a drawing</BoardButton>}<div className="question-suggestions">{(suggestions.length ? suggestions : ['How many doors are shown?', 'What is the area of the largest labelled room?', 'Highlight the windows.']).slice(0, 3).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={15} /></button>)}</div></section>}
-          <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={restoreHistory} quantityUnit={quantityUnit} formatQuantity={formatAnswerQuantity}>
+          <ChatThread conversation={conversation} activeAnswer={answer} asking={asking} onInspect={async item => { await restoreHistory(item); setFocusToken(value => value + 1); }} quantityUnit={quantityUnit} formatQuantity={formatAnswerQuantity}>
           {answer && !asking && <section className="answer-result chat-assistant-message" aria-live="polite">
             <div className="result-topline"><span className="chat-assistant-label">Metria</span><span className={`answer-status status-${resultStatus}`}>{['computed', 'extracted', 'supported'].includes(resultStatus) ? <Check size={12} /> : <CircleHelp size={12} />}{statusLabel[resultStatus] || readable(resultStatus)}</span><IconButton label="Download answer with evidence" onClick={downloadAnswer}><ArrowDownToLine size={15} /></IconButton></div>
             {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
@@ -1479,23 +1347,18 @@ function App({thread, chatWorkspace}) {
 
             {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
-            <details className="chat-artifact" key={answer.id} open={selectedEvidence || hasReviewChanges || pendingManual ? true : undefined}><summary><FileText size={19}/><span><strong>Drawing analysis</strong><small>{documentName(selectedDocument)} · {evidence.length} source items</small></span><ChevronDown size={16}/></summary><div className="artifact-body">
-            {answer.value != null && <div className="answer-value">{formatQuantityValue(shownValue.value, shownValue.unit)}{shownValue.unit && <span>{shownValue.unit}</span>}</div>}
+            <DrawingArtifact key={answer.id} count={evidence.length} focusRequest={focusToken}>
 
-            {answer.agreement?.readings?.[0] === answer.value && !answer.source_changed && <p className={`reading-agreement ${answer.agreement.agree ? 'readings-agree' : 'readings-disagree'}`}>{answer.agreement.agree ? `Same count in ${answer.agreement.readings.length} repeated readings by the same model` : `Check this: repeated readings by the same model gave different counts (${answer.agreement.readings.join(' vs ')})`}</p>}
-            {answer.calculation && <details className="answer-section-details"><summary>Calculation</summary><div className="calculation"><code>{calculationText(answer.calculation, answer)}</code></div></details>}
+            {answer.calculation && <div className="artifact-calculation"><span>Calculation</span><p>{calculationText(answer.calculation, answer)}</p></div>}
             {warnings.length > 0 && <details className="answer-warnings"><summary><CircleHelp size={15} />{warnings.length} {warnings.length === 1 ? 'source note' : 'source notes'} to check</summary>{warnings.map((warning, i) => <p key={i}><span>{shortText(warning.message || warning)}</span></p>)}</details>}
             <ReconciliationDetails answer={answer} onSelect={selectEvidence} onResolve={resolveComparison} resolving={resolving} disabled={reviewing || hasReviewChanges || !!pendingManual} />
             <div className="evidence-section">
-              <div className="section-label"><span>Source evidence</span><span>{evidence.length} {evidence.length === 1 ? 'source item' : 'source items'}</span></div>
-              <div className="evidence-legend"><span><i className="native-key" /> Native source</span><span><i className="visual-key" /> Visual candidate</span><span><i className="manual-key" /> Added in review</span></div>
-              {evidence.length > 0 && evidence.some(item => !evidenceBBox(item)) && <p className="evidence-coverage">{evidence.every(item => !evidenceBBox(item)) ? 'These records have no linked drawing location. Inspect their element IDs and properties.' : 'Some records have no linked drawing location. Inspect their element IDs and properties.'}</p>}
               {evidence.length ? <div className="evidence-list" aria-label="Answer source items">{evidence.map(item => <div key={item._key} className={`evidence-item evidence-kind-${evidenceKind(item)} ${item._key === selectedEvidence ? 'is-selected' : ''} ${item._key === hoveredEvidence ? 'is-hovered' : ''} ${excluded.includes(item._key) ? 'is-excluded' : ''}`} onPointerEnter={() => setHoveredEvidence(item._key)} onPointerLeave={() => setHoveredEvidence(null)}>
                 <button type="button" className="evidence-select" disabled={answer.source_changed} onClick={() => selectEvidence(item)} aria-pressed={item._key === selectedEvidence}><span className="evidence-number">{item._number}</span><span><strong>{item.label || item.name || `Source ${item._number}`}</strong><small>{evidenceBBox(item) && item.page ? `Page ${item.page}` : item.guid ? 'Model element' : 'Source record'}{item.guid ? ` · ${item.guid.slice(0, 12)}…` : ''}</small><small className="evidence-origin">{({ native: 'Native source record', visual: 'Visual candidate · check interpretation', manual: answer.method?.startsWith('calibrated_') ? 'Your calibrated measurement' : 'Manually added during review' })[evidenceKind(item)]}</small></span><ChevronRight size={14} /></button>
                 {answer.can_review && !answer.source_changed && <label className="evidence-review"><input type="checkbox" checked={!excluded.includes(item._key)} disabled={reviewing || resolving} onChange={event => toggleIncluded(item._key, event.target.checked)} /><span>Include in count</span></label>}
                 {item._key === selectedEvidence && <div className="evidence-detail">{item.description && <p>{item.description}</p>}{item.quoted_text && <blockquote>{item.quoted_text}</blockquote>}<EvidenceProperties properties={item.properties} />{item.verification && <div className="evidence-verification"><strong>Source checks</strong>{evidenceVerificationText(item).map(message => <p key={message}>{message}</p>)}</div>}{item.note && <p>Review note: {item.note}</p>}{item.guid && <div className="element-reference">Element <code>{item.guid}</code></div>}{item.source && <small>{basename(item.source)}</small>}<EvidenceCloseup answer={answer} evidence={item} request={request} /></div>}
               </div>)}</div> : <div className="no-evidence">{resultStatus === 'insufficient_evidence' ? 'Try a more specific question or select the relevant drawing area.' : 'This answer did not include a locatable source region.'}</div>}
-              {answer.can_review && !answer.source_changed && <details className="review-workspace" open={hasReviewChanges || !!pendingManual || undefined}><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
+              {answer.can_review && !answer.source_changed && <details className="review-workspace" ><summary>Review this count{hasReviewChanges ? ' · unsaved changes' : ''}</summary>
                 <div className="review-counts"><span>Original count<strong>{answer.original_value ?? answer.value}</strong></span><span>{hasReviewChanges ? 'Draft count' : answer.human_reviewed ? 'Reviewed count' : 'Included count'}<strong>{reviewedCount}</strong></span></div>
                 <p className="review-help">Review changes the included set. Detection completeness remains unverified.</p>
                 <div className="review-actions"><button type="button" className="button" onClick={startManual} disabled={reviewing || resolving || !selectedId}><Plus size={15} /> Add missed object</button><IconButton label="Undo last object change" onClick={undoReview} disabled={!reviewUndo.length || reviewing || resolving}><ArrowLeft size={16} /></IconButton><button type="button" className="text-button" onClick={restoreOriginal} disabled={reviewing || resolving || (!excluded.length && !manualAdditions.length && !reviewNote)}>Restore original</button></div>
@@ -1515,12 +1378,11 @@ function App({thread, chatWorkspace}) {
                 {answer.review && <details className="review-summary"><summary>Saved review changes</summary><p>{answer.review.original_value ?? answer.original_value} original → {answer.review.reviewed_value ?? answer.value} reviewed</p><p>{answer.review.added_count || 0} added · {answer.review.excluded_count || 0} excluded</p>{answer.review.note && <p>{answer.review.note}</p>}</details>}
               </details>}
             </div>
-          </div></details>
+          </DrawingArtifact>
           </section>}
           </ChatThread>
           {askError && <div className="inline-error query-error" role="alert"><strong>{askError.startsWith('Stopped waiting') ? 'Stopped waiting' : 'Couldn’t complete the question'}</strong><span>{askError}</span><button type="button" onClick={event => { setQuestion(pendingQuestion?.question || answerQuestion); questionRef.current?.focus(); }} disabled={asking}>Edit and retry</button></div>}
-          {asking && <div className="chat-pending-question"><span className="chat-user-label">You</span><p>{pendingQuestion?.question}</p><span className="chat-user-context">{pendingQuestion?.documentName}</span></div>}
-          {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Reading the drawing</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
+          {asking && <article className="chat-turn pending-turn"><div className="chat-user-message"><p>{pendingQuestion?.question}</p></div><div className="chat-assistant-message"><span className="chat-assistant-label">Metria</span><AgentThinking /></div></article>}
 
           <div ref={conversationEndRef} className="conversation-end" />
           {restoringHistory && <p className="history-loading" role="status"><LoaderCircle size={14} className="spin" /> Checking the saved answer and source…</p>}
@@ -1562,22 +1424,6 @@ function App({thread, chatWorkspace}) {
               />
 
               <div className="docked-composer-footer"><button type="button" className="composer-attach" aria-label="Attach floor plan" title="Attach floor plan" disabled={uploading} onClick={()=>fileInputRef.current?.click()}><Plus size={18}/></button>
-                <select
-                  className="composer-scope-select"
-                  value={region ? 'region' : scope}
-                  disabled={asking || !selectedId}
-                  aria-label="Question scope"
-                  onChange={event => {
-                    if (event.target.value === 'region') return;
-                    askRegion(null);
-                    changeScope(event.target.value);
-                  }}
-                >
-                  <option value="document">Whole document</option>
-                  <option value="page">This page</option>
-                  {region && <option value="region">Selected area</option>}
-                </select>
-
                 <div className="composer-actions-group">
                   {region && (
                     <button type="button" className="quick-chip" onClick={() => askRegion(null)}>
@@ -1585,9 +1431,7 @@ function App({thread, chatWorkspace}) {
                     </button>
                   )}
                   {asking ? (
-                    <button type="button" className="btn-stop-ask" onClick={() => cancelAsk(true)}>
-                      <X size={11} /> Stop
-                    </button>
+                    <button type="button" className="btn-stop-ask" aria-label="Stop generating" title="Stop generating" onClick={() => cancelAsk(true)}><span className="stop-symbol" aria-hidden="true" /></button>
                   ) : (
                     <button
                       type="submit"
@@ -1604,7 +1448,7 @@ function App({thread, chatWorkspace}) {
             </div>
 
           </form>
-      </aside>
+      </aside>}
       </div>
       </div>
     </div>

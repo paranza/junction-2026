@@ -609,9 +609,22 @@ def _native_cad(question, document):
         return None
     if _quantity_key(question, "IfcSpace") != "net_area_m2":
         return None
-    known = [o["label"] for o in rooms]+[o.get("properties", {}).get("room_number") for o in rooms]
-    if not _measurement_language_supported(question, known):
+    # Consume a ranking qualifier only here, where it is actually implemented.
+    # Other native quantity handlers must continue rejecting unresolved rankings.
+    ranking_question = re.sub(_QUOTED_TEXT, ' ', question)
+    ranking_words = re.findall(r'\b(largest|biggest|maximum|smallest|minimum)\b', _normal(ranking_question))
+    directions = {'min' if word in ('smallest', 'minimum') else 'max' for word in ranking_words}
+    if len(directions) > 1:
         return None
+    ranking = next(iter(directions), None)
+    language_question = re.sub(r'\b(largest|biggest|maximum|smallest|minimum)\b', '', question, flags=re.I) if ranking else question
+    known = [o["label"] for o in rooms]+[o.get("properties", {}).get("room_number") for o in rooms]
+    if not _measurement_language_supported(language_question, known):
+        return None
+    if ranking and not chosen:
+        chosen = list(rooms)
+        if re.search(r'\blabelled|\blabeled|\bnamed', q):
+            chosen = [room for room in chosen if room.get('label') not in (None, '', 'Room') or room.get('properties', {}).get('room_number')]
     apartment = re.search(r"(?:apartment|appartamento|wohnung|appartement|unit)\s+([a-z])\b", q)
     if apartment:
         letter = apartment.group(1)
@@ -625,8 +638,18 @@ def _native_cad(question, document):
         outdoors = r"balcon|balkon|loggia|terrass|outdoor|shaft|void|schacht|caved|vuoto|luftraum"
         chosen = [o for o in chosen if not re.search(outdoors, _normal(o["label"]))
                   and o["properties"].get("spatial_kind") not in ("shaft_or_void", "outdoor")]
-    if not chosen or not all("net_area_m2" in o["properties"] for o in chosen):
+    if not chosen or not all(_finite_quantity(o, 'net_area_m2') for o in chosen):
         return None
+    if ranking:
+        terms = [room['properties']['net_area_m2'] for room in chosen]
+        value = (max if ranking == 'max' else min)(terms)
+        selected = [room for room in chosen if room['properties']['net_area_m2'] == value]
+        result = _result(value, 'm²', selected, 'native_cad_area_annotations', 'Selected floor drawing',
+                         calculation={'operation':ranking, 'property':'native area annotations', 'terms':terms,
+                                      'operand_ids':[room['id'] for room in chosen], 'result':value})
+        names = [f"room {room.get('properties', {}).get('room_number', '')} ({room['label']})".replace('room  (', 'room (') for room in selected]
+        result['answer'] = f"{value:g} m², {', '.join(names)}."
+        return result
     if len(chosen) > 1 and not re.search(r"\b(?:all|total|sum|summing|combined|apartment|wohnung|appartamento|rooms labelled|rooms labeled|rooms named)\b", q):
         return None
     terms = [o["properties"]["net_area_m2"] for o in chosen]

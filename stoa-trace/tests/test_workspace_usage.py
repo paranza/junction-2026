@@ -2,6 +2,8 @@ import json
 import tempfile
 import time
 import unittest
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 from server import store
@@ -32,6 +34,14 @@ class WorkspaceUsageTests(unittest.TestCase):
         result=store.workspace_usage(7)['aggregate']
         self.assertEqual(result['unknown_usage_calls'],1)
         self.assertIsNone(result['cost_estimate_usd'])
+    def test_legacy_attempts_without_ids_are_counted_without_inventing_token_usage(self):
+        for _ in range(2): store.record_event('model_request',{'provider':'gemini','model':'older-model'})
+        store.record_event('model_response',{'provider':'gemini','model':'older-model','usage':{'input_tokens':500,'output_tokens':20}})
+        usage=store.workspace_usage(7)['aggregate']
+        self.assertEqual(usage['model_calls'],2)
+        self.assertEqual(usage['unknown_usage_calls'],2)
+        self.assertEqual(usage['input_tokens'],0)
+        self.assertIsNone(usage['cost_estimate_usd'])
     def test_dataset_and_uploads_are_distinct_even_with_same_name(self):
         with store.connection() as db:
             for i,uploaded in enumerate((0,1)):
@@ -59,3 +69,16 @@ class WorkspaceUsageTests(unittest.TestCase):
         self.assertEqual(item['title'],'Kitchen')
     def test_missing_project_cannot_receive_a_chat(self):
         with self.assertRaises(KeyError): store.create_chat('Plan',project_id='missing')
+
+    def test_concurrent_drawing_switch_preserves_source_and_reuses_one_target(self):
+        with store.connection() as db:
+            for identity in ('source', 'target'):
+                db.execute('INSERT INTO documents(id,path,absolute_path,name,format,source,size,mtime,uploaded) VALUES(?,?,?,?,?,?,?,?,?)', (identity, identity, identity, identity+'.dxf', 'dxf', 'uploads', 1, time.time(), 1))
+        project = store.create_chat('Building', project=True)
+        source = store.create_chat('Ground floor', project_id=project, document_id='source')
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _:store.attach_chat_drawing(source, 'target', str(uuid.uuid4())), range(2)))
+        self.assertEqual(results[0]['id'], results[1]['id'])
+        self.assertEqual(len(store.chat_workspace()['threads']), 2)
+        self.assertEqual(store.get_chat(source)['document_id'], 'source')
+        self.assertEqual(results[0]['project_id'], project)
