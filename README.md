@@ -65,6 +65,7 @@ The [event notes](docs/event.md) flag conflicting guide details rather than sile
 ## Repository map
 
 - [Trace application](stoa-trace/): code, tests, setup, measured results and teammate handoff.
+- [Public Stoa project research](docs/research/): competitor approaches, dated updates, source links and monitoring instructions.
 - [AGENTS.md](AGENTS.md): shared guidance for coding assistants.
 - [CLAUDE.md](CLAUDE.md): imports the shared guidance for Claude Code.
 - [Setup](docs/setup.md): tools, team skills and agent workflow.
