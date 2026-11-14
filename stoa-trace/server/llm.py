@@ -20,9 +20,9 @@ MODEL = os.environ.get('STOA_MODEL', 'gpt-6-astra')
 KEY = os.environ.get('OPENAI_API_KEY', '')
 MAX_CALLS = int(os.environ.get('STOA_MAX_MODEL_CALLS', '500'))
 GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.environ.get('STOA_GEMINI_MODEL', 'gemini-4-hydrogen')
+GEMINI_MODEL = os.environ.get('STOA_GEMINI_MODEL', 'gemini-4-argon')
 GEMINI_THINKING = os.environ.get('STOA_GEMINI_THINKING', 'high')
-GEMINI_RESOLUTION = os.environ.get('STOA_GEMINI_RESOLUTION', 'high')  # low, medium, high or ultra_high (per image)
+GEMINI_RESOLUTION = os.environ.get('STOA_GEMINI_RESOLUTION', 'ultra_high')  # low, medium, high or ultra_high (per image)
 # Service that builds visual inventories: an explicit choice, else whichever key exists.
 VISION_PROVIDER = os.environ.get('STOA_VISION_PROVIDER') or ('gemini' if GEMINI_KEY and not KEY else 'openai')
 

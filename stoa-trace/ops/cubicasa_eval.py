@@ -33,6 +33,7 @@ def main(argv=None):
     parser.add_argument('--dataset-root', type=Path, required=True)
     parser.add_argument('--images', type=int, default=40)
     parser.add_argument('--seed', default='cubicasa-dev-v1')
+    parser.add_argument('--skip', type=int, default=0, help='Skip the first N selected images (a fresh set after earlier runs)')
     parser.add_argument('--holdout', action='store_true', help='Score the holdout images instead of the dev images')
     parser.add_argument('--no-small-crops', action='store_true', help='Turn off the enlarged crops for small plans')
     parser.add_argument('--allow-paid', action='store_true', help='Make model calls (one per image, cached)')
@@ -50,7 +51,7 @@ def main(argv=None):
             asked[row['path']].append(row)
     pool = sorted((p for p in asked if holdout(p) == args.holdout),
                   key=lambda p: hashlib.sha256((args.seed + p).encode()).hexdigest())
-    chosen = pool[:args.images]
+    chosen = pool[args.skip:args.skip + args.images]
     prior = collections.Counter((r['question'], r['answer']) for p in chosen for r in asked[p])
     mode = {q: max(((a, n) for (qq, a), n in prior.items() if qq == q), key=lambda x: x[1])[0] for q, _ in prior}
     prior_correct = sum(mode[r['question']] == r['answer'] for p in chosen for r in asked[p])
