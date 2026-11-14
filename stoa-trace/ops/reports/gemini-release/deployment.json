@@ -160,5 +160,23 @@
     "optional_auditor": "gemma-4-31b-it",
     "gemma_thinking_level": "minimal",
     "visual_recheck_default": false
-  }
+  },
+  "solver_revision": "8dd0564f1b9a9c16f9ad",
+  "runtime_signatures": {
+    "provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v4",
+      "small_image_crops": false
+    },
+    "audit_signature": {
+      "revision": "visual-count-audit-v4",
+      "provider": "gemini",
+      "model": "gemma-4-31b-it",
+      "model_signature": "gemma-interactions-v2:2026-05-20:image_resolution=high:thinking_level=minimal:max_output_tokens=24000:timeout_seconds=600"
+    }
+  },
+  "frontend_assets_match": [
+    "/assets/index-mJf5bKBO.js",
+    "/assets/index-BrffmE8W.css"
+  ]
 }
