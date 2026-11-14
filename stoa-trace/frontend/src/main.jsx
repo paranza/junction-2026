@@ -369,7 +369,7 @@ function App() {
     const previous = window.document.activeElement;
     panel?.querySelector('input[type="search"]')?.focus();
     const keydown = event => {
-      if (event.key === 'Escape') { event.preventDefault(); setLibraryOpen(false); return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); setLibraryOpen(false); return; }
       if (event.key !== 'Tab') return;
       const controls = [...(panel?.querySelectorAll('button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), a[href]') || [])];
       if (!controls.length) return;
@@ -448,6 +448,9 @@ function App() {
       setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
       const primaryEvidence = allEvidence(result).find(item => evidenceBBox(item)) || allEvidence(result)[0];
       setSelectedEvidence(primaryEvidence ? evidenceKey(primaryEvidence, allEvidence(result).indexOf(primaryEvidence)) : null);
+      // Open the relevant source page, while retaining a whole-page view.
+      if (primaryEvidence?.document_id && String(primaryEvidence.document_id) !== String(documentId)) selectDocument(primaryEvidence.document_id, true, primaryEvidence.page);
+      else if (evidenceBBox(primaryEvidence) && primaryEvidence?.page && Number(primaryEvidence.page) !== page) setPage(Number(primaryEvidence.page));
       setHistory(items => mergeHistory(items, [historyItem(result, { question: questionText, documentId, documentName: sourceName, timestamp: Date.now() })]));
     } catch (error) { if (error.name !== 'AbortError' && activeAskRef.current?.sequence === sequence) { setAskError(error.message); setAskErrorUsage(error.usage ?? null); } }
     finally { sessionUsage.refresh(); if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, LoaderCircle } from 'lucide-react';
 import { messageCost } from './inferenceUsage.js';
 import { formatQuantityValue } from './reviewState.js';
-import { mergeConversation, pendingAnswerIds, readConversation, recordFromAnswer, recordsFromSnapshot, saveConversation } from './conversationState.js';
+import { acceptHydratedAnswer, mergeConversation, pendingAnswerIds, readConversation, recordFromAnswer, recordsFromSnapshot, saveConversation } from './conversationState.js';
 
 export function useConversation({ sessionId, snapshot, answer, answerQuestion, documentName, request }) {
   const [records, setRecords] = useState(() => {
@@ -39,7 +39,7 @@ export function useConversation({ sessionId, snapshot, answer, answerQuestion, d
           const result = await request(`/api/answers/${encodeURIComponent(id)}`, { signal: controller.signal });
           if (controller.signal.aborted) return;
           if (result?.id !== id) throw new Error('Saved answer identity does not match');
-          setAnswers(current => { const next = { ...current, [id]: result }; answersRef.current = next; return next; });
+          setAnswers(current => { const next = acceptHydratedAnswer(current, id, result); answersRef.current = next; return next; });
         } catch (error) {
           if (controller.signal.aborted || error.name === 'AbortError') return;
           unavailable.current.add(id); setUnavailableIds([...unavailable.current]);

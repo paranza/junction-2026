@@ -56,3 +56,10 @@ export function recordFromAnswer(answer, fallbackQuestion = '', documentName = '
 export function pendingAnswerIds(records, answers, unavailable = new Set()) {
   return records.filter(record => record.status === 'completed' && record.answerId && !answers[record.answerId] && !unavailable.has(record.answerId)).map(record => record.answerId);
 }
+
+// Hydration is a read of a missing answer. A newer active/reviewed result wins
+// if it arrives while that read is still in flight.
+export function acceptHydratedAnswer(current, id, result) {
+  if (!safeId(id) || result?.id !== id || current[id]) return current;
+  return { ...current, [id]: result };
+}
