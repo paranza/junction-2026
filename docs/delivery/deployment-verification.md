@@ -1,5 +1,9 @@
 # Deployment verification
 
+## Model-scope release, 14 November evening
+
+Reviewed main revision `915f76800db559a96a82dde0ae29d824ae503543` is deployed on the existing protected VM. It prevents whole-model answers from partial IFC-derived drawings whose model is missing. 374 Python tests, 59 frontend tests/build and the paired 7,066-case native regression passed with no losses, changed outcomes, source changes, errors or model calls. Authentication, native evidence, previews, review/export and restart persistence passed. Runtime configuration, credentials, uploads, prior answers and event history are preserved; the production model counter remains 17/1,000. [Deployment record](../../stoa-trace/ops/reports/model-coverage/deployment.json), [automatic-path evaluation](../evaluation/model-coverage-development.md).
+
 ## Quantity workflow release, 14 November evening
 
 Reviewed main revision `8dabfa7273504db21cc77ef0272c7388a412f6dd` is deployed to the existing protected Verda VM. 371 Python tests, 59 frontend tests/build and the 7,066-question native development gate passed, with no previously correct losses, changed outcomes, source-hash changes, request errors or model requests in that gate. The reserved evaluation was not rerun.

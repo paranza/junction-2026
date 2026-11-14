@@ -1,0 +1,41 @@
+{
+  "tested_base_revision": "106999c13ead97beb3884a1b4379f01d42a1b1b4",
+  "release_revision": "915f76800db559a96a82dde0ae29d824ae503543",
+  "development_only": true,
+  "model": "gemini-4-argon",
+  "model_calls_total": 80,
+  "automatic_pipeline_calls": 32,
+  "cohorts": {
+    "opening_design": {
+      "cases": 13,
+      "answered": 12,
+      "correct": 12,
+      "errors": 1
+    },
+    "ifc_models": {
+      "cases": 20,
+      "answered": 12,
+      "correct": 2,
+      "errors": 0
+    }
+  },
+  "tiled_reader": {
+    "drawings": 12,
+    "questions": 22,
+    "baseline_correct": 12,
+    "candidate_correct": 12,
+    "model_calls": 48,
+    "shipped": false
+  },
+  "scope_guard": {
+    "live_cases": 12,
+    "status": "needs_input",
+    "model_calls": 0,
+    "previous_unsupported_model_counts": 12,
+    "previous_wrong_counts": 10,
+    "previous_coincidentally_correct_counts": 2
+  },
+  "reserved_scored": false,
+  "independent_evaluation_rerun": false,
+  "limits": "Targeted exposed development cohorts, not a new overall accuracy estimate. The missing IFC cannot be recovered from projected entity counts. Raw questions and gold labels stay outside Git."
+}

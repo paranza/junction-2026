@@ -33,3 +33,7 @@ Track three separate metrics on the same frozen cases: answered fraction, correc
 The tested source-query path already expands coverage beyond deterministic handlers. The remaining visual weakness needs a materially different signal, such as a separately trained detector/segmenter and explicit assembly-boundary evaluation; more repetitions of the same model have not shown a gain. Any future candidate should beat the standard reader on both an exposed development sample and a separate predeclared development confirmation sample before release. Do not use the protected preview reserve or rerun the released independent evaluation to select it.
 
 The native regression, build checks and live scope verification are recorded with this release. No reserved files were scored or inspected, and no paid requests were made against production.
+
+## Released verification
+
+Revision `915f76800db559a96a82dde0ae29d824ae503543` is on main and deployed to the existing protected VM. 374 Python tests, 59 frontend tests and the frontend build passed. The paired 7,066-case native development regression retained every previously correct answer, with zero changed outcomes, source-hash changes, request errors or model calls. Remote authentication, native answer/evidence, preview, review/export and restart persistence passed. Production remains at 17/1,000 attempts; local Argon and Carbon counters remain 4 and 137 respectively. [Verification records](../../stoa-trace/ops/reports/model-coverage/).
