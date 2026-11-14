@@ -110,7 +110,7 @@ def load_runtime_config(path: Path = DEFAULT_ENV, gemini_path: Path | None = GEM
         if ((values.get('GEMINI_API_KEY') or values.get('GOOGLE_API_KEY'))
                 and values.get('STOA_PROVIDER', 'gemini').strip().lower() == 'gemini'):
             values['STOA_PROVIDER'] = 'gemini'
-            values.setdefault('STOA_MODEL', 'gemini-4-carbon')
+            values.setdefault('STOA_MODEL', 'gemini-4-argon')
             for key, value in values.items():
                 if key.startswith('STOA_') or key in {'GEMINI_API_KEY', 'GOOGLE_API_KEY'}:
                     config[key] = value

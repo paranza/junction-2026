@@ -66,6 +66,8 @@ def _measurement_language_supported(question, labels=()):
             q = re.sub(r"\b(?:rooms?|spaces?)\s+['\"]?"+re.escape(label)+r"['\"]?(?!\w)", " room ", q)
         else:
             q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
+    # An apartment selector letter ("apartment B") is part of the scope, not a free word.
+    q = re.sub(r"\b(apartment|appartamento|wohnung|appartement|unit)\s+[a-z]\b", r" \1 ", q)
     exclusion = re.search(r"\b(?:excluding|except|without|ohne|esclusi|exclus)\b(.+)$", q)
     if exclusion:
         outdoor_words = set("balcony balconies balcon loggia loggias terrace terraces outdoor outdoors spaces space shafts shaft void voids other and or all the any balconies loggien terrassen balkone cavedi vuoti".split())
@@ -76,7 +78,7 @@ def _measurement_language_supported(question, labels=()):
         return False
     if re.search(r"\d", re.sub(r"\b(?:m|ft)[23]\b", "", q)):
         return False
-    safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
+    safe = set("what is are the a an of for in on at this that selected entire whole all total combined sum summing its their from to net gross neto netto floor side area areas length volume room rooms space spaces wall walls slab slabs deck decks beam beams column columns building model storey level plan drawing drawn shown labelled labeled named numbered indoor interior outdoor residential unit apartment apartments schedule finish fieldhouse netta superficie flache gesamt alle raume totale m mm cm metres meters metre meter ft feet foot square cubic sqm sqft count calculate give find and".split())
     return all(word in safe for word in re.findall(r"[a-z]+", q))
 
 
@@ -101,12 +103,16 @@ def _finite_quantity(obj, key):
     return type(value) in (int, float) and math.isfinite(value) and value >= 0
 
 
-_QUOTED_TEXT = r'''(?:"[^"]*"|'[^']*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
+# A single-quoted label may contain an apostrophe between letters ('Cage d'escalier').
+# Whole-model words in the dataset languages, including inflections (et "mudelis", da "modellen").
+_MODEL_WORDS = r"(?:model|modellen|modell|modele|modello|mudel\w*|gebaude|building|bygning\w*)"
+
+_QUOTED_TEXT = r'''(?:"[^"]*"|'(?:[^']|(?<=\w)'(?=\w))*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
 
 
 def _without_model_titles(question):
     """Discard an introduced source title, never arbitrary quoted constraints."""
-    return re.sub(r"\b(model|building|mudelis|gebaude)(?:\s+(?:named|called))?\s+"+_QUOTED_TEXT,
+    return re.sub(r"\b("+_MODEL_WORDS+r")(?:\s+(?:named|called))?\s+"+_QUOTED_TEXT,
                   lambda match:match.group(1),_normal(question))
 
 
@@ -233,6 +239,37 @@ def _space_footprint_quantity(obj, model):
         return None
 
 
+def _space_floor_face_quantity(obj, model):
+    """Area of the lowest downward-facing faces of the IfcSpace body, for spaces without a
+    footprint representation. Exact mesh faces in world coordinates, never a bounding box."""
+    try:
+        import ifcopenshell.geom
+        import numpy as np
+        space = model.by_guid(obj.get('guid'))
+        if not space or not space.is_a('IfcSpace'):
+            return None
+        settings = ifcopenshell.geom.settings()
+        settings.set('use-world-coords', True)
+        geometry = ifcopenshell.geom.create_shape(settings, space).geometry
+        v = np.array(geometry.verts, dtype=float).reshape(-1, 3)
+        t = np.array(geometry.faces, dtype=int).reshape(-1, 3)
+        if not len(t):
+            return None
+        a, b, c = v[t[:, 0]], v[t[:, 1]], v[t[:, 2]]
+        n = np.cross(b - a, c - a)
+        length = np.linalg.norm(n, axis=1)
+        down = n[:, 2] / np.maximum(length, 1e-12) < -0.999
+        low = (a[:, 2] + b[:, 2] + c[:, 2]) / 3 < v[:, 2].min() + 0.001
+        value = float(length[down & low].sum() / 2)
+        if not math.isfinite(value) or value <= 0:
+            return None
+        return {'value': value, 'unit': 'm²', 'property_path': 'IfcSpace.Body.lowest_downward_faces',
+                'unit_basis': 'world coordinates in metres (geometry kernel)',
+                'basis': 'area of the lowest downward-facing faces of the space body; no bounding-box approximation'}
+    except Exception:
+        return None
+
+
 def _room_quantity(obj, key, model):
     """Keep exact source quantities, resolving only missing/ambiguous net area."""
     props = obj.get('properties', {})
@@ -249,7 +286,7 @@ def _room_quantity(obj, key, model):
         return None  # An invalid negative/nonfinite source value is not a missing field.
     if key != 'net_area_m2' or model is None:
         return None
-    quantity = _space_footprint_quantity(obj, model)
+    quantity = _space_footprint_quantity(obj, model) or _space_floor_face_quantity(obj, model)
     if quantity is None:
         return None
     updated = dict(props)
@@ -264,7 +301,8 @@ def _room_quantity(obj, key, model):
 
 def _represented_stairs(scoped, model_doc, source_path):
     """Count stair assemblies represented by flights, never flights as stairs."""
-    selected = {o.get('guid') or o['id']: o for o in scoped if _is_type(o, ('IfcStair',))}
+    selected = {o.get('guid') or o['id']: o for o in scoped
+                if _is_type(o, ('IfcStair',)) and not o.get('properties', {}).get('nested_in')}
     flights = [o for o in scoped if o.get('type') == 'IfcStairFlight']
     if not flights:
         return list(selected.values())
@@ -351,7 +389,7 @@ def _ifc_scope(question, document, source_path, root):
                             selected.append({**obj, **{k:p[k] for k in ("bbox","polygon","source_path","page") if k in p}})
                     return model_doc, selected, f"Visible objects on {storey['name']}", []
         return model_doc, [o for o in objects if o.get("properties", {}).get("storey_guid") == storey["guid"]], f"Storey {storey['name']}", []
-    whole = (not page_requested and bool(re.search(r"\b(model|mudel|gebaude|building)\b", q))
+    whole = (not page_requested and bool(re.search(r"\b"+_MODEL_WORDS+r"\b", q))
              and not re.search(r"this floor|selected floor|on this plan", q))
     floor_request = bool(re.search(r"(?:on|of|at) (?:the )?(?:ground|first|second|third|basement|floor|level)|this floor|selected floor|on this plan",q))
     if source_path.suffix.lower()==".ifc" and floor_request and not selected_storeys:
@@ -370,17 +408,29 @@ def _ifc_scope(question, document, source_path, root):
 
 def _native_ifc(question, document, source_path, root):
     if source_path.suffix.lower() != ".ifc" and not linked_model(source_path):
-        return None
+        # Without the model, a semantic plan view (SVG with IFC class + GUID per product) can
+        # still answer what this floor drawing shows. Whole-model questions stay unanswered.
+        visible_plan = (bool(document.get("metadata", {}).get("semantic_svg")) and _count_question(question)
+                        and bool(re.search(r"\b(?:shown|drawn|plan|grundriss|dargestellt|naidatud|plaanil|vist|tegning)\b", _normal(question)))
+                        and not re.search(r"\b" + _MODEL_WORDS + r"\b", _without_model_titles(question)))
+        if not visible_plan:
+            return None
     doc, scoped, scope, warnings = _ifc_scope(question, document, source_path, root)
     if warnings or not scoped:
         return None
     q = _normal(question)
     types = _target_class(question)
     if _count_question(question) and types and not _measurement_question(question):
-        known_storeys=[s['name'] for s in doc.get('metadata',{}).get('storeys',[])
-                       if s.get('name') and re.search(
+        storey_names=[s['name'] for s in doc.get('metadata',{}).get('storeys',[]) if s.get('name')]
+        if not storey_names and source_path.suffix.lower() != ".ifc":
+            # A plan view without its model: the only floor it can describe is its own level,
+            # which plan exports carry in their file name.
+            storey_names=[m[1:-1] for m in re.findall(_QUOTED_TEXT, question)
+                          if len(_compact(m[1:-1])) > 2 and _compact(m[1:-1]) in _compact(source_path.stem)]
+        known_storeys=[name for name in storey_names
+                       if re.search(
                            r"\b(?:on|of|at|in|floor|storey|level|korruse|korrusel|im)\s+[\"'«“„]?"+
-                           re.escape(_normal(s['name']))+r"(?!\w)",_without_model_titles(question))]
+                           re.escape(_normal(name))+r"(?!\w)",_without_model_titles(question))]
         if not _simple_count_language(question,extra=known_storeys):
             return None
         if _unsupported_constraints(question) or re.search(r"\bwith\b|\b(?:wide|width|height|high|exclude|excluding|except)\b",q):
@@ -389,7 +439,8 @@ def _native_ifc(question, document, source_path, root):
         if re.search(r"\b(?:and|with)\b", q) and sum(bool(re.search(p,q)) for p in
                 (r"\bdoors?\b",r"\bwindows?\b",r"\brooms?\b",r"\bwalls?\b",r"\bcolumns?\b",r"\bbeams?\b",r"\bstairs?\b",r"\blevels?\b"))>1:
             return None
-        selected = [o for o in scoped if _is_type(o, types)]
+        # Parts aggregated into another product are not separate instances of their class.
+        selected = [o for o in scoped if _is_type(o, types) and not o.get("properties", {}).get("nested_in")]
         if types == ('IfcStair',):
             selected = _represented_stairs(scoped, doc, source_path)
             if selected is None:
@@ -418,6 +469,8 @@ def _native_ifc(question, document, source_path, root):
         result["calculation"] = {"operation":"count_distinct_guid", "classes":list(types), "count":len(unique)}
         return result
     if _measurement_question(question):
+        # Quoted labels are names, not element classes: 'INVA-WC (103)' is a room, not a toilet.
+        types = _target_class(re.sub(_QUOTED_TEXT, " ", question))
         target = types[0] if types else "IfcSpace"
         if target not in {"IfcSpace", "IfcWall", "IfcSlab", "IfcBeam", "IfcColumn"}:
             return None
@@ -474,7 +527,7 @@ def _native_ifc(question, document, source_path, root):
                 return None
             total = round(sum(o["properties"][key] for o in selected), 4)
             unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
-            geometry = any(o['properties'].get('area_source') == 'IfcSpace.Representation.FootPrint' for o in selected)
+            geometry = any(o['properties'].get('area_source') in ('IfcSpace.Representation.FootPrint', 'IfcSpace.Body.lowest_downward_faces') for o in selected)
             return _result(total, unit, selected, "native_ifc_quantity", scope,
                            warnings=['Missing or zero untyped exporter areas were replaced by measurements of explicit closed IfcSpace footprints. This is geometry-derived area, not an explicit net-area quantity.'] if geometry else None,
                            calculation={"operation":"sum", "property":key,
@@ -528,6 +581,10 @@ def _native_cad(question, document):
                 return result
     labels = {_normal(o["label"]):o["label"] for o in rooms if o["label"] != "Room"}
     mentioned = [label for label in labels if re.search(r"(?<!\w)"+re.escape(label)+r"(?!\w)", q)]
+    # A quoted label is exact: 'Wohnen/Essen' must not also select rooms named Wohnen or Essen.
+    quoted = [_normal(m[1:-1]).strip() for m in re.findall(_QUOTED_TEXT, question)]
+    if any(label in labels for label in quoted):
+        mentioned = [label for label in quoted if label in labels]
     chosen = [o for o in rooms if _normal(o["label"]) in mentioned] if mentioned else []
     numbers = re.findall(r"\b[A-Za-z]?\d+[.\-]\d+(?:[.\-]\d+)?\b", question)
     if numbers:
@@ -558,7 +615,7 @@ def _native_cad(question, document):
     if re.search(r"indoor|interior|interne|interni|net floor area of apartment|netta dell'appartamento|excluding|exclus|esclus|ohne", q):
         outdoors = r"balcon|balkon|loggia|terrass|outdoor|shaft|void|schacht|caved|vuoto|luftraum"
         chosen = [o for o in chosen if not re.search(outdoors, _normal(o["label"]))
-                  and o["properties"].get("spatial_kind") != "shaft_or_void"]
+                  and o["properties"].get("spatial_kind") not in ("shaft_or_void", "outdoor")]
     if not chosen or not all("net_area_m2" in o["properties"] for o in chosen):
         return None
     if len(chosen) > 1 and not re.search(r"\b(?:all|total|sum|summing|combined|apartment|wohnung|appartamento|rooms labelled|rooms labeled|rooms named)\b", q):
@@ -748,6 +805,30 @@ def _native_schedule(question, document):
     return None
 
 
+def _native_ruled_schedule(question, document):
+    """Counts over any ruled schedule on the sheet (door, window, type schedules), by code."""
+    from .schedules import answer_count
+    tables = document.get("metadata", {}).get("schedule_tables", [])
+    if not tables:
+        return None
+    found = answer_count(question, tables)
+    if found is None:
+        return None
+    table = found["table"]
+    source = document.get("metadata", {}).get("source_path")
+    objects = [{"id": r["id"], "label": " | ".join(c for c in r["cells"][:3] if c), "type": "schedule_row",
+                "page": table["page"], "bbox": r["bbox"], "source_path": source,
+                "properties": {"cells": dict(zip(table["header"], r["cells"])), "schedule": table["title"]}}
+               for r in found["rows"]]
+    calculation = {"operation": "sum" if found["terms"] is not None else "count_rows", "basis": found["basis"]}
+    if found["terms"] is not None:
+        calculation["terms"] = found["terms"]
+    result = _result(found["value"], "count", objects, "native_pdf_ruled_schedule", f"Schedule: {table['title']}",
+                     calculation=calculation)
+    result["answer"] = f"{found['value']} ({found['basis']} in {table['title']})."
+    return result
+
+
 def answer_native(question: str, document: dict, source_path: Path, data_root: Path) -> dict | None:
     """Return a supported native answer, or None for model/vision fallback."""
     source_path, data_root = Path(source_path), Path(data_root)
@@ -755,6 +836,7 @@ def answer_native(question: str, document: dict, source_path: Path, data_root: P
         lambda: _native_ifc(question, document, source_path, data_root),
         lambda: _native_cad(question, document),
         lambda: _native_schedule(question, document),
+        lambda: _native_ruled_schedule(question, document),
     ):
         result = handler()
         if result is not None:

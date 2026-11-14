@@ -23,7 +23,7 @@ from check_connections import (DEFAULT_ENV, HealthError, create_ssl_context,
                                error_result, request_json)
 
 DEFAULT_GEMINI_ENV = DEFAULT_ENV.with_name('gemini.env')
-DEFAULT_MODEL = 'gemini-4-carbon'
+DEFAULT_MODEL = 'gemini-4-argon'
 MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
 CONFIG_KEYS = {'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'STOA_MODEL'}
 

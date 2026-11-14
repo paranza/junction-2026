@@ -259,6 +259,24 @@ def _measurement_context(doc_id, page):
                   'image_width': picture.width, 'image_height': picture.height}
 
 
+@app.get('/api/documents/{doc_id}/inspection')
+def inspection(doc_id: str, ceiling_height_m: float | None = None, glazing_height_m: float | None = None,
+               daylight_min_ratio: float | None = None, egress_limit_m: float | None = None,
+               turning_diameter_m: float | None = None, waste_factor: float | None = None):
+    """Takeoff, tender estimate and code checks from the drawing's native objects (no model call)."""
+    from .inspector import inspect
+    bounds = {'ceiling_height_m': (1.8, 10), 'glazing_height_m': (0.2, 6), 'daylight_min_ratio': (0, 1),
+              'egress_limit_m': (1, 500), 'turning_diameter_m': (0.5, 5), 'waste_factor': (0, 1)}
+    options = {}
+    for key, (lo, hi) in bounds.items():
+        value = locals()[key]
+        if value is not None:
+            if not (math.isfinite(value) and lo <= value <= hi):
+                raise HTTPException(422, f'{key} must be between {lo} and {hi}.')
+            options[key] = value
+    return inspect(extracted(doc_id), options)
+
+
 @app.get('/api/documents/{doc_id}/measurement-context')
 def measurement_context(doc_id: str, page: int = 1):
     if page < 1:
@@ -524,6 +542,19 @@ def _compute_analysis(payload, question, data, source):
             except llm.ModelError:
                 pass
         native_result = copy.deepcopy(result)
+    if result is None and payload.mode != 'native' and not payload.region and llm.model_available():
+        # Schedule sheets: a model plans the table query, the program executes it over the cells.
+        from . import schedule_planner
+        if schedule_planner.usable_tables(data):
+            def _plan_cache_get(key):
+                return store.cached_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}))
+
+            def _plan_cache_put(key, plan):
+                store.save_analysis(store.analysis_key('schedule_plan', {'plan': key, 'provider': llm.provider_signature()}), 'schedule_plan', plan)
+            try:
+                result = schedule_planner.answer(question, data, request=llm._request, cache=(_plan_cache_get, _plan_cache_put))
+            except llm.ModelError:
+                result = None
     if result is None and payload.mode != 'native':
         try:
             result = inventory.answer_inventory(question, data, source, payload.page, payload.scope, payload.region)

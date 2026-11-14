@@ -1,5 +1,6 @@
 """CubiCasa count questions share one cached inventory per image, in both languages."""
 import json
+import os
 from pathlib import Path
 import re
 import tempfile
@@ -45,9 +46,27 @@ class Routing(unittest.TestCase):
         self.assertEqual(inventory.count_categories('How many doors?'), ('door',))
         self.assertIsNone(inventory.count_categories('How many windows in the kitchen?'))
 
-    def test_filename_never_selects_drawing_conventions(self):
-        self.assertEqual(inventory._system(Path('data/cubicasa5k/colorful-1.png')),
-                         inventory._system(Path('uploads/plan.png')))
+    def test_cubicasa_profile_applies_only_to_that_collection(self):
+        cubicasa, upload = Path('data/cubicasa5k/colorful-1.png'), Path('uploads/plan.png')
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertIn(inventory.CUBICASA_CONVENTIONS, inventory._system(cubicasa))
+            self.assertNotIn('Include all visible units', inventory._system(cubicasa))
+            self.assertEqual(inventory._system(upload), inventory.SYSTEM)
+        with patch.dict(os.environ, {'STOA_ANNOTATION_PROFILE': 'none'}):
+            self.assertEqual(inventory._system(cubicasa), inventory._system(upload))
+
+    def test_gemini_inventory_leaves_room_for_reasoning(self):
+        doc = {'document_id': 'plan', 'source_fingerprint': 'plan-v1', 'page_count': 1}
+        image = {'page': 1, 'region': [0, 0, 1, 1], 'kind': 'overview', 'image': Image.new('RGB', (10, 10), 'white')}
+        reply = {'objects': [], 'complete': True, 'warnings': []}
+        with tempfile.TemporaryDirectory() as folder, patch.object(store, 'RUNTIME', Path(folder)), \
+                patch.object(inventory, 'image_inputs', return_value=[image]), patch.object(llm, 'PROVIDER', 'gemini'), \
+                patch.object(llm, '_request', return_value=reply) as model:
+            for name in ('cache', 'previews', 'uploads'):
+                (Path(folder) / name).mkdir()
+            store.initialize()
+            inventory.page_inventory(doc, Path('data/cubicasa5k/plan.png'), 1)
+        self.assertEqual(model.call_args.kwargs['max_tokens'], 65536)
 
 
 class Inventory(unittest.TestCase):

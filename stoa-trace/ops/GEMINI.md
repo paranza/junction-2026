@@ -5,8 +5,8 @@ Trace keeps native source extraction, deterministic calculations, coordinate map
 ```dotenv
 GEMINI_API_KEY=your-private-key
 STOA_PROVIDER=gemini
-STOA_MODEL=gemini-4-carbon
-STOA_GEMINI_IMAGE_RESOLUTION=high
+STOA_MODEL=gemini-4-argon
+STOA_GEMINI_IMAGE_RESOLUTION=ultra_high
 STOA_GEMINI_THINKING_LEVEL=medium
 STOA_GEMINI_MAX_OUTPUT_TOKENS=24000
 STOA_GEMINI_TIMEOUT_SECONDS=600
@@ -21,7 +21,7 @@ Restart with `python ops/start_local.py`. `/api/health` reports the selected pro
 
 | Setting | Supported values and behavior |
 | --- | --- |
-| `STOA_GEMINI_IMAGE_RESOLUTION` | `low`, `medium`, `high` (default), `ultra_high`; applied to each inline image. Higher resolution needs a development comparison before claiming better recognition. |
+| `STOA_GEMINI_IMAGE_RESOLUTION` | `low`, `medium`, `high`, `ultra_high` (default); applied to each inline image. On CubiCasa dev plans ultra_high was level with or slightly above high (309 vs 306 of 355; 464 vs 460 of 524). |
 | `STOA_GEMINI_THINKING_LEVEL` | `low`, `medium`, `high`; default `high`. The example selects `medium` to leave more of the output budget for the structured answer. |
 | `STOA_GEMINI_MAX_OUTPUT_TOKENS` | Optional integer 1,000–32,768. When unset, each analysis caller keeps its own cap. The example selects 24,000. |
 | `STOA_GEMINI_TIMEOUT_SECONDS` | Integer 60–600; default 240. This is a transport timeout, not a latency promise. |
@@ -67,7 +67,7 @@ For development-scale runs use [bulk evaluation](BULK_EVALUATION.md). Freeze the
 
 Checked 14 November 2026:
 
-- [Gemini 4 Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon)
+- [Gemini 4 Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon); the default is now gemini-4-argon, which beat gemini-4-hydrogen on CubiCasa dev plans (314 vs 306 of 355) while carbon matched hydrogen and was several times slower.
 - [Structured output](https://aistudio.google.com/docs/structured-output) and [image understanding](https://aistudio.google.com/docs/image-understanding)
 - [Media resolution](https://aistudio.google.com/docs/media-resolution#token-counts) and [reasoning token limits](https://aistudio.google.com/docs/thinking#token-limits)
 - [Hosted Gemma](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api)

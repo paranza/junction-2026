@@ -26,7 +26,7 @@ def active_gemini_settings(values, selected_provider=None):
     settings = {name: str(value) for name, value in values.items()
                 if name in RUNTIME_KEYS and value is not None}
     settings['STOA_PROVIDER'] = 'gemini'
-    settings.setdefault('STOA_MODEL', 'gemini-4-carbon')
+    settings.setdefault('STOA_MODEL', 'gemini-4-argon')
     return settings
 
 

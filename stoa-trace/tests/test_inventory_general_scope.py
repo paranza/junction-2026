@@ -1,4 +1,5 @@
 """Generic inventory semantics, cross-view locations, and runtime cache inputs."""
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -48,7 +49,8 @@ class GenericInventory(unittest.TestCase):
         renamed.write_bytes(self.path.read_bytes())
         other = {**self.document, 'document_id': 'renamed-upload'}
         output = {'objects': [row('door', 0, [.1, .1, .2, .2])], 'complete': True, 'warnings': []}
-        with patch.object(inventory, 'image_inputs', return_value=self.images), \
+        # Without the CubiCasa annotation profile, a file name never changes the request.
+        with patch.dict(os.environ, {'STOA_ANNOTATION_PROFILE': 'none'}), patch.object(inventory, 'image_inputs', return_value=self.images), \
                 patch.object(llm, '_request', return_value=output) as model:
             first = inventory.page_inventory(self.document, self.path, 1)
             second = inventory.page_inventory(other, renamed, 1)
