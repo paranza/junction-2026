@@ -8,8 +8,8 @@ from pathlib import Path
 import pymupdf
 from PIL import Image, ImageOps
 
-# Enlarged overlapping crops for small plans (most CubiCasa images are under 1,000 px).
-# Off until the cubicasa comparison shows it helps; part of the inventory cache key.
+# Optional enlarged overlapping crops for small plans. The active setting belongs
+# in both inventory and answer cache keys so changing it triggers fresh analysis.
 SMALL_IMAGE_CROPS = os.environ.get('STOA_SMALL_IMAGE_CROPS', '') == '1'
 
 

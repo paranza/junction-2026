@@ -45,9 +45,9 @@ class Routing(unittest.TestCase):
         self.assertEqual(inventory.count_categories('How many doors?'), ('door',))
         self.assertIsNone(inventory.count_categories('How many windows in the kitchen?'))
 
-    def test_conventions_apply_only_to_cubicasa_drawings(self):
-        self.assertIn('Finnish residential plans', inventory._system(Path('data/cubicasa5k/colorful-1.png')))
-        self.assertNotIn('Finnish residential plans', inventory._system(Path('uploads/plan.png')))
+    def test_filename_never_selects_drawing_conventions(self):
+        self.assertEqual(inventory._system(Path('data/cubicasa5k/colorful-1.png')),
+                         inventory._system(Path('uploads/plan.png')))
 
 
 class Inventory(unittest.TestCase):
@@ -91,7 +91,7 @@ class Inventory(unittest.TestCase):
         ]}
 
     def ask(self, question):
-        return self.client.post('/api/ask', json={'document_id': self.doc['id'], 'question': question, 'mode': 'auto'}).json()
+        return self.client.post('/api/ask', json={'document_id': self.doc['id'], 'question': question, 'mode': 'auto', 'verify_visual': False}).json()
 
     def test_twins_share_one_call_and_combined_categories_add_up(self):
         twins = finnish_twins()
@@ -108,7 +108,7 @@ class Inventory(unittest.TestCase):
         self.assertEqual(finnish['interpreted_question'], showers)
         self.assertEqual(toilets['value'], 2)
         self.assertEqual(floors['value'], 1)
-        # The larger box is kept for a whole floor plan.
+        # The full observed envelope is kept for a whole floor plan.
         self.assertAlmostEqual(floors['evidence'][0]['bbox'][2] - floors['evidence'][0]['bbox'][0], .9)
 
 
