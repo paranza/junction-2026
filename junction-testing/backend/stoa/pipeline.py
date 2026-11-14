@@ -162,7 +162,7 @@ class Models:
         self.plan = self.glyph = None
         p = os.path.join(WEIGHTS, "plannet_swiss.pt")
         if os.path.exists(p):
-            ck = torch.load(p, map_location="cpu")
+            ck = torch.load(p, map_location="cpu", weights_only=False)  # our own checkpoints only
             self.seg_ch, self.obj_cls = ck["seg_channels"], ck["obj_classes"]
             self.plan = PlanNet(len(self.seg_ch), len(self.obj_cls))
             self.plan.load_state_dict(ck["model"]); self.plan.eval()
@@ -170,7 +170,7 @@ class Models:
         self.cc = None
         c = os.path.join(WEIGHTS, "plannet_cc.pt")
         if os.path.exists(c):
-            ck = torch.load(c, map_location="cpu")
+            ck = torch.load(c, map_location="cpu", weights_only=False)  # our own checkpoints only
             self.cc_seg, self.cc_obj = ck["seg_channels"], ck["obj_classes"]
             self.cc = PlanNet(len(self.cc_seg), len(self.cc_obj))
             self.cc.load_state_dict(ck["model"]); self.cc.eval()
@@ -178,7 +178,7 @@ class Models:
             self.cc_eval = ck.get("eval")
         g = os.path.join(WEIGHTS, "glyphnet_swiss.pt")
         if os.path.exists(g):
-            ck = torch.load(g, map_location="cpu")
+            ck = torch.load(g, map_location="cpu", weights_only=False)  # our own checkpoints only
             self.glyph = GlyphNet(); self.glyph.load_state_dict(ck["model"]); self.glyph.eval()
 
     @classmethod

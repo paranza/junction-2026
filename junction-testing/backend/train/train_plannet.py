@@ -108,7 +108,10 @@ def sample_crop(s, size):
 def batch(samples, bs, size):
     X, S, Hm = [], [], []
     for _ in range(bs):
-        img, seg, heat = sample_crop(random.choice(samples), size)
+        smp = random.choice(samples)
+        if isinstance(smp, str):  # streamed from disk (large datasets)
+            smp = load(smp)
+        img, seg, heat = sample_crop(smp, size)
         X.append(img); S.append(seg); Hm.append(heat)
     X = torch.from_numpy(np.stack(X)[:, None]).float() / 255.0
     return 1 - X, torch.from_numpy(np.stack(S)).float(), torch.from_numpy(np.stack(Hm))
@@ -151,8 +154,8 @@ def evaluate(model, samples):
         ious.append(float((p & t).sum() / ((p | t).sum() + 1)))
     model.train()
     n = len(samples)
-    return {"exact": {c: exact[i] / n for i, c in enumerate(OBJ)},
-            "abs_err": {c: err[i] / n for i, c in enumerate(OBJ)}, "room_iou": float(np.mean(ious))}
+    return {"exact": {c: float(exact[i] / n) for i, c in enumerate(OBJ)},
+            "abs_err": {c: float(err[i] / n) for i, c in enumerate(OBJ)}, "room_iou": float(np.mean(ious))}
 
 
 def main():
@@ -175,7 +178,7 @@ def main():
     hold = [p for i, p in enumerate(paths) if i % 8 == 0] if a.dataset == "swiss" else paths[::120][:40]
     rest = [p for p in paths if p not in hold]
     random.Random(0).shuffle(rest)
-    train = [load(p) for p in rest[: a.max_train]]
+    train = [load(p) for p in rest[: a.max_train]] if a.dataset == "swiss" else rest[: a.max_train]
     if a.dataset == "cc":
         CFG["wall_px"] = float(np.median([float(np.load(p)["wall_px"]) for p in rest[:300]]))
         print("median wall thickness px", CFG["wall_px"], flush=True)
@@ -183,7 +186,7 @@ def main():
     print(f"train {len(train)}  holdout {len(val)}: {[v['name'] for v in val]}", flush=True)
     model = PlanNet(len(CFG["seg"]), len(CFG["obj"]))
     if a.resume:
-        model.load_state_dict(torch.load(a.resume)["model"])
+        model.load_state_dict(torch.load(a.resume, weights_only=False)["model"])
     print("params", sum(p.numel() for p in model.parameters()) / 1e6, "M", flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     t0, it, best = time.time(), 0, -1

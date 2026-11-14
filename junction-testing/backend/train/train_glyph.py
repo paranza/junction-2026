@@ -90,6 +90,8 @@ def main():
     ap.add_argument("--out", default="weights/glyphnet_swiss.pt")
     ap.add_argument("--minutes", type=float, default=30)
     ap.add_argument("--bs", type=int, default=48)
+    ap.add_argument("--resume", default=None)
+    ap.add_argument("--lr", type=float, default=1e-3)
     a = ap.parse_args()
     paths = sorted(glob.glob(os.path.join(a.labels, "*.npz")))
     hold = [p for i, p in enumerate(paths) if i % 8 == 0]
@@ -97,14 +99,16 @@ def main():
     val = load_words(hold)
     print("train words", len(train), "val words", len(val), flush=True)
     model = GlyphNet()
-    opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    if a.resume:
+        model.load_state_dict(torch.load(a.resume, weights_only=False)["model"])
+    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     ctc = torch.nn.CTCLoss(blank=0, zero_infinity=True)
     t0, it, best = time.time(), 0, -1
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     while time.time() - t0 < a.minutes * 60:
         frac = (time.time() - t0) / (a.minutes * 60)
         for g in opt.param_groups:
-            g["lr"] = 1e-3 * (0.05 + 0.95 * 0.5 * (1 + np.cos(np.pi * frac)))
+            g["lr"] = a.lr * (0.05 + 0.95 * 0.5 * (1 + np.cos(np.pi * frac)))
         chunk = random.sample(train, a.bs)
         crops = [augment(crop_word(g, b, jitter=True)) for g, b, _ in chunk]
         X = to_tensor(crops)

@@ -19,8 +19,15 @@ def fix(npz, cc_root):
     z["seg"] = np.packbits(seg, axis=0)
     np.savez_compressed(npz, **z)
 
+def _job(args):
+    try:
+        fix(*args); return None
+    except Exception as e:
+        return f"{args[0]}: {e}"
+
 if __name__ == "__main__":
-    for d in sys.argv[2:]:
-        for p in glob.glob(os.path.join(d, "*.npz")):
-            fix(p, sys.argv[1])
-    print("fixed")
+    from multiprocessing import Pool
+    jobs = [(p, sys.argv[1]) for d in sys.argv[2:] for p in glob.glob(os.path.join(d, "*.npz"))]
+    with Pool(6) as pool:
+        errs = [e for e in pool.imap_unordered(_job, jobs, chunksize=16) if e]
+    print("fixed", len(jobs), "errors", len(errs), errs[:3])
