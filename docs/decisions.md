@@ -93,3 +93,7 @@ Not done: takeoff on IFC spaces (perimeters and wall areas sit under exporter-sp
 ## 2026-11-14: Source query operations and reviewed quantity exports
 
 Extend the existing model-planned native executor with typed groups, comparisons, follow-up selections and unique-key schedule joins. The model plans selections; Python computes from source operands. Keep immutable machine quantities alongside revision-checked human corrections and persisted JSON/CSV receipts. Integrate Matteo's native perimeter, skirting, wall-area and chat CSV work. Keep standard repeated inventory as the release policy: the recovered detector and focused-reader development studies did not improve exact counts. Optional adaptive/focused policies remain experimental and disabled by default. See [verification and limitations](delivery/quantity-workflow-improvements.md).
+
+## 2026-11-14: Measure automatic answers and refuse incomplete model scope
+
+Evaluate Gemini-backed answers separately from native-only regression. The automatic path correctly answered 12 of 13 previously unanswered development PDF questions. It also supplied unsupported whole-model totals from one projected drawing whose IFC is absent. Add a generic projected-source scope guard before model fallback, while preserving native IFC and visible-plan requests. A four-crop reader did not improve the 22-question visual sample, so it is not integrated. See [full-path development results](evaluation/model-coverage-development.md).

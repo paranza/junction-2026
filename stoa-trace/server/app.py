@@ -371,7 +371,7 @@ def _evidence(result, doc_id):
 
 def _source_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'source_scope.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -613,6 +613,9 @@ def _compute_analysis(payload, question, data, source, previous=None):
             except llm.ModelError:
                 pass
         native_result = copy.deepcopy(result)
+    if result is None and payload.mode != 'native' and not payload.region and payload.scope == 'document':
+        from .source_scope import unavailable_model_scope
+        result = unavailable_model_scope(question, data, source)
     if result is None and payload.mode != 'native' and (not payload.region or region_data is not None) and llm.model_available():
         # Schedule sheets: a model plans the table query, the program executes it over the cells.
         from . import schedule_planner
