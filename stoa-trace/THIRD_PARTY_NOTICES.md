@@ -23,3 +23,13 @@ The unchanged source-provided licence and attribution notices for all nine colle
 Dependencies are installed from their package registries and are not vendored into this source repository. Preserve their included notices when distributing an installed application or container. The pinned Python packages include FastAPI (MIT), Uvicorn (BSD-3-Clause), python-multipart (Apache-2.0), PyMuPDF (GNU AGPL 3.0 or an Artifex commercial licence), Pillow (MIT-CMU), ezdxf, IfcOpenShell (LGPL-3.0-or-later), Shapely (BSD-3-Clause), httpx (BSD-3-Clause) and python-dotenv (BSD-3-Clause). Consult the installed distributions for complete notices and transitive dependencies.
 
 React, React DOM, Vite and their frontend dependencies retain their package licences. Lucide icons retain the licence included with `lucide-react`. No pretrained detection/segmentation weights are included.
+
+## BoardUI interface primitives
+
+`frontend/src/boardui/` adapts the free MIT-licensed Button and Divider components from [BoardUI](https://github.com/BoardUI/boardui), upstream commit `ec5c5eb3e29c2441be63b9422cd54f411ef23466`. Copyright (c) 2026 Mertcan Dundar Esmergul (BoardUI). The MIT licence is retained in `frontend/src/boardui/LICENSE`, and the adaptation is described in its README. No BoardUI Pro component source or paid template is included. Trace's session inference-cost section is original team code.
+
+## Hosted model services and pricing facts
+
+OpenAI, Gemini and optional Gemma requests use hosted APIs under their provider terms. Selecting a hosted open model does not turn this implementation into offline inference. No Gemini or Gemma weights are redistributed or trained by these adapters. `store: false` is an API setting, not a replacement for provider data-use or retention terms. See [Google's hosted Gemma documentation](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api).
+
+The token-rate facts in `server/costs.py` are derived from [Google's published API pricing](https://aistudio.google.com/docs/pricing), checked 14 November 2026 and date-bounded in code. They support estimated provider token costs before credits, not invoices, account balances, or a promise of future pricing or access. Unknown or expired prices remain unknown unless an operator supplies an explicit exact-model override.

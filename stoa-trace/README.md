@@ -16,7 +16,7 @@ chmod +x run.sh
 
 Open <http://127.0.0.1:8787>. Set `STOA_DATA_ROOT` in `.env` to the folder containing `data/` and `questions.jsonl`. To use vision, set `OPENAI_API_KEY` in a private `.env` or `~/.config/stoa-junction-2026/secrets.env`. Native mode needs no API key. Uploads also work without the preview dataset.
 
-Gemini is selectable with `STOA_PROVIDER=gemini`, `STOA_MODEL=gemini-4-carbon` and a private `GEMINI_API_KEY`. See [provider setup](ops/GEMINI.md). Exported variables take precedence; a private `gemini.env` sidecar activates only once it contains a key. Provider changes require a restart and invalidate model answer caches. Existing saved answers and reviews are retained.
+Gemini is selectable with `STOA_PROVIDER=gemini`, `STOA_MODEL=gemini-4-carbon` and a private `GEMINI_API_KEY`. An optional Gemma model can review visual counts through the same key. See [provider and analysis-policy setup](ops/GEMINI.md), including a prepared medium-reasoning, 24,000-token, 600-second policy with high image resolution. These settings are configuration options, not a deployment or accuracy claim. Exported variables take precedence; a private `gemini.env` sidecar activates only once it contains a key. Provider changes require a restart and invalidate model answer caches. Existing saved answers and reviews are retained.
 
 The portable default dataset location is `datasets/junction-dataset-preview/`, which is ignored by Git. Download the preview separately using the URL in `HANDOFF.md` and retain its licence files. Set a fresh local `STOA_RUNTIME_DIR`; credentials and the existing shared runtime are not part of the handoff.
 
@@ -79,19 +79,28 @@ corrections are disabled until the question is recomputed.
 
 ## Caches and usage
 
-Repeated identical questions reuse immutable analysis and receive fresh answer
+Repeated identical questions, and recognized equivalent translations, reuse immutable analysis and receive fresh answer
 IDs, so one user's review cannot contaminate another answer. Visual inventories
 can answer supported follow-up category counts without another model call.
 Cache keys include source and paired-view hashes, solver/extractor, prompt,
 rendering and model versions, page, region and analysis mode. Changed paired
 drawings invalidate extraction, answers and previews.
 
-Answer details show model calls, token usage, application cache hits and initial
-visual extraction usage separately. Dollar cost is unknown unless token rates
-are explicitly configured in the server environment. The optional rates in
-`.env.example`, bound to the exact provider/model with `STOA_PRICE_MODEL`, produce estimates, not invoice totals. Hosting/storage costs are
-separate. Stop waiting discards stale UI responses; it cannot cancel a model
-request already running on the server.
+The interface shows inference cost for each question and a running total for the
+current browser-tab session, including failed requests where provider usage is
+available. A session UUID in `sessionStorage` survives ordinary reloads, and
+`/api/usage` rebuilds its totals from persisted model-attempt/response events.
+Native and cached answers make zero new model calls. Historical inventory usage
+is not charged again to every follow-up question. Unknown usage or missing prices
+stay unknown, with a known estimated subtotal kept separate.
+
+Estimates use each model's token usage, including reasoning output, before
+credits; they are not provider invoices or account balances. Dated Carbon and
+hosted Gemma rates are bundled through 30 November 2026. The exact-model
+`STOA_PRICE_MODEL` and rate settings can explicitly override them. Hosting and
+storage are separate. Stop waiting discards stale UI responses; it cannot cancel
+a model request already running on the server. See [accounting and policy
+details](ops/GEMINI.md#per-message-and-session-inference-cost).
 
 ## Accuracy and limits
 
@@ -143,6 +152,7 @@ DWG uploads are accepted for project storage; analysis requires a supported pair
 - Set `STOA_ACCESS_TOKEN` to protect backend APIs behind a server-side proxy that supplies `X-Trace-Token`. Do not embed it or provider keys in the browser. Use HTTPS and access control for a remote workspace.
 - `STOA_MAX_MODEL_CALLS` limits recorded model attempts per runtime database (default 500). It is an attempt limit, not a dollar budget. Configure a provider spending cap separately.
 - Hosted model requests send selected source material to the configured OpenAI or Gemini service with `store: false`; this does not override the provider's retention terms. Native mode sends no model requests.
+- Optional hosted Gemma review is a second model call, not independent verification or offline inference. Its image-coordinate constraints and source checks do not establish detection completeness.
 - Dataset sources retain their respective licenses; source credits are shown in the app. The dataset is not bundled into this repository. Team code uses `LICENSE`; source-derived screenshots, benchmark questions and evidence retain the terms documented in `THIRD_PARTY_NOTICES.md` and `third_party/dataset_licenses/`.
 
 See `DATA_INVENTORY.md` for the complete preview file inventory. The full 10 GB dataset has not been loaded.

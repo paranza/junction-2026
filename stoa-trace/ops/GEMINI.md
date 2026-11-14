@@ -1,31 +1,76 @@
-# Gemini provider setup
+# Gemini and optional Gemma review
 
-The hosted model is replaceable; native source extraction, calculations, coordinate mapping and review history remain in Trace. Select Gemini with private settings:
+Trace keeps native source extraction, deterministic calculations, coordinate mapping and review history when the hosted model changes. The following is a prepared analysis policy, not a claim that this configuration is deployed or that an evaluation has passed:
 
 ```dotenv
 GEMINI_API_KEY=your-private-key
 STOA_PROVIDER=gemini
 STOA_MODEL=gemini-4-carbon
 STOA_GEMINI_IMAGE_RESOLUTION=high
+STOA_GEMINI_THINKING_LEVEL=medium
+STOA_GEMINI_MAX_OUTPUT_TOKENS=24000
+STOA_GEMINI_TIMEOUT_SECONDS=600
 STOA_MAX_MODEL_CALLS=50
 ```
 
-Store these in a private `.env`, exported environment, or `~/.config/stoa-junction-2026/gemini.env` with owner-only file permissions. Never put the key in chat, source control, browser JavaScript or a screenshot. An empty sidecar does not activate Gemini. Exported variables take precedence. `STOA_PROVIDER=openai` explicitly selects the existing provider.
+Store these in a private `.env`, exported environment, or `~/.config/stoa-junction-2026/gemini.env` with owner-only permissions. Keep the actual key out of chat, Git, browser JavaScript and screenshots. An empty sidecar does not activate Gemini. Exported variables take precedence. `STOA_PROVIDER=openai` explicitly selects the other supported provider.
 
-Restart with `python ops/start_local.py`. `/api/health` reports the provider, model and whether a key is present; key presence alone does not establish successful authentication or model access. A read-only model availability check and a real structured image request are required before calling the integration live-tested.
+Restart with `python ops/start_local.py`. `/api/health` reports the selected provider/model, key presence and non-secret analysis signatures. Key presence and model-catalog visibility do not prove successful inference. Check the key without inference using `python ops/check_gemini.py`, then run a real structured image request before describing the integration as live-tested. The actual production revision and verification belong in `docs/delivery/deployment-verification.md`; local checks do not update that deployment automatically.
 
-For the existing Verda deployment, `python ops/deploy_verda.py sync` transfers only the selected runtime provider key over encrypted SSH stdin. `start` rebuilds and restarts the app. The existing SQLite database, saved answers, review history and total model-attempt ledger are preserved. The request cap is an application setting, separate from credits, billing and provider rate limits. Do not reset the ledger to conceal failed attempts.
+## Analysis policy
 
-Provider and model identity are part of answer and inventory cache keys. Output usage includes Gemini reasoning tokens. Dollar estimates remain unknown until the configured model's rates are supplied. Provider failures are sanitized; automatic inference retries are disabled.
+| Setting | Supported values and behavior |
+| --- | --- |
+| `STOA_GEMINI_IMAGE_RESOLUTION` | `low`, `medium`, `high` (default), `ultra_high`; applied to each inline image. Higher resolution needs a development comparison before claiming better recognition. |
+| `STOA_GEMINI_THINKING_LEVEL` | `low`, `medium`, `high`; default `high`. The example selects `medium` to leave more of the output budget for the structured answer. |
+| `STOA_GEMINI_MAX_OUTPUT_TOKENS` | Optional integer 1,000–32,768. When unset, each analysis caller keeps its own cap. The example selects 24,000. |
+| `STOA_GEMINI_TIMEOUT_SECONDS` | Integer 60–600; default 240. This is a transport timeout, not a latency promise. |
+| `STOA_SMALL_IMAGE_CROPS` | `1` enables enlarged overlapping crops for small plans. Upscaling does not restore missing detail; compare policies on development inputs. |
 
-Cost estimates additionally require `STOA_PRICE_MODEL=gemini/gemini-4-carbon` to match the active provider/model exactly. This prevents old OpenAI prices from being applied after a provider switch. Obtain current rates from the provider before setting the three `STOA_*_USD_PER_MILLION` values.
+Google counts reasoning tokens inside the output-token cap. An analysis can therefore return `incomplete` before producing valid JSON. Increasing the cap alone is not an accuracy fix; reducing reasoning depth can prevent it consuming the whole response budget. Bounded text requests below 1,000 output tokens retain their original cap and use low Gemini reasoning. Invalid settings fail before another model-attempt reservation or network call. Inference is not automatically retried.
 
-Current Google documentation, checked 14 November 2026:
+Resolution, reasoning, output cap and timeout are part of model-dependent cache identities. Equivalent questions covered by the deterministic translation normalizer can share analysis while retaining their original wording and fresh answer/review IDs. Unrecognized wording is not collapsed into a template.
 
-- [Gemini 4 Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon), text/image/PDF input and structured output.
-- [Structured output](https://aistudio.google.com/docs/structured-output) and [image understanding](https://aistudio.google.com/docs/image-understanding).
-- The adapter uses Google's Interactions API with `store: false`. Account access must still be checked with the actual key.
+## Optional Gemma review
 
-Before comparing providers, freeze the code, prompts, model and analysis settings, run development questions first, and then release the reserved unseen-file evaluation once. Count abstentions on answerable questions as failures; report unsupported controls separately. A model change is not evidence of 99.9% accuracy.
+Use the same private Google key to select a supported second model for visual count review:
 
-For dense drawings, `STOA_GEMINI_IMAGE_RESOLUTION` supports `low`, `medium`, `high` (default) and `ultra_high`. The setting is applied to every image and included in cache identities. Google documents high as the normal image recommendation; ultra_high approximately doubles image tokens and needs a development comparison before claiming an improvement. See [media resolution](https://aistudio.google.com/docs/media-resolution#token-counts).
+```dotenv
+STOA_VISUAL_AUDIT_MODEL=gemma-4-31b-it
+STOA_GEMMA_THINKING_LEVEL=minimal
+```
+
+The other supported Gemma model is `gemma-4-26b-a4b-it`. Gemma accepts `minimal` or `high`; its analysis default remains `high` when the setting is omitted. Bounded Gemma text uses `minimal`. With no explicit auditor, the application uses the active initial model again. Model selection is local to each request, so concurrent calls do not change a global model or cross provider credentials.
+
+Visual audit revision v4 constrains Gemma's image indices and normalized coordinates, then applies the same source-page mapping, category, crop-containment and scope checks as other visual results. The review can propose missed objects and reject candidates. A second model is not independent ground truth, and its output remains provisional. Changing the auditor invalidates audited answers while allowing unchanged initial-model inventories to be reused. Hosted Gemma is an API service here, not offline inference; no Gemma weights are bundled or trained by this integration.
+
+## Per-message and session inference cost
+
+The interface shows a cost estimate for each question and a running total for the current browser-tab session. Its UUID is kept in `sessionStorage`, so ordinary reloads retain the session; a new tab can have a different session. The backend persists request and response events, and `GET /api/usage?session_id=<uuid>` returns a revisioned aggregate and per-message breakdown. Native and cached questions record zero new model calls; a previously paid inventory is not charged again in every follow-up answer.
+
+These are estimated provider token costs **before credits**, not invoices or an account balance. Hosting and storage are separate. Reasoning output tokens count toward inference cost. Each model is priced separately when Gemini and Gemma share a question. Failed or incomplete responses retain any usage the provider reported. A network failure or missing usage remains unknown; a known subtotal is shown separately from an unknown total. Closing the browser request or stopping waiting does not cancel work already running on the server.
+
+`server/costs.py` contains published rates verified on 14 November 2026, valid for calls before 1 December 2026:
+
+- Gemini 4 Carbon: $2.00 per million uncached input tokens, $0.10 per million cached input tokens and $10.00 per million output tokens, including reasoning.
+- Hosted Gemma 4: the documented free-tier token rates. A zero estimate is not a guarantee about account access, quotas or an invoice.
+
+Calls outside the dated rate window, unknown models and missing usage do not receive invented prices. An operator can explicitly override rates for one exact provider/model with `STOA_PRICE_MODEL`, `STOA_INPUT_USD_PER_MILLION`, `STOA_CACHED_INPUT_USD_PER_MILLION` and `STOA_OUTPUT_USD_PER_MILLION`. Wrong-model or invalid overrides do not silently price another model's tokens.
+
+## Existing deployment and evaluation
+
+`python ops/deploy_verda.py sync` transfers only the selected runtime provider key over encrypted SSH stdin. `start` rebuilds and restarts the existing app. Preserve SQLite, source files, saved answers, reviews and the model-attempt ledger. `STOA_MAX_MODEL_CALLS` is a per-runtime attempt ceiling, separate from credits and provider rate limits. An explicit larger evaluation budget must not reset that ledger or remove its history.
+
+For development-scale runs use [bulk evaluation](BULK_EVALUATION.md). Freeze the code, model, prompts and analysis policy first. Reports must distinguish an inventory baseline with per-question recount disabled from the audited product flow. Count abstentions on answerable questions as failures and keep unsupported controls separate. Release reserved inputs only under their evaluation protocol; do not repeatedly tune against them. Model selection and request-volume success do not establish 99.9% accuracy.
+
+## Official references
+
+Checked 14 November 2026:
+
+- [Gemini 4 Carbon](https://aistudio.google.com/docs/models/gemini-4-carbon)
+- [Structured output](https://aistudio.google.com/docs/structured-output) and [image understanding](https://aistudio.google.com/docs/image-understanding)
+- [Media resolution](https://aistudio.google.com/docs/media-resolution#token-counts) and [reasoning token limits](https://aistudio.google.com/docs/thinking#token-limits)
+- [Hosted Gemma](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api)
+- [Published API pricing](https://aistudio.google.com/docs/pricing)
+
+The adapter uses Google's Interactions API with `store: false`. That flag does not override provider data-use or retention terms.
