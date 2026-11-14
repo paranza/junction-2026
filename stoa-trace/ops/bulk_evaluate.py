@@ -206,16 +206,17 @@ def result_row(case, response=None, *, error_code=None, duration=0, attempted=Tr
 
 
 class Evaluation:
-    def __init__(self, cases, documents, checkpoint, ask, *, mode='auto', verify_visual=False,
+    def __init__(self, cases, documents, checkpoint, ask, *, mode='auto', verify_visual=False, readings=1,
                  max_model_calls=250, concurrency=4, tolerance=.02):
         self.cases, self.documents, self.checkpoint, self.ask = cases, documents, checkpoint, ask
         self.mode, self.verify_visual = mode, verify_visual
+        self.readings = readings  # model calls per cold page inventory
         self.limit, self.concurrency, self.tolerance = max_model_calls, concurrency, tolerance
         self.lock = threading.RLock()
         self.in_flight = self.failures = 0
         self.stopped_reason = None
         self.calls = sum(r.get('response', {}).get('usage', {}).get('model_calls', 0) for r in checkpoint.rows.values())
-        self.unknown_failures = sum(bool(r.get('error') and r.get('request_attempted')) for r in checkpoint.rows.values())
+        self.unknown_failures = self.readings * sum(bool(r.get('error') and r.get('request_attempted')) for r in checkpoint.rows.values())
         # Different questions from one drawing can share the same uncached
         # model operation. Retrying another question after an API error would
         # therefore be an implicit paid retry of that failed inventory.
@@ -232,7 +233,7 @@ class Evaluation:
                     return
                 # This is a conservative scheduling guard, not knowledge of
                 # every provider attempt hidden inside a failed API request.
-                reserve = 2 if self.verify_visual else 1
+                reserve = self.readings + (1 if self.verify_visual else 0)
                 if self.mode != 'native' and self.calls + self.unknown_failures + (self.in_flight + 1) * reserve > self.limit:
                     self.stopped_reason = 'client_observed_model_budget'
                     return
@@ -261,7 +262,7 @@ class Evaluation:
             with self.lock:
                 self.in_flight -= 1
                 self.calls += row.get('response', {}).get('usage', {}).get('model_calls', 0)
-                self.unknown_failures += bool(row.get('error') and row['request_attempted'])
+                self.unknown_failures += self.readings * bool(row.get('error') and row['request_attempted'])
                 self.failures = self.failures + 1 if row.get('error') else 0
                 if row.get('error'):
                     self.failed_drawings.add(case['path'])
@@ -383,7 +384,8 @@ def main(argv=None):
             if not hasattr(local, 'client'):
                 local.client = Client(args.base_url, args.timeout)
             return local.client.api('/api/ask', payload)
-        evaluation = Evaluation(cases, documents, checkpoint, ask, mode=args.mode, verify_visual=args.verify_visual,
+        readings = int((health.get('inventory_signature') or {}).get('readings', 1))
+        evaluation = Evaluation(cases, documents, checkpoint, ask, mode=args.mode, verify_visual=args.verify_visual, readings=readings,
                                 max_model_calls=args.max_model_calls, concurrency=args.concurrency,
                                 tolerance=manifest.get('scoring', {}).get('measurement_relative_tolerance', .02))
         reason = evaluation.run()

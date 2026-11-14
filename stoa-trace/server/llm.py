@@ -9,6 +9,7 @@ import re
 import time
 import contextvars
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -35,6 +36,37 @@ def usage_scope(*, session_id=None, message_id=None):
         yield
     finally:
         _usage.reset(token)
+
+
+def run_in_parallel(tasks):
+    """Run model requests concurrently. Each task records usage in its own ledger, with
+    the caller's session and message ids, and the ledgers are merged into the caller's
+    afterwards, so threads never update the same counter. The first error is raised
+    after all usage has been merged."""
+    parent = _usage.get()
+    ids = (parent.get('_session_id'), parent.get('_message_id')) if parent is not None else (None, None)
+
+    def run(task):
+        with usage_scope(session_id=ids[0], message_id=ids[1]):
+            try:
+                return task(), _usage.get(), None
+            except Exception as error:
+                return None, _usage.get(), error
+
+    with ThreadPoolExecutor(max_workers=max(1, len(tasks))) as pool:
+        outcomes = list(pool.map(run, tasks))
+    if parent is not None:
+        for _, ledger, _ in outcomes:
+            for field in ('model_calls', 'unknown_usage') + costs.TOKEN_FIELDS:
+                parent[field] += ledger[field]
+            parent.setdefault('_calls', []).extend(ledger.get('_calls', []))
+            for model in ledger.get('models', []):
+                if model not in parent.setdefault('models', []):
+                    parent['models'].append(model)
+    for _, _, error in outcomes:
+        if error is not None:
+            raise error
+    return [result for result, _, _ in outcomes]
 
 
 def usage_snapshot(cache_hit=False):

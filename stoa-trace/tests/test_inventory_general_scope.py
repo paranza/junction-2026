@@ -24,6 +24,9 @@ class GenericInventory(unittest.TestCase):
         self.runtime.start()
         self.data_root = patch.object(store, 'DATA_ROOT', runtime / 'dataset')
         self.data_root.start()
+        self.readings = patch.object(inventory, 'READINGS', 1)  # these tests count calls per image
+        self.readings.start()
+        self.addCleanup(self.readings.stop)
         store.initialize()
         self.document = {'document_id': 'unknown-upload', 'source_sha256': 'identical-pixels', 'page_count': 1}
         self.path = runtime / 'any-plan.png'

@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import llm, rendering, store
+from . import inventory, llm, rendering, store  # inventory validates its settings at startup
 from .normalize import to_english, translation_preserves_constraints
 from .selection import highlight_target, native_highlight, describe_highlights
 

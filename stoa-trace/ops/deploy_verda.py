@@ -166,7 +166,8 @@ def runtime_environment(config):
     for name in ('CLOUDINARY_URL', 'STOA_CLOUDINARY_UPLOAD_PRESET',
                  'STOA_INPUT_USD_PER_MILLION', 'STOA_CACHED_INPUT_USD_PER_MILLION',
                  'STOA_OUTPUT_USD_PER_MILLION', 'STOA_SMALL_IMAGE_CROPS', 'STOA_PRICE_MODEL', 'STOA_GEMINI_IMAGE_RESOLUTION', 'STOA_VISUAL_AUDIT_MODEL',
-                 'STOA_GEMINI_THINKING_LEVEL', 'STOA_GEMMA_THINKING_LEVEL', 'STOA_GEMINI_MAX_OUTPUT_TOKENS', 'STOA_GEMINI_TIMEOUT_SECONDS'):
+                 'STOA_GEMINI_THINKING_LEVEL', 'STOA_GEMMA_THINKING_LEVEL', 'STOA_GEMINI_MAX_OUTPUT_TOKENS', 'STOA_GEMINI_TIMEOUT_SECONDS',
+                 'STOA_INVENTORY_READINGS', 'STOA_ANNOTATION_PROFILE'):
         if name in config:
             values[name] = config[name]
     if any(any(c in str(value) for c in '\r\n') for value in values.values()):

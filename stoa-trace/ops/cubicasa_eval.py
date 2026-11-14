@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score Trace's visual inventory on CubiCasa plans, one model call per image.
+"""Score Trace's visual inventory on CubiCasa plans, one model call per image by default.
 
 Evaluation only: answer labels are read here to score and never reach Trace.
 Without --allow-paid it only lists the selected images and the prior baseline.
@@ -65,6 +65,8 @@ def main(argv=None):
     # Configure Trace before importing it.
     runtime = args.runtime or Path(tempfile.mkdtemp(prefix='trace-cubicasa-'))
     os.environ.update(STOA_DATA_ROOT=str(root), STOA_RUNTIME_DIR=str(runtime), STOA_MAX_MODEL_CALLS=str(args.max_calls))
+    # Only the first reading is scored, so repeat readings are off unless explicitly requested.
+    os.environ.setdefault('STOA_INVENTORY_READINGS', '1')
     if args.no_small_crops:
         os.environ['STOA_SMALL_IMAGE_CROPS'] = '0'
     sys.path.insert(0, str(HERE.parent))
@@ -110,7 +112,7 @@ def main(argv=None):
     correct = sum(r['correct'] for r in results)
     report = {'split': 'holdout' if args.holdout else 'dev', 'images': len(chosen), 'questions': len(results),
               'correct': correct, 'accuracy': round(correct / len(results), 4) if results else None,
-              'prior_baseline': f'{prior_correct}/{total}', 'model': llm.PROVIDER + '/' + llm.MODEL, 'small_image_crops': not args.no_small_crops,
+              'prior_baseline': f'{prior_correct}/{total}', 'model': llm.PROVIDER + '/' + llm.MODEL, 'small_image_crops': not args.no_small_crops, 'readings': inventory.READINGS,
               'model_errors': failures, 'usage': dict(usage), 'seconds': round(time.perf_counter() - started, 1),
               'by_template': {q: f'{c}/{n}' for q, (c, n) in sorted(by_template.items())}, 'results': results}
     output = args.output or runtime / 'cubicasa-eval.json'

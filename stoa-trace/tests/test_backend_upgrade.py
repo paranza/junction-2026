@@ -21,7 +21,7 @@ class BackendUpgrade(unittest.TestCase):
         for name in ('cache', 'previews', 'uploads'):
             (self.runtime / name).mkdir()
         self.patches = [patch.object(store, 'RUNTIME', self.runtime), patch.object(store, 'DATA_ROOT', self.data),
-                        patch.object(api, 'ACCESS_TOKEN', '')]
+                        patch.object(api, 'ACCESS_TOKEN', ''), patch.object(inventory, 'READINGS', 1)]
         for item in self.patches:
             item.start()
         self.client = TestClient(api.app)

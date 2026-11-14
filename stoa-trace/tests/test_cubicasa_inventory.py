@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -76,7 +77,7 @@ class Inventory(unittest.TestCase):
         for name in ('cache', 'previews', 'uploads'):
             (runtime / name).mkdir(parents=True)
         self.patches = [patch.object(store, 'RUNTIME', runtime), patch.object(store, 'DATA_ROOT', Path(self.folder.name) / 'dataset'),
-                        patch.object(api, 'ACCESS_TOKEN', '')]
+                        patch.object(api, 'ACCESS_TOKEN', ''), patch.object(inventory, 'READINGS', 1)]
         for item in self.patches:
             item.start()
         self.client = TestClient(api.app)
@@ -130,6 +131,111 @@ class Inventory(unittest.TestCase):
         # The full observed envelope is kept for a whole floor plan.
         self.assertAlmostEqual(floors['evidence'][0]['bbox'][2] - floors['evidence'][0]['bbox'][0], .9)
 
+
+
+class TwoReadings(unittest.TestCase):
+    """Repeated readings: the first successful one gives the count, a different count is flagged."""
+    question = 'How many toilet bowls (WC seats) are drawn on this floor plan?'
+    setUp, tearDown, ask = Inventory.setUp, Inventory.tearDown, Inventory.ask
+
+    def reading(self, toilets, complete=True):
+        rows = [{'category': 'toilet', 'label': 'WC', 'image_index': 0, 'bbox': [.1 + .2 * n, .1, .15 + .2 * n, .15], 'ambiguous': False}
+                for n in range(toilets)]
+        return {'complete': complete, 'warnings': [], 'objects': rows}
+
+    def ask_with_readings(self, readings):
+        """Fix what each repeated reading returns, independent of thread scheduling."""
+        def parallel(tasks):
+            self.assertEqual(len(tasks), len(readings))
+            return list(readings)
+        with patch.object(inventory, 'READINGS', len(readings)), patch('server.native_qa.answer_native', return_value=None), \
+                patch.object(inventory, 'image_inputs', return_value=self.images[:1]), \
+                patch.object(llm, 'run_in_parallel', side_effect=parallel), patch.object(llm, 'KEY', 'test'):
+            return self.client.post('/api/ask', json={'document_id': self.doc['id'], 'question': self.question, 'mode': 'auto'})
+
+    def test_a_different_count_is_flagged_without_changing_the_answer(self):
+        answer = self.ask_with_readings([self.reading(1), self.reading(2)]).json()
+        self.assertEqual(answer['value'], 1)
+        self.assertEqual(answer['agreement'], {'readings': [1, 2], 'agree': False})
+        self.assertTrue(any('gave different counts (1 vs 2)' in w for w in answer['warnings']))
+
+    def test_the_same_count_is_reported(self):
+        answer = self.ask_with_readings([self.reading(2), self.reading(2)]).json()
+        self.assertEqual(answer['agreement'], {'readings': [2, 2], 'agree': True})
+        self.assertFalse(any('different counts' in w for w in answer['warnings']))
+
+    def test_a_failed_repeat_keeps_the_first_reading(self):
+        answer = self.ask_with_readings([self.reading(2), llm.ModelError('The model did not finish its analysis.')]).json()
+        self.assertEqual(answer['value'], 2)
+        self.assertIsNone(answer['agreement'])
+
+    def test_any_failure_of_a_repeat_keeps_the_first_reading(self):
+        answer = self.ask_with_readings([self.reading(2), RuntimeError('database is locked')]).json()
+        self.assertEqual(answer['value'], 2)
+        self.assertIsNone(answer['agreement'])
+
+    def test_the_first_successful_reading_gives_the_count(self):
+        answer = self.ask_with_readings([llm.ModelError('The model account reached a rate or credit limit.'), self.reading(3)]).json()
+        self.assertEqual(answer['value'], 3)
+        self.assertIsNone(answer['agreement'])
+
+    def test_all_failed_readings_fail_the_answer(self):
+        reply = self.ask_with_readings([llm.ModelError('first'), llm.ModelError('second')])
+        self.assertEqual(reply.status_code, 503)
+
+    def test_an_incomplete_repeat_that_found_nothing_is_not_agreement(self):
+        answer = self.ask_with_readings([self.reading(0), self.reading(0, complete=False)]).json()
+        self.assertEqual(answer['value'], 0)
+        self.assertIsNone(answer['agreement'])
+
+    def test_readings_run_through_real_threads(self):
+        lock, served = threading.Lock(), []
+        replies = [self.reading(1), self.reading(2)]
+        def reply(*args, **kwargs):
+            with lock:
+                served.append(replies[len(served)])
+                return served[-1]
+        with patch.object(inventory, 'READINGS', 2), patch('server.native_qa.answer_native', return_value=None), \
+                patch.object(inventory, 'image_inputs', return_value=self.images[:1]), \
+                patch.object(llm, '_request', side_effect=reply), patch.object(llm, 'KEY', 'test'):
+            answer = self.ask(self.question)
+        self.assertEqual(len(served), 2)
+        self.assertEqual(sorted(answer['agreement']['readings']), [1, 2])
+        self.assertEqual(answer['value'], answer['agreement']['readings'][0])
+
+    def test_one_reading_has_no_agreement(self):
+        with patch('server.native_qa.answer_native', return_value=None), \
+                patch.object(inventory, 'image_inputs', return_value=self.images[:1]), \
+                patch.object(llm, '_request', return_value=self.reading(2)) as model, patch.object(llm, 'KEY', 'test'):
+            answer = self.ask(self.question)
+        self.assertEqual(model.call_count, 1)
+        self.assertIsNone(answer['agreement'])
+
+    def test_agreement_counts_repeat_readings_like_the_answer(self):
+        reading = {'complete': True, 'objects': [{'category': 'toilet', 'bbox': [.1, .1, .2, .2]}, {'category': 'toilet', 'bbox': [.7, .7, .8, .8]},
+                                                 {'category': 'sink', 'bbox': [.1, .3, .2, .4]}]}
+        page = {'other_readings': [reading]}
+        self.assertEqual(inventory._agreement(1, [page], ('toilet',), [0, 0, .5, .5]), {'readings': [1, 1], 'agree': True})
+        self.assertEqual(inventory._agreement(1, [page], ('toilet',)), {'readings': [1, 2], 'agree': False})
+        self.assertEqual(inventory._agreement(3, [page], ('toilet', 'sink')), {'readings': [3, 3], 'agree': True})
+        self.assertEqual(inventory._agreement(4, [page, page], ('toilet',)), {'readings': [4, 4], 'agree': True})
+        self.assertIsNone(inventory._agreement(None, [page], ('toilet',)))
+        self.assertIsNone(inventory._agreement(1, [{'other_readings': []}], ('toilet',)))
+        self.assertIsNone(inventory._agreement(1, [page, {'other_readings': []}], ('toilet',)))
+
+    def test_readings_setting(self):
+        for raw, expected in (('', 2), ('1', 1), ('3', 3)):
+            with patch.dict(os.environ, {'STOA_INVENTORY_READINGS': raw}):
+                self.assertEqual(inventory._reading_count(), expected)
+        for raw in ('0', '4', 'two'):
+            with patch.dict(os.environ, {'STOA_INVENTORY_READINGS': raw}), self.assertRaises(ValueError):
+                inventory._reading_count()
+        with patch.object(inventory, 'READINGS', 1):
+            single = inventory.config_signature()
+        with patch.object(inventory, 'READINGS', 2):
+            double = inventory.config_signature()
+        self.assertNotIn('readings', single)
+        self.assertEqual(double['readings'], 2)
 
 if __name__ == '__main__':
     unittest.main()

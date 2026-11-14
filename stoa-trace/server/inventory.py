@@ -14,6 +14,21 @@ from . import llm, rendering, store
 from .rendering import image_inputs, png_bytes
 
 REVISION = 'located-inventory-v4'
+
+
+def _reading_count():
+    raw = os.environ.get('STOA_INVENTORY_READINGS', '').strip() or '2'
+    if raw not in {'1', '2', '3'}:
+        raise ValueError('STOA_INVENTORY_READINGS must be 1, 2 or 3.')
+    return int(raw)
+
+
+# Repeated readings of each page by the same model (STOA_INVENTORY_READINGS=1, 2 or 3; each
+# is a model call). The first successful reading gives the count; the others only flag a
+# different count for review. On 60 CubiCasa dev plans, answers whose two readings agreed were
+# right 455 of 504 times, against 6 of 15 where they differed
+# (docs/evaluation/cubicasa-vision-development.md).
+READINGS = _reading_count()
 CATEGORIES = ('door', 'window', 'toilet', 'sink', 'bathtub', 'shower', 'bedroom', 'kitchen', 'balcony', 'sauna', 'bathroom',
               'wc_room', 'apartment', 'floor')
 ALIASES = {
@@ -267,7 +282,8 @@ def categories_for_count(category):
 
 def config_signature():
     """Runtime inputs that must invalidate both inventory and answer caches."""
-    return {'revision': REVISION, 'small_image_crops': bool(rendering.SMALL_IMAGE_CROPS)}
+    return {'revision': REVISION, 'small_image_crops': bool(rendering.SMALL_IMAGE_CROPS),
+            **({'readings': READINGS} if READINGS != 1 else {})}
 
 
 def answer_category(question, result):
@@ -292,6 +308,22 @@ def _key(document, page, system=SYSTEM):
                               'schema': hashlib.sha256((system + json.dumps(SCHEMA, sort_keys=True)).encode()).hexdigest()})
 
 
+def _locate(result, images):
+    """Map one reading's rows to page coordinates: (located rows, discarded count)."""
+    located, discarded = [], 0
+    for row in result.get('objects', []):
+        index = row.get('image_index')
+        if type(index) is not int or not 0 <= index < len(images) or row.get('category') not in CATEGORIES:
+            discarded += 1
+            continue
+        box = llm._mapped_box(row.get('bbox'), images[index]['region'])
+        if box is None:
+            discarded += 1
+            continue
+        located.append({**row, 'bbox': box, 'crop_edge': _crop_edge(row['bbox'], images[index]['region'])})
+    return located, discarded
+
+
 def page_inventory(document, path, page):
     system = _system(path)
     key = _key(document, page, system)
@@ -306,20 +338,37 @@ def page_inventory(document, path, page):
             content += [{'type': 'input_text', 'text': f'IMAGE {index}: page {page}, {image["kind"]}. Boxes must use these image-local normalized coordinates.'},
                         {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(png_bytes(image['image'])).decode(), 'detail': 'high'}]
         before = llm.usage_snapshot()
-        # Gemini's output budget includes its reasoning: measured 7k-54k tokens per plan.
-        result = llm._request(content, system=system, schema=SCHEMA, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
-        objects, discarded, located = [], 0, []
-        for row in result.get('objects', []):
-            index = row.get('image_index')
-            if type(index) is not int or not 0 <= index < len(images) or row.get('category') not in CATEGORIES:
-                discarded += 1
-                continue
-            box = llm._mapped_box(row.get('bbox'), images[index]['region'])
-            if box is None:
-                discarded += 1
-                continue
-            located.append({**row, 'bbox': box, 'crop_edge': _crop_edge(row['bbox'], images[index]['region'])})
+        # Gemini's output budget includes its reasoning: 2,300 to 54,000 tokens per plan were measured.
+        request = lambda: llm._request(content, system=system, schema=SCHEMA, max_tokens=65536 if llm.PROVIDER == 'gemini' else 14000)
+        if READINGS > 1:
+            # Every reading is the same request. The first that succeeds gives the count and the
+            # others only flag a different count, so a failed repeat never fails the answer.
+            def attempt():
+                try:
+                    return request()
+                except Exception as error:  # raised below only if every reading failed
+                    return error
+            attempts = llm.run_in_parallel([attempt] * READINGS)
+            results = [a for a in attempts if not isinstance(a, Exception)]
+            if not results:
+                raise attempts[0]
+        else:
+            results = [request()]
+        result = results[0]
+        objects = []
+        located, discarded = _locate(result, images)
         merged, uncertain = _merge_observations(located)
+        # Repeat readings are located and merged the same way; only their category boxes and
+        # whether they inspected the whole page are kept. A malformed repeat only loses its flag.
+        other_readings = []
+        for extra in results[1:]:
+            try:
+                extra_located, extra_discarded = _locate(extra, images)
+                extra_merged, extra_uncertain = _merge_observations(extra_located)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                continue
+            other_readings.append({'complete': bool(extra.get('complete')) and not extra_discarded and not extra_uncertain,
+                                   'objects': [{'category': row['category'], 'bbox': row['bbox']} for row in extra_merged]})
         for row in merged:
             category, box = row['category'], row['bbox']
             identity = hashlib.sha256(json.dumps([key, category, [round(v, 5) for v in box]]).encode()).hexdigest()[:18]
@@ -328,7 +377,7 @@ def page_inventory(document, path, page):
                             'document_id': document.get('document_id'), 'evidence_kind': 'visual',
                             'source_verified': False, 'ambiguous': bool(row.get('ambiguous')),
                             'containment_uncertain': row['containment_uncertain']})
-        usage = result.get('_usage', {})
+        usages = [r.get('_usage') or {} for r in results]
         snapshot = llm.usage_snapshot()
         # The snapshot delta records this ingest separately from future free lookups.
         ingestion = {k: max(0, snapshot.get(k, 0) - before.get(k, 0)) for k in ('model_calls', 'input_tokens', 'output_tokens', 'cached_input_tokens')}
@@ -336,10 +385,11 @@ def page_inventory(document, path, page):
         prior_cost = before.get('cost_estimate_usd')
         ingestion.update(cost_estimate_usd=round(max(0, initial_cost - prior_cost), 8) if initial_cost is not None and prior_cost is not None else None,
                          cost_basis=snapshot.get('cost_basis', 'unconfigured'), cache_hit=False)
-        if not ingestion['model_calls'] and usage:
-            ingestion.update(model_calls=1, input_tokens=usage.get('input_tokens', 0), output_tokens=usage.get('output_tokens', 0),
-                             cached_input_tokens=usage.get('input_tokens_details', {}).get('cached_tokens', 0))
-        inventory = {'objects': objects, 'page': page, 'complete_scope_claimed': bool(result.get('complete')),
+        if not ingestion['model_calls'] and any(usages):
+            ingestion.update(model_calls=len(results), input_tokens=sum(u.get('input_tokens', 0) for u in usages),
+                             output_tokens=sum(u.get('output_tokens', 0) for u in usages),
+                             cached_input_tokens=sum((u.get('input_tokens_details') or {}).get('cached_tokens', 0) for u in usages))
+        inventory = {'objects': objects, 'other_readings': other_readings, 'page': page, 'complete_scope_claimed': bool(result.get('complete')),
                      'discarded_candidates': discarded, 'uncertain_envelopes': uncertain, 'warnings': result.get('warnings', []),
                      'ingestion_usage': ingestion, 'cache_hit': False, 'revision': REVISION, 'model': llm.MODEL,
                      'provider_signature': llm.provider_signature()}
@@ -373,8 +423,12 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
         candidates = [obj for obj in candidates if contains(region, obj['bbox'])]
     complete = all(i['complete_scope_claimed'] and not i['discarded_candidates'] and not i.get('uncertain_envelopes') for i in inventories)
     value = (len(candidates) if candidates or complete else None) if not boundary_uncertain else None
+    agreement = _agreement(value, inventories, categories, region)
     warnings = list(dict.fromkeys(w for i in inventories for w in i['warnings']))
     warnings.append('Visual candidates require review. An inspected scope and valid boxes do not prove detection completeness.')
+    if agreement and not agreement['agree']:
+        warnings.append('Repeated readings of this drawing by the same model gave different counts ('
+                        + ' vs '.join(map(str, agreement['readings'])) + '). Check the marked objects before relying on this count.')
     if region:
         warnings.append('Region counts include only candidates whose entire box is inside the selected region; boundary objects are excluded.')
         if boundary_uncertain:
@@ -392,7 +446,32 @@ def answer_inventory(question, document, path, page=1, scope='document', region=
             'inventory_cache_hit': all(i['cache_hit'] for i in inventories),
             'ingestion_usage': ingestion, 'ingestion_by_page': initial_usage,
             'coverage': {'inspected_pages': pages, 'total_pages': page_count, 'complete_scope_claimed': complete},
-            'category': category}
+            'category': category, 'agreement': agreement}
+
+
+def _agreement(value, inventories, categories, region=None):
+    """Counts of every reading, the answer's first. None without repeat readings, or when a
+    repeat found no matching object without inspecting the whole page (the rule the answer's
+    own value follows)."""
+    extra = [inventory.get('other_readings') or [] for inventory in inventories]
+    if value is None or not extra[0] or any(len(readings) != len(extra[0]) for readings in extra):
+        return None
+    counts = [value]
+    for n in range(len(extra[0])):
+        items, complete = [], True
+        for readings in extra:
+            reading = readings[n]
+            if not isinstance(reading, dict):
+                return None
+            found = [o for o in reading.get('objects', []) if o['category'] in categories]
+            if region:
+                found = [o for o in found if contains(region, o['bbox'])]
+            items += found
+            complete = complete and bool(reading.get('complete'))
+        if not items and not complete:
+            return None
+        counts.append(len(items))
+    return {'readings': counts, 'agree': len(set(counts)) == 1}
 
 
 def contains(region, box):

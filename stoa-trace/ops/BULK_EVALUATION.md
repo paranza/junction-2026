@@ -2,7 +2,7 @@
 
 `bulk_evaluate.py` runs an explicitly selected frozen source partition. Labels are used only by the local evaluator. Requests contain document ID, raw question, page, scope, mode and visual-recheck policy. It never uploads reference labels, expected quantities, source categories or benchmark hints.
 
-For CubiCasa development, all 3,534 questions cover 198 drawings and 1,767 unique normalized image/question pairs. Workers run different drawings concurrently, with each drawing's questions sequential. The default disables per-question visual recounts so the initial inventory can serve all translated/category questions. Expect roughly 198 inventory calls on a cold server, rather than 3,534 second passes. Rendering, failures and cache state can change actual usage.
+For CubiCasa development, all 3,534 questions cover 198 drawings and 1,767 unique normalized image/question pairs. Workers run different drawings concurrently, with each drawing's questions sequential. The default disables per-question visual recounts so the initial inventory can serve all translated/category questions. Expect roughly 198 page inventories on a cold server, rather than 3,534 second passes. Each inventory makes `STOA_INVENTORY_READINGS` model calls (default 2, so about 396 calls). Rendering, failures and cache state can change actual usage.
 
 Start a dedicated backend with Gemini configured privately and an explicit persisted server model-attempt cap. Do not reset production counters or use the final reserved partition for development. Then, from `stoa-trace/`, using the application's Python environment:
 
@@ -10,7 +10,7 @@ Start a dedicated backend with Gemini configured privately and an explicit persi
 python ops/bulk_evaluate.py \
   --manifest /path/to/frozen/development.json \
   --source cubicasa5k --base-url http://127.0.0.1:8796 \
-  --mode auto --allow-paid --concurrency 4 --max-model-calls 250 \
+  --mode auto --allow-paid --concurrency 4 --max-model-calls 450 \
   --code-revision ACTUAL_APPLICATION_GIT_SHA \
   --output .local/gemini-cubicasa/raw.jsonl \
   --summary .local/gemini-cubicasa/summary.json
