@@ -251,6 +251,33 @@ class IfcSourceGeometryQuality(unittest.TestCase):
         self.assertIsNotNone(answer)
         self.assertEqual(answer['value'], 0)
 
+class IfcScopeAndNesting(unittest.TestCase):
+    def doc(self):
+        storey = {'name': '1.korrus', 'guid': 'S1'}
+        objects = [{'id': 'st1', 'guid': 'st1', 'type': 'IfcStair', 'label': 'Stair', 'properties': {'storey_guid': 'S1'}},
+                   {'id': 'st2', 'guid': 'st2', 'type': 'IfcStair', 'label': 'Stair part',
+                    'properties': {'storey_guid': 'S1', 'nested_in': 'IfcStair', 'nested_in_guid': 'st1'}},
+                   {'id': 'd1', 'guid': 'd1', 'type': 'IfcDoor', 'label': 'Door', 'properties': {'storey_guid': 'S1'}},
+                   {'id': 'd2', 'guid': 'd2', 'type': 'IfcDoor', 'label': 'Door', 'properties': {'storey_guid': 'S2'}}]
+        return {'metadata': {'storeys': [storey, {'name': '2.korrus', 'guid': 'S2'}]}, 'objects': objects}
+
+    def answer(self, question):
+        root = Path(tempfile.gettempdir())
+        return answer_native(question, self.doc(), root/'scope.ifc', root)
+
+    def test_parts_nested_in_another_product_are_not_counted(self):
+        self.assertEqual(self.answer("How many stairs are there in the model 'Demo'?")['value'], 1)
+
+    def test_inflected_model_words_select_the_whole_model_from_a_floor_plan(self):
+        # On a floor-plan PDF linked to its model, Estonian "mudelis" (in the model) used to
+        # fall through to the visible-floor scope (1 door) instead of the whole model (2).
+        from unittest import mock
+        root = Path(tempfile.gettempdir())
+        view = {'metadata': {}, 'objects': [{'id': 'v1', 'guid': 'd1', 'type': 'IfcDoor', 'label': 'Door', 'properties': {}}]}
+        with mock.patch('server.native_qa.linked_model', return_value=root/'demo.ifc'),              mock.patch('server.native_qa._load', return_value=self.doc()):
+            self.assertEqual(answer_native('Mitu ust on mudelis „Demo“?', view, root/'demo_plan-01-1-korrus.pdf', root)['value'], 2)
+
+
 class SwissExporterCompatibility(unittest.TestCase):
     def drawing(self,semantic=True):
         import ezdxf

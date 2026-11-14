@@ -855,6 +855,11 @@ def _ifc(path, root):
                 parent = element_util.get_aggregate(entity)
                 if parent and parent.is_a("IfcBuildingStorey"):
                     props.update(storey=parent.Name, storey_guid=parent.GlobalId)
+            # A part aggregated into another product (a stair inside a stair, a panel inside a
+            # curtain wall) is not a separate instance of its class.
+            whole = element_util.get_aggregate(entity)
+            if whole is not None and whole.is_a("IfcProduct") and not whole.is_a("IfcSpatialStructureElement"):
+                props.update(nested_in=whole.is_a(), nested_in_guid=getattr(whole, "GlobalId", None))
             # Large walls/MEP models can contain tens of thousands of products.
             # Read full property sets only where this native QA route uses them.
             psets = element_util.get_psets(entity) if entity.is_a("IfcSpace") else {}

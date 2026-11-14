@@ -104,12 +104,15 @@ def _finite_quantity(obj, key):
 
 
 # A single-quoted label may contain an apostrophe between letters ('Cage d'escalier').
+# Whole-model words in the dataset languages, including inflections (et "mudelis", da "modellen").
+_MODEL_WORDS = r"(?:model|modellen|modell|modele|modello|mudel\w*|gebaude|building|bygning\w*)"
+
 _QUOTED_TEXT = r'''(?:"[^"]*"|'(?:[^']|(?<=\w)'(?=\w))*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
 
 
 def _without_model_titles(question):
     """Discard an introduced source title, never arbitrary quoted constraints."""
-    return re.sub(r"\b(model|building|mudelis|gebaude)(?:\s+(?:named|called))?\s+"+_QUOTED_TEXT,
+    return re.sub(r"\b("+_MODEL_WORDS+r")(?:\s+(?:named|called))?\s+"+_QUOTED_TEXT,
                   lambda match:match.group(1),_normal(question))
 
 
@@ -267,7 +270,8 @@ def _room_quantity(obj, key, model):
 
 def _represented_stairs(scoped, model_doc, source_path):
     """Count stair assemblies represented by flights, never flights as stairs."""
-    selected = {o.get('guid') or o['id']: o for o in scoped if _is_type(o, ('IfcStair',))}
+    selected = {o.get('guid') or o['id']: o for o in scoped
+                if _is_type(o, ('IfcStair',)) and not o.get('properties', {}).get('nested_in')}
     flights = [o for o in scoped if o.get('type') == 'IfcStairFlight']
     if not flights:
         return list(selected.values())
@@ -354,7 +358,7 @@ def _ifc_scope(question, document, source_path, root):
                             selected.append({**obj, **{k:p[k] for k in ("bbox","polygon","source_path","page") if k in p}})
                     return model_doc, selected, f"Visible objects on {storey['name']}", []
         return model_doc, [o for o in objects if o.get("properties", {}).get("storey_guid") == storey["guid"]], f"Storey {storey['name']}", []
-    whole = (not page_requested and bool(re.search(r"\b(model|mudel|gebaude|building)\b", q))
+    whole = (not page_requested and bool(re.search(r"\b"+_MODEL_WORDS+r"\b", q))
              and not re.search(r"this floor|selected floor|on this plan", q))
     floor_request = bool(re.search(r"(?:on|of|at) (?:the )?(?:ground|first|second|third|basement|floor|level)|this floor|selected floor|on this plan",q))
     if source_path.suffix.lower()==".ifc" and floor_request and not selected_storeys:
@@ -392,7 +396,8 @@ def _native_ifc(question, document, source_path, root):
         if re.search(r"\b(?:and|with)\b", q) and sum(bool(re.search(p,q)) for p in
                 (r"\bdoors?\b",r"\bwindows?\b",r"\brooms?\b",r"\bwalls?\b",r"\bcolumns?\b",r"\bbeams?\b",r"\bstairs?\b",r"\blevels?\b"))>1:
             return None
-        selected = [o for o in scoped if _is_type(o, types)]
+        # Parts aggregated into another product are not separate instances of their class.
+        selected = [o for o in scoped if _is_type(o, types) and not o.get("properties", {}).get("nested_in")]
         if types == ('IfcStair',):
             selected = _represented_stairs(scoped, doc, source_path)
             if selected is None:
