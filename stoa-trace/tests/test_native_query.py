@@ -50,4 +50,3 @@ class NativeQueryTests(unittest.TestCase):
     def test_ranked_native_query_still_rejects_unsupported_conditions(self):
         root=Path('/tmp')
         self.assertIsNone(answer_native('What is the area of the largest room with wooden walls?',self.document,root/'arbitrary.dxf',root))
-

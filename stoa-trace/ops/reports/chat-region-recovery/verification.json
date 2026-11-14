@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-14",
+  "scope": "Local product recovery; no production deployment",
+  "tests": {
+    "python": 338,
+    "frontend": 54,
+    "production_frontend_build": "passed"
+  },
+  "development_regression": {
+    "cases": 7066,
+    "numeric_cases": 6801,
+    "numeric_correct": 3234,
+    "previously_correct_regressions": 0,
+    "changed_outcomes": 0,
+    "request_errors": 0,
+    "model_calls": 0,
+    "manifest_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+    "reserved_scored": false
+  },
+  "continuity": {
+    "8791": {
+      "answers": {
+        "prior_rows": 7328,
+        "current_rows": 7328,
+        "all_prior_rows_identical": true
+      },
+      "events": {
+        "prior_rows": 28,
+        "current_rows": 28,
+        "all_prior_rows_identical": true
+      },
+      "model_attempts": 4,
+      "provider": "gemini",
+      "model": "gemini-4-argon",
+      "solver_revision": "54dde5ae2672297ec10b",
+      "usage_requests": 4,
+      "unknown_usage_requests": 0
+    },
+    "8798": {
+      "answers": {
+        "prior_rows": 7155,
+        "current_rows": 7155,
+        "all_prior_rows_identical": true
+      },
+      "events": {
+        "prior_rows": 299,
+        "current_rows": 299,
+        "all_prior_rows_identical": true
+      },
+      "model_attempts": 135,
+      "provider": "gemini",
+      "model": "gemini-4-carbon",
+      "solver_revision": "54dde5ae2672297ec10b",
+      "usage_requests": 135,
+      "unknown_usage_requests": 120
+    }
+  },
+  "live_source_examples": [
+    {
+      "question": "What is the area of the largest labelled room?",
+      "value": 20.28,
+      "unit": "m²",
+      "method": "native_cad_area_annotations",
+      "status": "supported",
+      "warnings": [],
+      "model_calls": 0
+    },
+    {
+      "question": "Which named space occupies the most square metres?",
+      "value": 20.28,
+      "unit": "m2",
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "warnings": [],
+      "model_calls": 1
+    },
+    {
+      "question": "How many rooms exceed fifteen square metres?",
+      "value": 12,
+      "unit": "count",
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "warnings": [],
+      "model_calls": 1
+    },
+    {
+      "question": "in the selected area which is the largest room?",
+      "value": 19.06,
+      "unit": "m²",
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "warnings": [],
+      "model_calls": 1
+    },
+    {
+      "question": "Among rooms named Cuisine, what is their mean floor area?",
+      "value": 8.438571,
+      "unit": "m²",
+      "method": "model_planned_native_query",
+      "status": "supported",
+      "warnings": [],
+      "model_calls": 1
+    }
+  ],
+  "boardui": {
+    "component": "Agent Thinking",
+    "source_revision": "ec5c5eb3e29c2441be63b9422cd54f411ef23466",
+    "license": "MIT",
+    "pro_source_included": false
+  },
+  "source_sha256": {
+    "server/app.py": "45dab814952f97dabe2608dabf3ef70c4bc378e9d2b24e4d9ad4fef3cbe7413c",
+    "server/store.py": "4f1da25ac43494f5c1df51f377f486e1b7ef0f7432146f1ddf7696514f9d113d",
+    "server/native_qa.py": "bd3bb78d7b08a58ccf51a45755b51b49798936c5810f24fdfbfd624b947a80a7",
+    "server/native_query.py": "f0c174514214b8811a19ae965c179d128f1203214f9e50d9cf9b54c2941b315c",
+    "server/extraction.py": "b872cb6944626d01c98f1054bf2104cb14191bf9c5e7cb3c23728ad992ca162d",
+    "server/rendering.py": "8766de21ade7ec08069e611ca3a56591d48a7bc0ff41390f68397544dfce089a",
+    "frontend/src/main.jsx": "183da0ae5c67e49274ea22bea497ab56ae72a340b735909b5a44753a6e82a29f",
+    "frontend/src/WorkspacePages.jsx": "f431d698a0145b43aa1cae80f1723f5ed83d6944c561b442e3606fb5ae9d787d",
+    "frontend/src/DrawingArtifact.jsx": "317263289e708d7f86ba93f1466ba895e7f358be45ff863e88acdafe4a5c9280",
+    "frontend/src/canvasFocus.js": "54848b7491ab199bc89f26dcd925b6f0e617f72fdc5030fccc6d231460187b23",
+    "frontend/src/boardui/AgentThinking.jsx": "bf5e59a2d394cf6b735aad1e875aea3c6bc7eac960fbd4a7149614403770379c"
+  },
+  "limitations": [
+    "Live examples exercise supplied uploads, not an independent accuracy sample.",
+    "Native queries support typed source fields and the count/value/sum/min/max/mean query language; arbitrary computations and missing measurements remain unsupported.",
+    "Native region membership uses registered label anchors or box centers. It does not calculate the clipped area of the selection rectangle.",
+    "Image-only readings and semantic interpretation can still be wrong. These checks do not establish 99.9% general accuracy."
+  ],
+  "browser_checks": [
+    "No conversation pane in an empty chat",
+    "Nested chat list and plus beside Chats",
+    "Three-button canvas toolbar",
+    "Controlled evidence open/close",
+    "Cached image re-entry enables region selection",
+    "Automatic focus capped at preview resolution and nearby context",
+    "Marker and direct SVG shape selection",
+    "Second-click, Escape and background-pointer deselection",
+    "BoardUI Agent Thinking during a real request",
+    "Recorded usage periods and refresh"
+  ],
+  "code_revision": "54e274b"
+}
