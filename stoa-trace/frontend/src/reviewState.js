@@ -56,60 +56,6 @@ export function costText(usage) {
   return 'Cost unavailable';
 }
 
-export function createSessionTracker() {
-  return {
-    queriesCount: 0,
-    modelCalls: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    cachedTokens: 0,
-    totalCostUsd: 0,
-    hasCostEstimate: false,
-  };
-}
-
-export function recordSessionQuery(tracker, usage) {
-  const current = tracker || createSessionTracker();
-  if (!usage) {
-    return {
-      ...current,
-      queriesCount: current.queriesCount + 1,
-    };
-  }
-  const inputTokens = Number(usage.input_tokens || 0);
-  const outputTokens = Number(usage.output_tokens || 0);
-  const cachedTokens = Number(usage.cached_input_tokens || 0);
-  const modelCalls = Number(usage.model_calls || 0);
-  const cost = Number.isFinite(usage.cost_estimate_usd) ? usage.cost_estimate_usd : 0;
-  const hasCost = Number.isFinite(usage.cost_estimate_usd);
-
-  return {
-    queriesCount: current.queriesCount + 1,
-    modelCalls: current.modelCalls + modelCalls,
-    inputTokens: current.inputTokens + inputTokens,
-    outputTokens: current.outputTokens + outputTokens,
-    cachedTokens: current.cachedTokens + cachedTokens,
-    totalCostUsd: current.totalCostUsd + cost,
-    hasCostEstimate: current.hasCostEstimate || hasCost,
-  };
-}
-
-export function formatCostDetail(usage) {
-  if (!usage) return { costStr: '$0.0000', detailStr: 'No model calls', tokensTotal: 0 };
-  const tokensTotal = Number(usage.input_tokens || 0) + Number(usage.output_tokens || 0);
-  const costStr = Number.isFinite(usage.cost_estimate_usd)
-    ? `$${usage.cost_estimate_usd.toFixed(4)}`
-    : usage.cost_basis === 'native' || Number(usage.model_calls || 0) === 0
-      ? '$0.0000 (Free)'
-      : 'Unrated';
-  const detailStr = tokensTotal > 0
-    ? `${tokensTotal.toLocaleString()} tokens (${Number(usage.input_tokens || 0)} in / ${Number(usage.output_tokens || 0)} out)`
-    : usage.model_calls > 0
-      ? `${usage.model_calls} model call(s)`
-      : 'Deterministic CAD (zero tokens)';
-  return { costStr, detailStr, tokensTotal };
-}
-
 export function aggregateUsage(value) {
   if (!Array.isArray(value)) return value || null;
   if (!value.length) return null;

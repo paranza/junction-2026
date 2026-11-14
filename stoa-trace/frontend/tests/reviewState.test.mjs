@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from '../src/reviewState.js';
+import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, canonicalCategory, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue, displayQuantity, evidenceBoxCenter } from '../src/reviewState.js';
 
 test('polygon evidence has focusable bounds and invalid geometry stays unlocated', () => {
   assert.deepEqual(evidenceBox({ polygon: [[.2, .3], [.7, .4], [.5, .9]] }), [.2, .3, .7, .9]);
@@ -118,4 +118,23 @@ test('mixed counts allow exactly the component categories for review', () => {
   assert.deepEqual(allowedCountCategories({category:'wc_room'}), ['wc_room']);
   assert.deepEqual(allowedCountCategories({category:'floor'}), ['floor']);
   assert.equal(usageLabel({method:'calibrated_polygon_area',usage:{model_calls:0}}), 'Calibrated measurement');
+});
+
+
+test('imperial display converts value and unit together without changing the source quantity', () => {
+  const original = { value: 10, unit: 'm²' };
+  const displayed = displayQuantity(original.value, original.unit, 'imperial');
+  assert.equal(displayed.unit, 'ft²');
+  assert.ok(Math.abs(displayed.value - 107.639) < 1e-8);
+  assert.deepEqual(original, { value: 10, unit: 'm²' });
+  assert.deepEqual(displayQuantity(4, 'count', 'imperial'), { value: 4, unit: 'count' });
+  assert.deepEqual(displayQuantity(null, 'm²', 'imperial'), { value: null, unit: 'm²' });
+  assert.deepEqual(displayQuantity('10', 'm²', 'imperial'), { value: '10', unit: 'm²' });
+  assert.deepEqual(displayQuantity(10, 'm²', 'metric'), { value: 10, unit: 'm²' });
+});
+
+test('interactive shape centers stay normalized and unlocated records stay unlocated', () => {
+  assert.deepEqual(evidenceBoxCenter({ bbox: [.2, .1, .8, .5] }), [.5, .3]);
+  assert.equal(evidenceBoxCenter({ guid: 'source-record' }), null);
+  assert.equal(evidenceBoxCenter({ bbox: [.8, .2, .1, .5] }), null);
 });
