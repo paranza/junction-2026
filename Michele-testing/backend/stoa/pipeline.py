@@ -17,6 +17,7 @@ All coordinates are display-image pixels.
 from __future__ import annotations
 
 import os
+import math
 import re
 from collections import Counter
 
@@ -62,14 +63,49 @@ def _round_poly(p):
     return [[round(float(x), 1), round(float(y), 1)] for x, y in p]
 
 
+def _area_sum(rooms):
+    """A missing room measurement makes the requested total unknown."""
+    values = [r.get("area_m2") for r in rooms]
+    return (round(sum(values), 2) if values and all(type(v) in (int, float) and math.isfinite(v) and v >= 0
+                                                 for v in values) else None)
+
+
+def _printed_scale(rooms):
+    pairs = [(r.get("area_label"), r.get("pixels")) for r in rooms]
+    pairs = [(a, p) for a, p in pairs if type(a) in (int, float) and math.isfinite(a) and a > 0
+             and type(p) in (int, float) and math.isfinite(p) and p > 50]
+    if len(pairs) < 3:
+        return None, "not calibrated"
+    ratios = np.array([a / p for a, p in pairs])
+    med = float(np.median(ratios))
+    good = ratios[np.abs(ratios / med - 1) < 0.15]
+    if len(good) < 3:
+        return None, "not calibrated"
+    return float(np.sqrt(np.median(good))), f"calibrated from {len(good)} printed room areas"
+
+
+def _raster_areas(rooms, m_per_px, source):
+    for room in rooms:
+        room["area_px"] = round(room.pop("pixels"), 1)
+        room["area_geom_m2"] = round(room["area_px"] * m_per_px ** 2, 2) if m_per_px else None
+        printed = room.pop("area_label", None)
+        if printed is not None:
+            room["area_m2"] = printed
+            room["area_source"] = "printed label (read by GlyphNet)" if source == "raster" else "printed label (PDF text)"
+        elif m_per_px:
+            room["area_m2"], room["area_source"] = room["area_geom_m2"], "segmented geometry x calibrated scale"
+        else:
+            room["area_m2"], room["area_source"] = None, "set the scale to measure"
+
+
 def summarize(facts):
     c = Counter(o["type"] for o in facts["objects"])
     rooms = facts["rooms"]
     indoor = [r for r in rooms if not r["outdoor"] and not r["shaft"]]
     facts["summary"] = {
         "rooms": len(rooms), "apartments": len(facts["units"]),
-        "net_area_m2": round(sum(r["area_m2"] or 0 for r in indoor), 2) if all(r["area_m2"] is not None for r in indoor) else None,
-        "outdoor_area_m2": round(sum(r["area_m2"] or 0 for r in rooms if r["outdoor"]), 2),
+        "net_area_m2": _area_sum(indoor),
+        "outdoor_area_m2": _area_sum([r for r in rooms if r["outdoor"]]),
         "objects": dict(c),
         "unit_areas": {u["id"]: u["area_m2"] for u in facts["units"]},
     }
@@ -253,7 +289,7 @@ def analyze_raster(gray, words=None, source="raster"):
     from train.train_plannet import predict_full
     from .models import heat_peaks
     models = Models.get()
-    warnings = []
+    warnings = ["Room and object detections are model predictions; verify them on this drawing style."]
     if models.plan is None:
         return _empty_facts(gray, source, "The plan-reading model is not installed in this copy of the app, so only the drawing is shown.")
     H, W = gray.shape
@@ -305,27 +341,10 @@ def analyze_raster(gray, words=None, source="raster"):
         })
 
     # ---- scale: robust ratio between printed areas and pixel areas (self-calibration)
-    pairs = [(r["area_label"], r["pixels"]) for r in rooms if r["area_label"] and r["pixels"] > 50]
-    if len(pairs) >= 3:
-        ratios = np.array([a / p for a, p in pairs])
-        med = float(np.median(ratios))
-        good = ratios[np.abs(ratios / med - 1) < 0.15]
-        m_per_px = float(np.sqrt(np.median(good)))
-        method = f"calibrated from {len(good)} printed room areas"
-    else:
-        m_per_px = SWISS_M_PER_PX
-        method = "assumed 1:200 sheet at 150 dpi"
-        warnings.append("Scale not calibrated from printed areas; geometric areas assume 1:200 at 150 dpi.")
-    for r in rooms:
-        geo = round(r["pixels"] * m_per_px ** 2, 2)
-        r["area_geom_m2"] = geo
-        if r["area_label"] is not None and abs(r["area_label"] / max(geo, 1e-6) - 1) < 0.25:
-            r["area_m2"], r["area_source"] = r["area_label"], "printed label (read by GlyphNet)" if source == "raster" else "printed label (PDF text)"
-        else:
-            r["area_m2"], r["area_source"] = geo, "segmented geometry x calibrated scale"
-            if r["area_label"] is not None:
-                warnings.append(f"Room {r['number']}: printed {r['area_label']} m2 disagrees with geometry {geo} m2; used geometry.")
-        r["area_px"] = round(r.pop("pixels"), 1)
+    m_per_px, method = _printed_scale(rooms)
+    if m_per_px is None:
+        warnings.append("Scale not calibrated from printed areas. Set scale using a known dimension before measuring geometry.")
+    _raster_areas(rooms, m_per_px, source)
 
     # ---- objects from heatmap peaks
     peaks = heat_peaks(heat)
@@ -342,7 +361,8 @@ def analyze_raster(gray, words=None, source="raster"):
     ue = cv2.morphologyEx(ue, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     cs, hier = cv2.findContours(ue, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     units = []
-    loops = [c for c in cs if cv2.contourArea(c) > 4 / m_per_px ** 2]
+    # The model's nominal pixel density is only a contour filter, never a measured scale.
+    loops = [c for c in cs if cv2.contourArea(c) > 4 / (m_per_px or SWISS_M_PER_PX) ** 2]
     for uid, (tx, ty) in tags:
         best = None
         for c in loops:
@@ -358,12 +378,12 @@ def analyze_raster(gray, words=None, source="raster"):
             if u["polygon"] and cv2.pointPolygonTest(np.array(u["polygon"], np.float32), (cx, cy), False) >= 0:
                 r["unit"] = u["id"]; break
     for u in units:
-        u["area_m2"] = round(sum(r["area_m2"] for r in rooms if r["unit"] == u["id"] and not r["outdoor"] and not r["shaft"]), 2)
+        u["area_m2"] = _area_sum([r for r in rooms if r["unit"] == u["id"] and not r["outdoor"] and not r["shaft"]])
         u.pop("tag_xy", None)
-    for r in rooms:
-        r.pop("area_label", None)
-    facts = {"source": source, "width": W, "height": H, "scale": {"m_per_px": m_per_px, "method": method},
+    facts = {"source": source, "width": W, "height": H, "scale": {"m_per_px": m_per_px, "method": method, "verified": m_per_px is not None},
              "rooms": rooms, "objects": objects, "units": units, "words": words, "storeys": 1, "warnings": warnings,
+             "capabilities": {"object_types": list(models.obj_cls), "room_labels": bool(words), "room_categories": bool(words),
+                              "apartment_inventory": bool(tags), "storey_count": False},
              "wall_mask": (seg[ch["wall"]] > 0.5)}
     _assign_rooms(facts)
     return summarize(facts)
@@ -394,7 +414,9 @@ def analyze_geometry(gray, source="raster", why=None):
     warn = [why] if why else []
     warn.append("Unknown drawing style: rooms found by wall geometry (no learned model). Use Set scale and click a known dimension to get areas in m2.")
     facts = {"source": source, "style": "geometry", "width": W, "height": H,
-             "scale": {"m_per_px": None, "method": "not calibrated"},
+             "scale": {"m_per_px": None, "method": "not calibrated", "verified": False},
+             "capabilities": {"object_types": ["opening"], "room_labels": False, "room_categories": False,
+                              "apartment_inventory": False, "storey_count": False},
              "rooms": rooms, "objects": objects, "units": [], "words": [], "storeys": 1,
              "warnings": warn, "wall_mask": g["wall_mask"]}
     _assign_rooms(facts)
@@ -403,7 +425,9 @@ def analyze_geometry(gray, source="raster", why=None):
 
 def apply_scale(facts, m_per_px, method):
     """Re-measure every geometry-based area with a new scale (printed labels stay authoritative)."""
-    facts["scale"] = {"m_per_px": m_per_px, "method": method}
+    if type(m_per_px) not in (int, float) or not math.isfinite(m_per_px) or m_per_px <= 0:
+        raise ValueError("Scale must be a positive finite metres-per-pixel value.")
+    facts["scale"] = {"m_per_px": m_per_px, "method": method, "verified": True}
     for r in facts["rooms"]:
         if r.get("area_px") is None:
             continue
@@ -412,8 +436,7 @@ def apply_scale(facts, m_per_px, method):
         if not str(r.get("area_source", "")).startswith("printed"):
             r["area_m2"], r["area_source"] = geo, "geometry x " + method
     for u in facts["units"]:
-        u["area_m2"] = round(sum(r["area_m2"] or 0 for r in facts["rooms"]
-                                 if r["unit"] == u["id"] and not r["outdoor"] and not r["shaft"]), 2)
+        u["area_m2"] = _area_sum([r for r in facts["rooms"] if r["unit"] == u["id"] and not r["outdoor"] and not r["shaft"]])
     facts["warnings"] = [w for w in facts["warnings"] if "Set scale" not in w and "Scale not calibrated" not in w]
     return summarize(facts)
 
@@ -421,8 +444,10 @@ def apply_scale(facts, m_per_px, method):
 def _empty_facts(gray, source, why):
     h, w = gray.shape
     return summarize({"source": source, "width": w, "height": h,
-                      "scale": {"m_per_px": SWISS_M_PER_PX, "method": "not measured"},
-                      "rooms": [], "objects": [], "units": [], "words": [], "storeys": 1, "warnings": [why]})
+                      "scale": {"m_per_px": None, "method": "not measured", "verified": False},
+                      "capabilities": {"object_types": [], "room_labels": False, "room_categories": False,
+                                       "apartment_inventory": False, "storey_count": False},
+                      "rooms": [], "objects": [], "units": [], "words": [], "storeys": None, "warnings": [why]})
 
 
 def is_swiss_sheet(gray) -> bool:
@@ -479,29 +504,10 @@ def analyze_raster_cc(gray, source="raster"):
             h = 14 * inv
             objects.append({"id": f"o{len(objects)}", "type": t, "x": round(X, 1), "y": round(Y, 1),
                             "bbox": [X - h, Y - h, X + h, Y + h], "score": round(sc, 3)})
-    # scale: these sheets carry no scale; estimate from door swings (typical 0.9 m leaf incl. frame)
-    # ponytail: assumes standard Finnish 9M doors; replace with dimension-string reading when GlyphNet covers this style
-    door_px = []
-    dprob = heat[models.cc_obj.index("door")].numpy()
-    for o in objects:
-        if o["type"] == "door":
-            x, y = int(o["x"] * f), int(o["y"] * f)
-            r = (dprob[max(0, y - 25):y + 25, max(0, x - 25):x + 25] > 0.2)
-            if r.any():
-                ys, xs = np.nonzero(r); door_px.append(max(xs.ptp(), ys.ptp()) + 1)
+    # Door width and image resolution do not establish the drawing's physical scale.
     m_per_px = None
-    if len(door_px) >= 2:
-        m_per_px = 0.9 / (np.median(door_px) * inv * 1.6)
-    if not m_per_px:
-        m_per_px = 0.02
-        warnings.append("No reliable scale on this sheet; areas are rough estimates.")
-    else:
-        warnings.append("Sheet has no scale: areas estimated from typical door width (0.9 m). Treat areas as approximate.")
-    for r in rooms:
-        r["area_px"] = round(r.pop("pixels"), 1)
-        r["area_m2"] = round(r["area_px"] * m_per_px ** 2, 1)
-        r["area_source"] = "segmented geometry x door-based scale estimate"
-        r["area_geom_m2"] = r["area_m2"]
+    warnings.append("Set scale from a known dimension. Typical door widths are not a measured scale; areas are unavailable.")
+    _raster_areas(rooms, None, source)
     # storeys: separate building footprints drawn side by side
     fp = (seg[ch["wall"]] > 0.5).astype(np.uint8)
     fp = cv2.morphologyEx(fp, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
@@ -510,7 +516,9 @@ def analyze_raster_cc(gray, source="raster"):
     storeys = sum(1 for a in areas if areas and a > 0.25 * areas[0]) or 1
     wall = cv2.resize((seg[ch["wall"]] > 0.5).astype(np.uint8), (W0, H0), interpolation=cv2.INTER_NEAREST) > 0
     facts = {"source": source, "style": "cubicasa", "width": W0, "height": H0,
-             "scale": {"m_per_px": m_per_px, "method": "estimated from door widths"},
+             "scale": {"m_per_px": m_per_px, "method": "not calibrated", "verified": False},
+             "capabilities": {"object_types": ["washbasin" if name == "sink" else name for name in models.cc_obj],
+                              "room_labels": False, "room_categories": True, "apartment_inventory": False, "storey_count": True},
              "rooms": rooms, "objects": objects, "units": [], "words": [], "storeys": storeys,
              "warnings": warnings, "wall_mask": wall}
     _assign_rooms(facts)
@@ -558,7 +566,13 @@ def analyze_file(path):
         k = 150 / 72
         words = [{"text": w[4], "box": [w[0] * k, w[1] * k, w[2] * k, w[3] * k], "conf": 1.0} for w in page.get_text("words")]
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        return img, analyze_raster(gray, words=words or None, source="pdf")
+        if is_swiss_sheet(gray):
+            facts = analyze_raster(gray, words=words or None, source="pdf")
+        else:
+            facts = analyze_geometry(gray, source="pdf")
+            facts["words"] = words
+        facts["warnings"].append("Only the first PDF page was analysed; sheet aspect ratio does not establish drawing style or scale.")
+        return img, facts
     gray = load_gray(path)
     color = cv2.imread(path, cv2.IMREAD_COLOR)
     disp = color if color is not None and color.shape[:2] == gray.shape else cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)

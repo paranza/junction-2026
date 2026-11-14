@@ -7,6 +7,9 @@ from the UI (query params). All formulas are shown in the output.
 from __future__ import annotations
 
 import numpy as np
+import math
+
+from .questions import measured_area
 
 DOOR_W, DOOR_H = 0.9, 2.1      # m, typical interior door leaf opening
 WIN_W, WIN_H = 1.2, 1.2        # m, typical window opening
@@ -21,10 +24,16 @@ def perimeter_px(poly):
 def compute(facts: dict, ceiling_h: float = 2.5, waste: float = 0.10) -> dict:
     s = facts["scale"]["m_per_px"]
     rows = []
-    if not s:
+    method = str(facts.get("scale", {}).get("method", ""))
+    known_scale = (facts.get("source") == "dxf" or facts.get("scale", {}).get("verified") is True
+                   or method.startswith("calibrated"))
+    rooms = [r for r in facts["rooms"] if not r.get("shaft")]
+    if (type(s) not in (int, float) or not math.isfinite(s) or s <= 0 or not known_scale
+            or not rooms or any(measured_area(r, facts) is None for r in rooms)):
         return {"assumptions": {"ceiling_height_m": ceiling_h, "waste_factor": waste,
-                                "formula": "Set the scale first: a takeoff needs real lengths."},
-                "rooms": [], "totals": {k: 0 for k in ("floor_m2", "flooring_order_m2", "skirting_m", "paint_m2", "wall_tiles_m2", "perimeter_m")}}
+                                "formula": "Set a verified scale and establish every included room area before calculating a takeoff."},
+                "status": "insufficient_evidence", "rooms": [],
+                "totals": {k: None for k in ("floor_m2", "flooring_order_m2", "skirting_m", "paint_m2", "wall_tiles_m2", "perimeter_m")}}
     for r in facts["rooms"]:
         if r.get("shaft"):
             continue

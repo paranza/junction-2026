@@ -351,10 +351,10 @@ function takeoffTab(T) {
       <button class="btn" id="recalc">Recalculate</button><button class="btn" id="csv">CSV</button>
     </div>
     <div class="cards">
-      <div class="card"><div class="k">Flooring to order</div><div class="v">${t.flooring_order_m2} <small>m²</small></div></div>
-      <div class="card"><div class="k">Skirting boards</div><div class="v">${t.skirting_m} <small>m</small></div></div>
-      <div class="card"><div class="k">Wall paint</div><div class="v">${t.paint_m2} <small>m²</small></div></div>
-      <div class="card"><div class="k">Wet-room wall tiles</div><div class="v">${t.wall_tiles_m2} <small>m²</small></div></div>
+      <div class="card"><div class="k">Flooring to order</div><div class="v">${t.flooring_order_m2 ?? "?"} <small>m²</small></div></div>
+      <div class="card"><div class="k">Skirting boards</div><div class="v">${t.skirting_m ?? "?"} <small>m</small></div></div>
+      <div class="card"><div class="k">Wall paint</div><div class="v">${t.paint_m2 ?? "?"} <small>m²</small></div></div>
+      <div class="card"><div class="k">Wet-room wall tiles</div><div class="v">${t.wall_tiles_m2 ?? "?"} <small>m²</small></div></div>
     </div>
     <div class="formula">${esc(a.formula)}</div>
     <table><thead><tr><th>Room</th><th class="num">Floor</th><th class="num">Perim.</th><th class="num">Walls</th><th class="num">D/W</th></tr></thead><tbody>

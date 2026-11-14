@@ -24,7 +24,10 @@ Return JSON: {"answer": short text, "value": number or null, "unit": string or n
 
 
 def compact(facts: dict, takeoff: dict | None = None) -> str:
-    lines = [f"scale: {facts['scale']['m_per_px']:.5f} m/px ({facts['scale']['method']})"]
+    scale = facts.get("scale", {})
+    value = scale.get("m_per_px")
+    lines = [f"scale: {value:.5f} m/px ({scale.get('method', '')})" if value else
+             "scale: unknown; do not infer physical lengths, areas or quantities from pixels"]
     ceil = (takeoff or {}).get("assumptions", {}).get("ceiling_height_m", 2.5)
     lines.append(f"ceiling height assumed: {ceil} m")
     lines.append("rooms: id | number | name | category | area_m2 | perimeter_m | wall_m2 | unit | outdoor | objects")

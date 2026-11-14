@@ -35,7 +35,7 @@ except ImportError:
 from stoa import llm, pipeline, questions, takeoff  # noqa: E402
 
 app = FastAPI(title="Blueprint analyzer")
-PIPELINE_VERSION = "4"  # bump when analysis output changes; part of the cache key
+PIPELINE_VERSION = "5"  # abstain on unknown scale/categories; discard older assumed-area caches
 
 
 def _weights_stamp() -> str:
@@ -162,7 +162,9 @@ def ask(aid: str, body: Ask):
     if r is not None:
         v = r["value"]
         unit = {"m2": "m²", "count": ""}.get(r["unit"], r["unit"])
-        return {"answer": f"{v} {unit}".strip(), "value": v, "unit": r["unit"], "evidence": r["evidence"],
+        return {"answer": f"{v} {unit}".strip() if v is not None else "Not answered: " + r["explanation"],
+                "value": v, "unit": r["unit"], "evidence": r["evidence"],
+                "status": r.get("status", "computed"),
                 "explanation": r["explanation"], "method": "deterministic rule over model outputs (no LLM)",
                 "tokens": {"in": 0, "out": 0}}
     return llm.ask(q, facts, facts.get("takeoff"), body.history)
