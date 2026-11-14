@@ -14,10 +14,12 @@ from pathlib import Path
 import httpx
 
 from .rendering import image_inputs, png_bytes
-from . import store
+from . import gemini_provider, store
 
-MODEL = os.environ.get('STOA_MODEL', 'gpt-6-astra')
-KEY = os.environ.get('OPENAI_API_KEY', '')
+PROVIDER = os.environ.get('STOA_PROVIDER', 'openai').strip().lower()
+MODEL = os.environ.get('STOA_MODEL', gemini_provider.DEFAULT_MODEL if PROVIDER == 'gemini' else 'gpt-6-astra')
+KEY = (os.environ.get('GEMINI_API_KEY', os.environ.get('GOOGLE_API_KEY', ''))
+       if PROVIDER == 'gemini' else os.environ.get('OPENAI_API_KEY', ''))
 MAX_CALLS = int(os.environ.get('STOA_MAX_MODEL_CALLS', '500'))
 PROMPT_REVISION = 'trace-evidence-inventory-v2'
 _usage = contextvars.ContextVar('trace_model_usage', default=None)
@@ -79,37 +81,63 @@ class ModelError(Exception):
 
 
 def model_available():
-    return bool(KEY)
+    return PROVIDER in ('openai', 'gemini') and bool(KEY.strip())
+
+
+def provider_signature():
+    """Non-secret configuration fingerprint for every model-dependent cache."""
+    revision = gemini_provider.REVISION + ':' + gemini_provider.API_REVISION if PROVIDER == 'gemini' else 'responses-v1'
+    return f'{PROVIDER}:{MODEL}:{revision}'
 
 
 def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
-    if not KEY:
-        raise ModelError('Vision is not configured on this server. Native drawing tools remain available.')
-    if not store.reserve_model_request(MAX_CALLS, {'model': MODEL, 'images': sum(x.get('type') == 'input_image' for x in content)}):
+    if PROVIDER not in ('openai', 'gemini'):
+        raise ModelError('STOA_PROVIDER must be openai or gemini. Native drawing tools remain available.')
+    if not model_available():
+        variable = 'GEMINI_API_KEY' if PROVIDER == 'gemini' else 'OPENAI_API_KEY'
+        raise ModelError(f'Vision is not configured. Set {variable} privately on the server. Native drawing tools remain available.')
+    if PROVIDER == 'gemini':
+        try:
+            payload = gemini_provider.prepare_request(content, system, schema, max_tokens, MODEL)
+        except gemini_provider.ProviderError as error:
+            raise ModelError(str(error)) from None
+    else:
+        payload = {'model': MODEL, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
+                   'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
+                   'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
+    if not store.reserve_model_request(MAX_CALLS, {'provider': PROVIDER, 'model': MODEL, 'images': sum(x.get('type') == 'input_image' for x in content)}):
         raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
     ledger = _usage.get()
     if ledger is not None:
         ledger['model_calls'] += 1
         ledger['unknown_usage'] += 1
-    payload = {'model': MODEL, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
-               'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
-               'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
-    try:
-        with httpx.Client(timeout=httpx.Timeout(180, connect=15), follow_redirects=False) as client:
-            response = client.post('https://api.openai.com/v1/responses', headers={'Authorization': 'Bearer ' + KEY}, json=payload)
-    except httpx.HTTPError:
-        raise ModelError('The model service could not be reached. Please retry or use native tools.') from None
-    if response.status_code != 200:
-        reason = {401: 'Model authentication failed.', 403: 'This model is not enabled for this project.', 429: 'The model account reached a rate or credit limit.'}.get(response.status_code, 'The model service could not complete this request.')
-        raise ModelError(reason)
-    body = response.json()
+    if PROVIDER == 'gemini':
+        try:
+            body = gemini_provider.request(payload, KEY)
+        except gemini_provider.ProviderError as error:
+            raise ModelError(str(error)) from None
+    else:
+        try:
+            with httpx.Client(timeout=httpx.Timeout(180, connect=15), follow_redirects=False) as client:
+                response = client.post('https://api.openai.com/v1/responses', headers={'Authorization': 'Bearer ' + KEY}, json=payload)
+        except httpx.HTTPError:
+            raise ModelError('The model service could not be reached. Please retry or use native tools.') from None
+        if response.status_code != 200:
+            reason = {401: 'Model authentication failed.', 403: 'This model is not enabled for this project.', 429: 'The model account reached a rate or credit limit.'}.get(response.status_code, 'The model service could not complete this request.')
+            raise ModelError(reason)
+        try:
+            body = response.json()
+        except ValueError:
+            raise ModelError('The model returned an unreadable response.') from None
+        if not isinstance(body, dict):
+            raise ModelError('The model returned an unreadable response.')
     usage = body.get('usage')
     if ledger is not None and isinstance(usage, dict):
         ledger['input_tokens'] += int(usage.get('input_tokens', 0))
         ledger['output_tokens'] += int(usage.get('output_tokens', 0))
         ledger['cached_input_tokens'] += int(usage.get('input_tokens_details', {}).get('cached_tokens', 0))
         ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
-    store.record_event('model_response', {'model': MODEL, 'usage': usage, 'status': body.get('status')})
+    store.record_event('model_response', {'provider': PROVIDER, 'model': MODEL, 'usage': usage, 'status': body.get('status')})
     if body.get('status') != 'completed':
         raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
     text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')
@@ -117,7 +145,9 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
         result = json.loads(text)
     except (ValueError, TypeError):
         raise ModelError('The model returned an unreadable result.') from None
-    result['_usage'] = body.get('usage', {})
+    if not isinstance(result, dict):
+        raise ModelError('The model returned an unreadable result.')
+    result['_usage'] = body.get('usage') or {}
     return result
 
 
