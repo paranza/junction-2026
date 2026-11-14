@@ -23,6 +23,14 @@ const documentName = doc => doc?.name || basename(doc?.path) || 'Untitled drawin
 const formatOf = doc => String(doc?.format || documentName(doc).split('.').pop() || '').replace(/^\./, '').toUpperCase();
 const shortText = value => value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
 const readable = value => shortText(value).replaceAll('_', ' ');
+const quantityUnit = answer => {
+  if (answer.unit !== 'count') return answer.unit;
+  const categories = allowedCountCategories(answer);
+  if (categories.length !== 1) return 'items';
+  const category = categories[0];
+  const label = { wc_room: 'WC room', sanitary_fixture: 'fixture' }[category] || readable(category);
+  return answer.value === 1 ? label : `${label}s`;
+};
 const collectionLabel = source => ({ swiss_dwellings: 'Swiss Dwellings', cubicasa5k: 'CubiCasa5K', opening_design: 'Opening Design', habs: 'HABS historic drawings', finna: 'Finna archives', europeana: 'Europeana', wikimedia: 'Wikimedia', ifc_models: 'IFC models', ifc_bench: 'IFC benchmark', uploads: 'Uploaded drawings' }[source] || readable(source));
 const documentListUrl = (search, source, offset = 0) => {
   const params = new URLSearchParams({ search, limit: '60', offset: String(offset) });
@@ -78,7 +86,7 @@ function IconButton({ label, children, className = '', ...props }) {
 }
 
 function DocumentIcon({ doc, size = 18 }) {
-  return formatOf(doc) === 'IFC' ? <Box size={size} /> : ['PNG', 'JPG', 'JPEG', 'SVG'].includes(formatOf(doc)) ? <FileImage size={size} /> : <FileText size={size} />;
+  return formatOf(doc) === 'IFC' ? <Box size={size} /> : ['PNG', 'JPG', 'JPEG', 'SVG', 'WEBP', 'TIFF', 'TIF', 'BMP', 'GIF'].includes(formatOf(doc)) ? <FileImage size={size} /> : <FileText size={size} />;
 }
 
 function DrawingCanvas({ document, page, evidence, selectedEvidence, onSelectEvidence, region, onRegion, focusToken, manualMode, onManualRegion, onCancelManual, onMeasuredAnswer, imageVersion = 0 }) {
@@ -556,7 +564,7 @@ function App() {
             {answer.source_changed && <div className="source-changed-warning" role="alert"><strong>The source changed after this answer was saved.</strong><p>Old overlays and corrections are disabled. Recompute the answer against the current source.</p><button type="button" className="button" onClick={() => { const originalId = answerDocumentId; const originalQuestion = answerQuestion; const originalPage = answer.provenance?.page || 1; selectDocument(originalId, false, originalPage); setQuestion(originalQuestion); }}>Open source to recompute</button></div>}
             {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
             <div className="answer-source-context"><strong>{answerQuestion}</strong><span>{answerDocumentName}{answer.provenance?.scope === 'page' ? ` · page ${answer.provenance.page}` : ''}{answer.provenance?.region ? ' · selected region' : ''}</span></div>
-            {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{answer.unit}</span>}</div>}
+            {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{quantityUnit(answer)}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
             <MessageInferenceCost usage={answer.usage} />
