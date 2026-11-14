@@ -3014,7 +3014,7 @@ p { text-wrap: pretty; }
   .app-header { padding-inline: 10px; gap: 8px; }
   .mobile-toolbar { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
   .mobile-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 4px 12px; border-radius: 6px; color: var(--muted); font-size: 12px; }
-  .mobile-toolbar button.is-active { color: var(--ink); background: var(--ui-surface-hover); }
+  .mobile-toolbar button.is-active, .mobile-toolbar button[aria-pressed=true] { color: var(--ink); background: var(--ui-surface-hover); }
   .app-shell[data-mobile-view=conversation] .workspace-layout { flex-direction: column; }
   .app-shell[data-mobile-view=conversation] .main-drawing { display: contents; }
   .app-shell[data-mobile-view=conversation] .main-drawing > :not(.docked-composer-container) { display: none; }
