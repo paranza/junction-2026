@@ -367,7 +367,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'native_query.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'takeoff.py', 'native_query.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())

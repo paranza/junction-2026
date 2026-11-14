@@ -67,6 +67,25 @@ PDF text uses page rotation consistent with previews. Swiss CAD room polygons ar
 - Document search, multi-file upload, page navigation, pan/zoom, selected-region questions, one-click evidence focus, manual additions/exclusions, undo, saved review revisions, explicit highlight commands and JSON export.
 - GIF, WebP, BMP and multipage TIFF input alongside PDF, PNG, JPEG, SVG, DXF and IFC. Animated inputs explicitly use their first frame.
 - Area and length measurement from a user-supplied reference length and an outlined polygon or segment, with page and source binding. Automatic rectangular areas can use two explicitly quoted dimensions with compatible units.
+- Material takeoff questions on drawings with native room outlines: room perimeter, skirting length, wall area for a ceiling height stated in the question, and a waste allowance on any native quantity. No model call.
+- A chat's answered quantities as a CSV file for a spreadsheet, from Chat options, with one line per measured item under each total.
+
+## Takeoff questions and spreadsheet export
+
+These cover three routine steps of an estimator's work: deriving finishes quantities from room geometry, adding a waste allowance to get an order quantity, and moving the numbers into a spreadsheet. They use the existing chat. The only visible addition is one entry in the Chat options menu.
+
+Ask in the chat, on a drawing with native room outlines (the Swiss CAD floors, or a DXF upload with the same layers in metre units):
+
+- **"What is the perimeter of room 5.11?"** The closed room outline is measured and highlighted.
+- **"How much skirting is needed for apartment A?"** The sum of the outlines of the indoor rooms in scope. Without a room, apartment or selected area the scope is every numbered indoor room on the drawing, and the answer says so. Balconies, loggias, shafts and voids are left out.
+- **"What is the wall area of room 5.11 with a 2.6 m ceiling?"** Outline length times the stated height. A floor plan does not show the ceiling height, so a wall-area question without one gets a request for it instead of an assumed value.
+- **"... plus 10% waste"** on any of the above, and on every other native area, length or volume answer (room areas, schedule areas, IFC wall and slab quantities). The net quantity, the factor and the order quantity are all shown.
+
+Rules: door and window openings are not deducted, and each answer says so. This is the RICS NRM 1 cost-planning rule for wall finishes ("No deduction is made for voids (e.g. for door openings, screens or the like)"); detailed measurement under NRM 2 makes no deduction only for voids up to 1 m², so larger openings would be deducted there, which this version does not do. A length is scaled from the room's own outline and its metric CAD area, never from a sheet scale, DPI or a typical door width. A question with any word the handler does not resolve (a filter, a comparison, an unknown room) is refused and continues to the normal fallback. The handler runs after all existing native solvers, so it only sees questions they refuse. A question about the wall area of a room is no longer answered with the room's floor area.
+
+Checked on the preview data: outline lengths for all 2,083 rooms on the 65 Swiss floors agree with the DXF source within 0.04%, through both the paired PDF sheet and the DXF on its own; 3,720 benchmark questions (Swiss, IFC, schedules) give identical native answers before and after the change. Not measured: drawings from other CAD exporters, and rooms with curved walls, which the room extraction already leaves out.
+
+**Export quantities (CSV)** in Chat options downloads the chat's answered questions: question, quantity, unit, answer, drawing, scope, basis, status, review revision and answer ID. When an answer is a sum of source quantities, each measured item follows on its own line, so "What is the total net floor area of all rooms?" exports as a room schedule. Numbers use the reader's decimal mark, with semicolon separators for comma-decimal locales, so the file opens as numbers in a spreadsheet. Cells that would start a formula are written as text. The export reads saved answers and recalculates nothing; the JSON export per answer is unchanged.
 
 ## Review and compare
 
