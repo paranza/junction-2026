@@ -66,6 +66,19 @@ class BackendUpgrade(unittest.TestCase):
         self.assertEqual(repeated['usage']['model_calls'], 0)
         self.assertEqual(first['evidence'][0]['category'], 'window')
 
+    def test_equivalent_translations_share_analysis_and_keep_original_questions(self):
+        english = 'How many windows are shown on this floor plan?'
+        finnish = 'Kuinka monta ikkunaa pohjapiirustuksessa on?'
+        with patch('server.native_qa.answer_native', return_value=None), patch.object(inventory, 'image_inputs', return_value=self.images), patch.object(llm, '_request', return_value=self.inventory_result()) as model:
+            first = self.ask(english, verify_visual=False).json()
+            second = self.ask(finnish, verify_visual=False).json()
+        self.assertEqual(model.call_count, 1)
+        self.assertTrue(second['usage']['cache_hit'])
+        self.assertEqual(first['value'], second['value'])
+        self.assertEqual(second['question'], finnish)
+        self.assertEqual(second['interpreted_question'], english)
+        self.assertNotEqual(first['id'], second['id'])
+
     def test_answer_cache_changes_with_scope_and_source(self):
         native = {'value': 0, 'unit': 'count', 'method': 'native-fixture', 'evidence': [], 'status': 'supported'}
         with patch('server.native_qa.answer_native', return_value=native) as solver:

@@ -70,11 +70,14 @@ def extracted(doc_id):
 
 @app.get('/api/health')
 def health():
+    from . import inventory, visual_audit
     with store.connection() as db:
         count = db.execute('SELECT COUNT(*) FROM documents').fetchone()[0]
         indexed = db.execute('SELECT COUNT(*) FROM documents WHERE indexed=1').fetchone()[0]
     return {'status': 'ok', 'model_available': llm.model_available(), 'provider': llm.PROVIDER, 'model': llm.MODEL,
-            'documents': count, 'indexed_documents': indexed, 'auth_required': bool(ACCESS_TOKEN), 'version': '0.1.0'}
+            'documents': count, 'indexed_documents': indexed, 'auth_required': bool(ACCESS_TOKEN), 'version': '0.1.0',
+            'provider_signature': llm.provider_signature(), 'inventory_signature': inventory.config_signature(),
+            'audit_signature': visual_audit.config_signature(), 'solver_revision': _solver_revision()}
 
 
 @app.get('/api/documents')
@@ -526,10 +529,14 @@ def ask(payload: AskRequest):
     doc = store.get_document(payload.document_id)
     source = store.get_path(payload.document_id)
     question = payload.question.strip()
+    canonical_question = to_english(question)
     from .inventory import config_signature
+    from .visual_audit import config_signature as audit_signature
     key = store.analysis_key('answer', {'document': doc['id'], 'source': data.get('source_fingerprint'),
                             'extractor': data.get('extractor_revision'), 'solver': _solver_revision(),
-                            'model': llm.provider_signature(), 'inventory': config_signature(), 'prompt': llm.PROMPT_REVISION, 'question': question,
+                            'model': llm.provider_signature(), 'inventory': config_signature(),
+                            'audit': audit_signature() if payload.verify_visual else None,
+                            'prompt': llm.PROMPT_REVISION, 'question': canonical_question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
                             'mode': payload.mode, 'cross_check': payload.cross_check, 'verify_visual': payload.verify_visual})
     with llm.usage_scope():
@@ -544,6 +551,10 @@ def ask(payload: AskRequest):
                 store.save_analysis(key, 'answer', result)
         result['usage'] = llm.usage_snapshot(cache_hit=hit)
     result = _evidence(result, payload.document_id)
+    if canonical_question != question:
+        result['interpreted_question'] = canonical_question
+    elif result.get('interpreted_question') == question:
+        result.pop('interpreted_question', None)
     if highlight_target(to_english(question)):
         result = describe_highlights(result)
     result.setdefault('warnings', [])
