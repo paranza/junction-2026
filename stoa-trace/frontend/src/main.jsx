@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
 import MeasurementPanel from './MeasurementPanel.jsx';
+import AnalysisProvenance from './AnalysisProvenance.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
@@ -552,6 +553,7 @@ function App() {
             {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{answer.unit}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
+            <AnalysisProvenance answer={answer} />
             <UsageDetails answer={answer} />
             {answer.calculation && <div className="calculation"><span>Calculation</span><code>{calculationText(answer.calculation, answer)}</code></div>}
             {warnings.length > 0 && <div className="answer-warnings">{warnings.map((warning, i) => <p key={i}><CircleHelp size={14} /><span>{shortText(warning.message || warning)}</span></p>)}</div>}
