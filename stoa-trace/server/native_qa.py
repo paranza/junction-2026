@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 import math
 import re
@@ -158,6 +159,145 @@ def _load(path, root):
     return extract_cached(str(path), str(root), path.stat().st_mtime_ns)
 
 
+@lru_cache(maxsize=4)
+def _source_model(path, modified_ns, size):
+    import ifcopenshell
+    return ifcopenshell.open(path)
+
+
+def _ifc_model(source_path):
+    path = source_path if source_path.suffix.lower() == '.ifc' else linked_model(source_path)
+    if path is None:
+        return None
+    try:
+        stat = path.stat()
+        return _source_model(str(path.resolve()), stat.st_mtime_ns, stat.st_size)
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def _space_footprint_quantity(obj, model):
+    """Measure one explicit, closed, planar space outline, never a bbox.
+
+    Multiple rings, curves, mappings and missing units are deliberately outside
+    this narrow geometry path. A footprint is not substituted for a gross area.
+    """
+    try:
+        import ifcopenshell.util.unit as unit_util
+        from shapely.geometry import Polygon
+        space = model.by_guid(obj.get('guid'))
+        if not space or not space.is_a('IfcSpace'):
+            return None
+        projects = model.by_type('IfcProject')
+        assignments = [p.UnitsInContext for p in projects if p.UnitsInContext]
+        if len(assignments) != 1 or not any(getattr(u, 'UnitType', None) == 'LENGTHUNIT'
+                                            for u in assignments[0].Units):
+            return None
+        scale = unit_util.calculate_unit_scale(model)
+        if not math.isfinite(scale) or scale <= 0:
+            return None
+        representation = getattr(space, 'Representation', None)
+        footprints = [r for r in getattr(representation, 'Representations', ())
+                      if str(r.RepresentationIdentifier or '').casefold() == 'footprint']
+        if len(footprints) != 1:
+            return None
+        curves = []
+        for item in footprints[0].Items:
+            if item.is_a('IfcGeometricCurveSet'):
+                curves.extend(item.Elements)
+            elif item.is_a('IfcPolyline'):
+                curves.append(item)
+            else:
+                return None
+        if len(curves) != 1 or not curves[0].is_a('IfcPolyline'):
+            return None
+        points = [tuple(float(v) for v in p.Coordinates) for p in curves[0].Points]
+        if (len(points) < 4 or len({len(p) for p in points}) != 1
+                or len(points[0]) not in {2, 3} or not all(math.isfinite(v) for p in points for v in p)):
+            return None
+        if math.dist(points[0], points[-1]) > 1e-7:
+            return None
+        if len(points[0]) == 3 and max(p[2] for p in points) - min(p[2] for p in points) > 1e-7:
+            return None
+        shape = Polygon([(p[0], p[1]) for p in points])
+        if not shape.is_valid or shape.is_empty or shape.area <= 0:
+            return None
+        value = float(shape.area) * scale ** 2
+        if not math.isfinite(value) or value <= 0:
+            return None
+        return {'value': value, 'unit': 'm²', 'property_path': 'IfcSpace.Representation.FootPrint',
+                'unit_basis': 'project LENGTHUNIT squared', 'length_unit_scale': scale,
+                'representation_id': footprints[0].id(), 'curve_id': curves[0].id(),
+                'basis': 'single closed straight planar IfcSpace footprint; no bounding-box approximation'}
+    except (AttributeError, ImportError, KeyError, OSError, RuntimeError, TypeError, ValueError):
+        return None
+
+
+def _room_quantity(obj, key, model):
+    """Keep exact source quantities, resolving only missing/ambiguous net area."""
+    props = obj.get('properties', {})
+    if key in props.get('ambiguous_quantities', []):
+        return None  # Geometry cannot select between conflicting explicit values.
+    if _finite_quantity(obj, key):
+        if props[key] != 0 or key != 'net_area_m2':
+            return obj
+        source = (props.get('quantity_sources') or {}).get(key)
+        area_name = re.sub(r'[^a-z]', '', str(props.get('area_source', '')).rsplit('.', 1)[-1].casefold())
+        if source or area_name in {'netarea', 'netfloorarea', 'nettoflache', 'nettogeschossflache', 'nutzflache'}:
+            return obj  # A genuine typed zero is never replaced just for being zero.
+    elif key in props:
+        return None  # An invalid negative/nonfinite source value is not a missing field.
+    if key != 'net_area_m2' or model is None:
+        return None
+    quantity = _space_footprint_quantity(obj, model)
+    if quantity is None:
+        return None
+    updated = dict(props)
+    if key in props:
+        updated['reported_exporter_area_m2'] = props[key]
+        updated['reported_exporter_area_source'] = props.get('area_source')
+    updated.update(net_area_m2=quantity['value'], area_source=quantity['property_path'],
+                   area_unit_basis=quantity['unit_basis'], geometry_area_m2=quantity['value'])
+    updated['quantity_sources'] = {**(props.get('quantity_sources') or {}), key: quantity}
+    return {**obj, 'properties': updated}
+
+
+def _represented_stairs(scoped, model_doc, source_path):
+    """Count stair assemblies represented by flights, never flights as stairs."""
+    selected = {o.get('guid') or o['id']: o for o in scoped if _is_type(o, ('IfcStair',))}
+    flights = [o for o in scoped if o.get('type') == 'IfcStairFlight']
+    if not flights:
+        return list(selected.values())
+    model = _ifc_model(source_path)
+    if model is None:
+        return None
+    records = {o.get('guid'): o for o in model_doc.get('objects', []) if o.get('guid')}
+    try:
+        import ifcopenshell.util.element as element_util
+        for flight in flights:
+            entity = model.by_guid(flight.get('guid'))
+            visited = set()
+            while entity and not entity.is_a('IfcStair'):
+                if entity.id() in visited:
+                    return None
+                visited.add(entity.id())
+                entity = element_util.get_aggregate(entity)
+            if entity is None or entity.GlobalId not in records:
+                return None
+            parent = records[entity.GlobalId]
+            if not _is_type(parent, ('IfcStair',)):
+                return None
+            copied = {**parent, 'properties': dict(parent.get('properties', {}))}
+            props = copied['properties']
+            props['count_basis'] = 'distinct IfcStair assembly represented by aggregated visible flights'
+            previous = selected.get(entity.GlobalId, {}).get('properties', {}).get('represented_flight_guids', [])
+            props['represented_flight_guids'] = sorted(set(previous) | {flight['guid']})
+            selected[entity.GlobalId] = copied
+    except (AttributeError, ImportError, KeyError, RuntimeError, TypeError, ValueError):
+        return None
+    return list(selected.values())
+
+
 def _ifc_scope(question, document, source_path, root):
     """Model scope and visible-floor scope are distinct and explicit."""
     q = _without_model_titles(question)
@@ -250,6 +390,10 @@ def _native_ifc(question, document, source_path, root):
                 (r"\bdoors?\b",r"\bwindows?\b",r"\brooms?\b",r"\bwalls?\b",r"\bcolumns?\b",r"\bbeams?\b",r"\bstairs?\b",r"\blevels?\b"))>1:
             return None
         selected = [o for o in scoped if _is_type(o, types)]
+        if types == ('IfcStair',):
+            selected = _represented_stairs(scoped, doc, source_path)
+            if selected is None:
+                return None
         if len(types) > 1 and types[1] in {"toilet", "washbasin", "bathtub", "shower"}:
             synonyms = {"toilet": r"\b(toilet|wc|water closet|wcseat)\b", "washbasin": r"\b(sink|washbasin|lavatory|basin)\b",
                         "bathtub": r"\b(bathtub|bath|tub)\b", "shower": r"\bshower\b"}
@@ -322,12 +466,20 @@ def _native_ifc(question, document, source_path, root):
             selected = rooms
         if len(selected) > 1 and not re.search(r"\b(?:all|total|sum|combined|rooms labelled|rooms labeled|rooms named)\b", q):
             return None
-        if selected and all(_finite_quantity(o, key) for o in selected):
+        if selected:
+            needs_geometry = any(not _finite_quantity(o, key) or o.get('properties', {}).get(key) == 0 for o in selected)
+            model = _ifc_model(source_path) if needs_geometry else None
+            selected = [_room_quantity(o, key, model) for o in selected]
+            if any(o is None for o in selected):
+                return None
             total = round(sum(o["properties"][key] for o in selected), 4)
             unit = "m³" if key.endswith("m3") else "m²" if key.endswith("m2") else "m"
+            geometry = any(o['properties'].get('area_source') == 'IfcSpace.Representation.FootPrint' for o in selected)
             return _result(total, unit, selected, "native_ifc_quantity", scope,
+                           warnings=['Missing or zero untyped exporter areas were replaced by measurements of explicit closed IfcSpace footprints. This is geometry-derived area, not an explicit net-area quantity.'] if geometry else None,
                            calculation={"operation":"sum", "property":key,
-                                        "terms":[o["properties"][key] for o in selected]})
+                                        "terms":[o["properties"][key] for o in selected],
+                                        "basis": 'source quantities and explicitly identified space footprint geometry' if geometry else 'source quantities'})
     if re.search(r"\b(project information|site location|building details|project name|site name)\b", q):
         # A bounded factual header view. It does not infer building usage or
         # geocode locations absent from the IFC source.

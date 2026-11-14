@@ -3,6 +3,7 @@ from pathlib import Path
 import math
 import tempfile
 import unittest
+from unittest.mock import patch
 from server.extraction import extract_document
 from server.native_qa import answer_native
 
@@ -92,6 +93,163 @@ class NativeQuantityQuality(unittest.TestCase):
             doc=extract_document(path,Path(folder))
         props=next(o for o in doc['objects'] if o['type']=='IfcWall')['properties']
         self.assertNotIn('length_m',props); self.assertNotIn('net_volume_m3',props)
+
+
+class IfcSourceGeometryQuality(unittest.TestCase):
+    """Independently generated 4m by 3m rooms and stair assemblies, no labels."""
+    def model(self, length_unit=True):
+        import ifcopenshell
+        model = ifcopenshell.file(schema='IFC4')
+        area = model.create_entity('IfcSIUnit', UnitType='AREAUNIT', Name='SQUARE_METRE')
+        units = [area]
+        if length_unit:
+            units.append(model.create_entity('IfcSIUnit', UnitType='LENGTHUNIT', Prefix='MILLI', Name='METRE'))
+        assignment = model.create_entity('IfcUnitAssignment', Units=units)
+        model.create_entity('IfcProject', GlobalId=ifcopenshell.guid.new(), Name='Generated fixture', UnitsInContext=assignment)
+        origin = model.create_entity('IfcCartesianPoint', Coordinates=(0., 0., 0.))
+        axis = model.create_entity('IfcAxis2Placement3D', Location=origin)
+        context = model.create_entity('IfcGeometricRepresentationContext', CoordinateSpaceDimension=3,
+                                      WorldCoordinateSystem=axis)
+        return model, context
+
+    def room(self, model, context, footprint='closed', custom_zero=True):
+        import ifcopenshell
+        room = model.create_entity('IfcSpace', GlobalId=ifcopenshell.guid.new(), Name='Office', CompositionType='ELEMENT')
+        if footprint is not None:
+            points = [(0., 0.), (4000., 0.), (4000., 3000.), (0., 3000.), (0., 0.)]
+            if footprint == 'open':
+                points = points[:-1]
+            if footprint == 'nonplanar':
+                points = [(x, y, 200. if i == 2 else 0.) for i, (x, y) in enumerate(points)]
+            curve = model.create_entity('IfcPolyline', Points=[model.create_entity('IfcCartesianPoint', Coordinates=p) for p in points])
+            curves = [curve]
+            if footprint == 'curved':
+                position = model.create_entity('IfcAxis2Placement2D', Location=model.create_entity('IfcCartesianPoint', Coordinates=(0., 0.)))
+                curves = [model.create_entity('IfcCircle', Position=position, Radius=2000.)]
+            if footprint == 'ambiguous':
+                other = [(6000., 0.), (7000., 0.), (7000., 1000.), (6000., 1000.), (6000., 0.)]
+                curves.append(model.create_entity('IfcPolyline', Points=[model.create_entity('IfcCartesianPoint', Coordinates=p) for p in other]))
+            curve_set = model.create_entity('IfcGeometricCurveSet', Elements=curves)
+            representation = model.create_entity('IfcShapeRepresentation', ContextOfItems=context,
+                                                  RepresentationIdentifier='FootPrint', RepresentationType='GeometricCurveSet', Items=[curve_set])
+            room.Representation = model.create_entity('IfcProductDefinitionShape', Representations=[representation])
+        if custom_zero:
+            value = model.create_entity('IfcPropertySingleValue', Name='Pindala', NominalValue=model.create_entity('IfcLabel', '0.000'))
+            pset = model.create_entity('IfcPropertySet', GlobalId=ifcopenshell.guid.new(), Name='Legacy_CustomSpace', HasProperties=[value])
+            model.create_entity('IfcRelDefinesByProperties', GlobalId=ifcopenshell.guid.new(), RelatedObjects=[room], RelatingPropertyDefinition=pset)
+        return room
+
+    def quantities(self, model, room, values):
+        import ifcopenshell
+        quantities = [model.create_entity('IfcQuantityArea', Name=name, AreaValue=float(value)) for name, value in values]
+        qto = model.create_entity('IfcElementQuantity', GlobalId=ifcopenshell.guid.new(), Name='Qto_SpaceBaseQuantities', Quantities=quantities)
+        model.create_entity('IfcRelDefinesByProperties', GlobalId=ifcopenshell.guid.new(), RelatedObjects=[room], RelatingPropertyDefinition=qto)
+
+    def answer_room(self, model, question='What is the net floor area of room Office in m²?'):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / 'independent.ifc'
+            model.write(path)
+            document = extract_document(path, root)
+            return answer_native(question, document, path, root)
+
+    def test_custom_zero_area_recovers_from_closed_footprint_with_length_units(self):
+        model, context = self.model()
+        self.room(model, context)
+        answer = self.answer_room(model)
+        self.assertIsNotNone(answer)
+        self.assertAlmostEqual(answer['value'], 12.)
+        self.assertEqual(len(answer['evidence']), 1)
+        self.assertIn('footprint', str(answer).lower())
+
+    def test_missing_quantity_can_use_single_valid_room_footprint(self):
+        model, context = self.model()
+        self.room(model, context, custom_zero=False)
+        answer = self.answer_room(model)
+        self.assertIsNotNone(answer)
+        self.assertAlmostEqual(answer['value'], 12.)
+
+    def test_explicit_typed_net_zero_is_not_replaced_by_positive_geometry(self):
+        model, context = self.model()
+        room = self.room(model, context)
+        self.quantities(model, room, [('NetFloorArea', 0.)])
+        answer = self.answer_room(model)
+        self.assertIsNotNone(answer)
+        self.assertEqual(answer['value'], 0.)
+
+    def test_positive_typed_quantity_retains_precedence(self):
+        model, context = self.model()
+        room = self.room(model, context)
+        self.quantities(model, room, [('NetFloorArea', 10.)])
+        answer = self.answer_room(model)
+        self.assertEqual(answer['value'], 10.)
+
+    def test_no_gross_quantity_substitution_for_missing_net(self):
+        model, context = self.model()
+        room = self.room(model, context, footprint=None, custom_zero=False)
+        self.quantities(model, room, [('GrossFloorArea', 15.)])
+        self.assertIsNone(self.answer_room(model))
+        self.assertEqual(self.answer_room(model, 'What is the gross floor area of room Office in m²?')['value'], 15.)
+
+    def test_unsupported_or_ambiguous_zero_area_geometry_refuses(self):
+        for footprint, length_unit in [('open', True), ('curved', True), ('ambiguous', True),
+                                       ('nonplanar', True), (None, True), ('closed', False)]:
+            with self.subTest(footprint=footprint, length_unit=length_unit):
+                model, context = self.model(length_unit=length_unit)
+                self.room(model, context, footprint=footprint)
+                self.assertIsNone(self.answer_room(model))
+
+    def test_conflicting_explicit_same_role_quantities_do_not_fall_back_to_geometry(self):
+        model, context = self.model()
+        room = self.room(model, context)
+        self.quantities(model, room, [('NetFloorArea', 10.), ('NetArea', 11.)])
+        self.assertIsNone(self.answer_room(model))
+
+    def stair_fixture(self, parented=True):
+        import ifcopenshell
+        model, _ = self.model()
+        flights = [model.create_entity('IfcStairFlight', GlobalId=ifcopenshell.guid.new(), Name=f'Flight {i}') for i in range(2)]
+        stairs = []
+        if parented:
+            stairs = [model.create_entity('IfcStair', GlobalId=ifcopenshell.guid.new(), Name='Main stair'),
+                      model.create_entity('IfcStair', GlobalId=ifcopenshell.guid.new(), Name='Unseen stair')]
+            model.create_entity('IfcRelAggregates', GlobalId=ifcopenshell.guid.new(), RelatingObject=stairs[0], RelatedObjects=flights)
+        return model, stairs, flights
+
+    def answer_visible_stairs(self, model, visible_guids):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / 'independent-stairs.ifc'
+            model.write(path)
+            document = extract_document(path, root)
+            visible = [obj for obj in document['objects'] if obj.get('guid') in visible_guids]
+            with patch('server.native_qa._ifc_scope', return_value=(document, visible, 'Visible objects on selected floor drawing', [])):
+                return answer_native('How many stairs are shown on this floor plan?', document, path, root)
+
+    def test_visible_flights_count_their_distinct_source_stair_assembly(self):
+        model, stairs, flights = self.stair_fixture()
+        answer = self.answer_visible_stairs(model, {flight.GlobalId for flight in flights})
+        self.assertIsNotNone(answer)
+        self.assertEqual(answer['value'], 1)
+        self.assertEqual(len(answer['evidence']), 1)
+        self.assertEqual(answer['evidence'][0]['guid'], stairs[0].GlobalId)
+
+    def test_visible_parent_and_its_flights_are_not_double_counted(self):
+        model, stairs, flights = self.stair_fixture()
+        answer = self.answer_visible_stairs(model, {stairs[0].GlobalId, *(flight.GlobalId for flight in flights)})
+        self.assertEqual(answer['value'], 1)
+
+    def test_unparented_flights_are_not_called_zero_stairs(self):
+        model, _, flights = self.stair_fixture(parented=False)
+        self.assertIsNone(self.answer_visible_stairs(model, {flight.GlobalId for flight in flights}))
+
+    def test_genuinely_empty_stair_class_can_return_zero(self):
+        import ifcopenshell
+        model, _ = self.model()
+        wall = model.create_entity('IfcWall', GlobalId=ifcopenshell.guid.new(), Name='Only a wall')
+        answer = self.answer_visible_stairs(model, {wall.GlobalId})
+        self.assertIsNotNone(answer)
+        self.assertEqual(answer['value'], 0)
 
 class SwissExporterCompatibility(unittest.TestCase):
     def drawing(self,semantic=True):
