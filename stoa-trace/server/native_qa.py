@@ -371,25 +371,20 @@ def _ifc_scope(question, document, source_path, root):
         return model_doc,selected,"Visible objects on selected floor drawing",[]
     if len(selected_storeys) == 1:
         storey = selected_storeys[0]
-        # If a generated floor view exists, prefer its explicitly visible GUID
-        # set for a question asking what that floor plan shows.
+        # A storey's plan shows what the storey contains (IFC spatial containment). A rendered
+        # view can omit products that are cut or hidden, so it never decides what is counted;
+        # it only supplies drawing positions for the contained objects it shows.
+        contained = [o for o in objects if o.get("properties", {}).get("storey_guid") == storey["guid"]]
         views = model_doc.get("metadata", {}).get("linked_views", [])
         match = [v for v in views if "_plan-" in Path(v).stem and
                  _compact(Path(v).stem.split("_plan-", 1)[1].split("-",1)[-1]) == _compact(storey["name"])]
-        if len(match) == 1 and re.search(r"plan|shown|n[aä]idatud|plaan|drawing", q):
-            view = root / match[0]
-            if view.exists():
-                view_doc = _load(view, root)
-                ids = {o.get("guid") for o in view_doc["objects"] if o.get("guid")}
-                if ids:
-                    projection = {o["guid"]:o for o in view_doc["objects"] if o.get("guid")}
-                    selected = []
-                    for obj in objects:
-                        if obj.get("guid") in ids:
-                            p = projection[obj["guid"]]
-                            selected.append({**obj, **{k:p[k] for k in ("bbox","polygon","source_path","page") if k in p}})
-                    return model_doc, selected, f"Visible objects on {storey['name']}", []
-        return model_doc, [o for o in objects if o.get("properties", {}).get("storey_guid") == storey["guid"]], f"Storey {storey['name']}", []
+        if len(match) == 1 and (root / match[0]).exists():
+            view_doc = _load(root / match[0], root)
+            projection = {o["guid"]: o for o in view_doc["objects"] if o.get("guid")}
+            contained = [{**o, **{k: projection[o["guid"]][k] for k in ("bbox", "polygon", "source_path", "page")
+                                  if k in projection[o["guid"]]}} if o.get("guid") in projection else o
+                         for o in contained]
+        return model_doc, contained, f"Storey {storey['name']}", []
     whole = (not page_requested and bool(re.search(r"\b"+_MODEL_WORDS+r"\b", q))
              and not re.search(r"this floor|selected floor|on this plan", q))
     floor_request = bool(re.search(r"(?:on|of|at) (?:the )?(?:ground|first|second|third|basement|floor|level)|this floor|selected floor|on this plan",q))

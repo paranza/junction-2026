@@ -884,7 +884,18 @@ def _ifc(path, root):
         try:
             container = element_util.get_container(entity)
             if container:
-                props.update(storey=container.Name, storey_guid=container.GlobalId)
+                # Elements contained in a space (or another sub-storey zone) belong to the storey
+                # that aggregates it: walk up the spatial hierarchy to the IfcBuildingStorey.
+                storey, seen = container, set()
+                while storey is not None and not storey.is_a("IfcBuildingStorey") and storey.id() not in seen:
+                    seen.add(storey.id())
+                    storey = element_util.get_aggregate(storey) or element_util.get_container(storey)
+                if storey is not None and storey.is_a("IfcBuildingStorey"):
+                    props.update(storey=storey.Name, storey_guid=storey.GlobalId)
+                    if storey is not container:
+                        props.update(spatial_container=container.Name, spatial_container_class=container.is_a())
+                else:
+                    props.update(storey=container.Name, storey_guid=container.GlobalId)
             elif entity.is_a("IfcSpace"):
                 parent = element_util.get_aggregate(entity)
                 if parent and parent.is_a("IfcBuildingStorey"):
