@@ -1,0 +1,19 @@
+.session-inference { padding: 14px 20px; border-bottom: 1px solid var(--line); background: #f7f8f9; flex-shrink: 0; }
+.session-inference-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.session-inference-heading > span { font-weight: 500; }
+.session-inference-heading > strong { font: 600 14px/1.4 var(--font-mono); text-align: right; overflow-wrap: anywhere; }
+.session-inference-metrics { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.session-inference > p { margin: 5px 0 0; font-size: 10px; line-height: 1.6; color: var(--muted); }
+.session-message-details { margin-top: 8px; font-size: 11px; }
+.session-message-details > summary { width: max-content; max-width: 100%; cursor: pointer; min-height: 32px; padding: 5px 0; color: var(--ink); }
+.session-message-details ol { margin: 0; padding: 0; list-style: none; max-height: 200px; overflow: auto; }
+.session-message-details li { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.session-message-details li:last-child { border: 0; padding-bottom: 0; }
+.session-message-details li > div { display: flex; flex-direction: column; gap: 4px; }
+.session-message-details li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-message-details li strong { font: 500 11px/1.5 var(--font-mono); }
+.session-message-details li small { color: var(--muted); font-size: 10px; }
+.message-inference-cost { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; margin: 12px 0; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 11px; line-height: 1.6; color: var(--muted); }
+.message-inference-cost strong { color: var(--ink); font: 500 11px/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.history-cost { color: var(--ink) !important; font-family: var(--font-mono); font-size: 10px !important; margin-top: 3px; }
+@media (max-width: 700px) { .session-inference { padding: 12px 18px; } .session-inference-heading > strong { font-size: 13px; } }

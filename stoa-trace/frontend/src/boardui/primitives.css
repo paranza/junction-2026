@@ -1,0 +1,26 @@
+.board-button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; white-space: nowrap; overflow: hidden; font-family: inherit; font-weight: 500; user-select: none; cursor: pointer; border: 1px solid transparent; outline: none; transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease; }
+.board-button-medium { min-height: 36px; padding: 8px; border-radius: 8px; font-size: 12px; }
+.board-button-small { min-height: 32px; padding: 6px 8px; border-radius: 6px; font-size: 12px; }
+.board-button-xs { min-height: 24px; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+.board-button-label { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding-inline: 4px; }
+.board-button-glyph { width: 18px; height: 18px; flex-shrink: 0; }
+.board-button-icon { width: 36px; min-width: 36px; padding: 8px; }
+.board-button-primary { background: var(--blue); color: white; }
+.board-button-primary:hover:not(:disabled) { background: var(--blue-ink); }
+.board-button-secondary { color: var(--ink); background: white; border-color: #d4d9df; }
+.board-button-secondary:hover:not(:disabled) { background: #f7f8f9; border-color: #aab4bf; }
+.board-button-ghost { color: var(--ink); background: transparent; }
+.board-button-ghost:hover:not(:disabled) { background: #eef1f4; }
+.board-button-danger { color: #fff; background: #a33e31; }
+.board-button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.board-button:active:not(:disabled) { transform: translateY(1px); }
+.board-button:disabled { cursor: not-allowed; opacity: .5; }
+.board-divider { width: 100%; height: 1px; background: var(--line); }
+.board-divider-content { display: flex; align-items: center; gap: 12px; height: auto; background: none; }
+.board-divider-line { height: 1px; min-width: 0; flex: 1; background: var(--line); }
+.board-divider-label { flex-shrink: 0; font-size: 11px; line-height: 1.5; font-weight: 500; color: var(--muted); }
+.board-divider-double { border-block: 1px solid var(--line); background: none; height: 8px; }
+.board-divider-fill { height: 8px; border-radius: 8px; background: #f3f5f7; }
+.board-divider-content.board-divider-double,.board-divider-content.board-divider-fill { height: auto; padding-block: 10px; }
+@media (pointer: coarse) { .board-button { min-height: 44px; } .board-button-icon { min-width: 44px; } }
+@media (prefers-reduced-motion: reduce) { .board-button { transition: none; } }

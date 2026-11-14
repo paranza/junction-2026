@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Crosshair, Eye, EyeOff, FileImage, FileText, FolderOpen, Layers3, LoaderCircle, Maximize, Menu, MessageSquareText, Minus, MousePointer2, PanelLeftClose, Plus, Search, ShieldCheck, SquareDashedMousePointer, Upload, X } from 'lucide-react';
 import './styles.css';
 import MeasurementPanel from './MeasurementPanel.jsx';
-import AnalysisProvenance from './AnalysisProvenance.jsx';
+import InferenceCost, { MessageInferenceCost } from './InferenceCost.jsx';
+import useSessionUsage from './useSessionUsage.js';
+import { messageCost, requestFailure } from './inferenceUsage.js';
+import { Button as BoardButton, Divider as BoardDivider } from './boardui/primitives.jsx';
 import { evidenceBox, evidenceKind, savedAdditions, originalEvidence, reviewEvidence, reviewCount, reviewFingerprint, costText, aggregateUsage, countedCategory, allowedCountCategories, reviewCategories, usageLabel, evidenceVerificationText, canResolveComparison, formatQuantityValue } from './reviewState.js';
 
 const request = async (url, options = {}) => {
   const response = await fetch(url, options);
   const contentType = response.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await response.json() : await response.text();
-  if (!response.ok) throw new Error(typeof body === 'string' ? body : body.detail?.message || body.detail || body.error || `Request failed (${response.status})`);
+  if (!response.ok) throw requestFailure(body, response.status);
   return body;
 };
 const jsonRequest = (url, body, options = {}) => request(url, { ...options, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -28,7 +31,7 @@ const documentListUrl = (search, source, offset = 0) => {
 };
 const dateText = value => { const date = new Date(typeof value === 'number' && value < 1e12 ? value * 1000 : value); return Number.isNaN(date.getTime()) ? 'Time unavailable' : date.toLocaleString(); };
 const scopeText = scope => typeof scope === 'object' ? scope?.label || scope?.description || [scope?.type, scope?.page && `page ${scope.page}`].filter(Boolean).join(' · ') : readable(scope);
-const statusLabel = { computed: 'Computed', supported: 'Source supported', extracted: 'Source extracted', visual: 'Visual analysis', needs_review: 'Needs review', insufficient_evidence: 'Evidence insufficient', human_reviewed: 'Human reviewed' };
+const statusLabel = { computed: 'Calculated', supported: 'Source calculation', extracted: 'Source extracted', visual: 'Visual candidates', needs_review: 'Review needed', insufficient_evidence: 'Evidence insufficient', human_reviewed: 'Review saved' };
 const getStatus = answer => answer?.status || 'needs_review';
 const allEvidence = answer => arrayOf(answer?.evidence);
 const evidenceKey = (e, i) => String(e.id ?? `evidence-${i}`);
@@ -71,7 +74,7 @@ const mergeHistory = (current, incoming) => {
 };
 
 function IconButton({ label, children, className = '', ...props }) {
-  return <button type="button" className={`icon-button ${className}`} aria-label={label} title={label} {...props}>{children}</button>;
+  return <BoardButton variant="ghost" size="small" className={`icon-button ${className}`} aria-label={label} title={label} {...props}>{children}</BoardButton>;
 }
 
 function DocumentIcon({ doc, size = 18 }) {
@@ -283,6 +286,8 @@ function App() {
   const [selectedEvidence, setSelectedEvidence] = useState(null);
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState('');
+  const [askErrorUsage, setAskErrorUsage] = useState(undefined);
+  const sessionUsage = useSessionUsage(request, asking);
   const [elapsed, setElapsed] = useState(0);
   const [history, setHistory] = useState([]);
   const [excluded, setExcluded] = useState([]);
@@ -331,7 +336,7 @@ function App() {
     const active = activeAskRef.current;
     if (!active) return;
     active.controller.abort(); activeAskRef.current = null; askSequenceRef.current += 1; setAsking(false);
-    if (showNotice) setAskError('Stopped waiting for this answer. The server may finish an already-started model request.');
+    if (showNotice) { setAskError('Stopped waiting for this answer. The server may finish an already-started model request.'); setAskErrorUsage(undefined); }
   }, []);
   const cancelHistory = useCallback(() => { activeHistoryRef.current?.abort(); activeHistoryRef.current = null; setRestoringHistory(false); }, []);
   const cancelManual = useCallback(() => { setManualMode(false); setPendingManual(null); setManualError(''); }, []);
@@ -378,7 +383,7 @@ function App() {
   useEffect(() => { if (!asking) return; setElapsed(0); const timer = setInterval(() => setElapsed(value => value + 1), 1000); return () => clearInterval(timer); }, [asking]);
   const selectDocument = useCallback((id, keepAnswer = false, requestedPage = 1) => {
     cancelAsk(); cancelHistory(); cancelManual(); setSelectedId(id); setPage(Number(requestedPage) || 1); setRegion(null); setLibraryOpen(false);
-    if (!keepAnswer) { setAnswer(null); setSelectedEvidence(null); setAskError(''); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
+    if (!keepAnswer) { setAnswer(null); setSelectedEvidence(null); setAskError(''); setAskErrorUsage(undefined); setExcluded([]); setManualAdditions([]); setReviewNote(''); setReviewUndo([]); setScope('document'); setComparisonEvidence(null); }
   }, [cancelAsk, cancelHistory, cancelManual]);
   const selectEvidence = useCallback(item => {
     if (answerRef.current?.source_changed) return;
@@ -392,12 +397,12 @@ function App() {
   const ask = async (event, crossCheck = false) => {
     event?.preventDefault();
     if (!question.trim() || !selectedId || asking) return;
-    cancelHistory(); cancelManual(); setAsking(true); setAskError(''); setAnswerOpen(true);
+    cancelHistory(); cancelManual(); setAsking(true); setAskError(''); setAskErrorUsage(undefined); setAnswerOpen(true); sessionUsage.trackRequest();
     const questionText = question.trim(); const documentId = selectedId; const sourceName = documentName(selectedDocument);
     const context = contextRef.current, sequence = ++askSequenceRef.current, controller = new AbortController();
     activeAskRef.current = { sequence, controller, context };
     try {
-      const result = await jsonRequest('/api/ask', { document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
+      const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
       if (controller.signal.aborted || activeAskRef.current?.sequence !== sequence || contextRef.current !== context) return;
       activeAskRef.current = null; setAsking(false);
       setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
@@ -406,14 +411,14 @@ function App() {
       if (primaryEvidence?.document_id && String(primaryEvidence.document_id) !== String(documentId)) selectDocument(primaryEvidence.document_id, true, primaryEvidence.page);
       else if (evidenceBBox(primaryEvidence) && primaryEvidence?.page && Number(primaryEvidence.page) !== page) setPage(Number(primaryEvidence.page));
       setHistory(items => mergeHistory(items, [historyItem(result, { question: questionText, documentId, documentName: sourceName, timestamp: Date.now() })]));
-    } catch (error) { if (error.name !== 'AbortError' && activeAskRef.current?.sequence === sequence) setAskError(error.message); }
-    finally { if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
+    } catch (error) { if (error.name !== 'AbortError' && activeAskRef.current?.sequence === sequence) { setAskError(error.message); setAskErrorUsage(error.usage ?? null); } }
+    finally { sessionUsage.refresh(); if (activeAskRef.current?.sequence === sequence) { activeAskRef.current = null; setAsking(false); } }
   };
   const acceptMeasuredAnswer = useCallback(result => {
     if (String(result.document_id) !== String(selectedId)) return;
     cancelAsk(); cancelHistory(); cancelManual();
     setAnswer(result); setAnswerDocumentId(result.document_id); setAnswerQuestion(result.question); setQuestion(result.question);
-    setAnswerDocumentName(documentName(result.document)); loadReviewDraft(result); setAskError(''); setAnswerOpen(true);
+    setAnswerDocumentName(documentName(result.document)); loadReviewDraft(result); setAskError(''); setAskErrorUsage(undefined); setAnswerOpen(true);
     const primary = arrayOf(result.evidence)[0];
     setSelectedEvidence(primary ? evidenceKey(primary, 0) : null); setFocusToken(value => value + 1);
     setHistory(items => mergeHistory(items, [historyItem(result, { timestamp: Date.now() })]));
@@ -471,7 +476,7 @@ function App() {
   const review = async () => {
     if (!answer?.id || answer.source_changed) return;
     const answerId = answer.id;
-    setReviewing(true); setAskError('');
+    setReviewing(true); setAskError(''); setAskErrorUsage(undefined);
     try {
       const result = await jsonRequest(`/api/answers/${encodeURIComponent(answerId)}/review`, { excluded_evidence_ids: excluded, added_evidence: manualAdditions, note: reviewNote });
       if (answerRef.current?.id === answerId) { setAnswer(result); loadReviewDraft(result); }
@@ -487,7 +492,7 @@ function App() {
   const resolveComparison = async payload => {
     if (!answer?.id || !canResolveComparison(answer) || resolving || reviewing || hasReviewChanges || pendingManual) return;
     const answerId = answer.id;
-    setResolving(true); setAskError('');
+    setResolving(true); setAskError(''); setAskErrorUsage(undefined);
     try {
       const result = await jsonRequest(`/api/answers/${encodeURIComponent(answerId)}/resolution`, payload);
       if (answerRef.current?.id === answerId) setAnswer(result);
@@ -497,7 +502,7 @@ function App() {
   };
   const restoreHistory = async item => {
     if (!item.id) return;
-    cancelAsk(); cancelHistory(); cancelManual(); setAskError(''); setRestoringHistory(true);
+    cancelAsk(); cancelHistory(); cancelManual(); setAskError(''); setAskErrorUsage(undefined); setRestoringHistory(true);
     const controller = new AbortController(); activeHistoryRef.current = controller;
     try {
       const result = await request(`/api/answers/${encodeURIComponent(item.id)}`, { signal: controller.signal });
@@ -517,12 +522,12 @@ function App() {
   const sourceCredit = detail?.credit || detail?.attribution || detail?.license_credit;
 
   return <div className="app-shell">
-    <header className="app-header"><div className="brand"><div className="brand-symbol" aria-hidden="true"><span /><span /><span /></div><span>trace<span className="brand-period">.</span></span><span className="brand-divider" /><span className="brand-description">Drawing intelligence</span></div><div className="header-right"><span className={`connection-state ${health?.status === 'offline' ? 'is-offline' : ''}`}><span />{health?.status === 'offline' ? 'Reconnecting' : health ? 'Workspace ready' : 'Connecting'}</span><span className="project-label">Junction 2026</span><div className="avatar" aria-label="Team workspace">T</div></div></header>
+    <header className="app-header"><div className="brand"><div className="brand-symbol" aria-hidden="true"><span /><span /><span /></div><span>trace<span className="brand-period">.</span></span><span className="brand-divider" /><span className="brand-description">Drawing review</span></div><div className="header-right"><span className={`connection-state ${health?.status === 'offline' ? 'is-offline' : ''}`}><span />{health?.status === 'offline' ? 'Reconnecting' : health ? 'Workspace ready' : 'Connecting'}</span><span className="project-label">Project workspace</span></div></header>
     <div className="mobile-toolbar"><button type="button" onClick={() => { setLibraryOpen(!libraryOpen); setAnswerOpen(false); }}><FolderOpen size={17} /> Drawings</button><span>{selectedDocument ? formatOf(selectedDocument) : 'Workspace'}</span><button type="button" onClick={() => { setAnswerOpen(!answerOpen); setLibraryOpen(false); }}><MessageSquareText size={17} /> Ask Trace</button></div>
     {(libraryOpen || answerOpen) && <button className="panel-scrim" aria-label="Close panel" onClick={() => { setLibraryOpen(false); setAnswerOpen(false); }} />}
     <div className="workspace-layout">
       <aside className={`document-library ${libraryOpen ? 'is-open' : ''}`} aria-label="Drawing library">
-        <div className="library-heading"><div><span className="eyebrow">PROJECT LIBRARY</span><h1>Drawings <span>{total.toLocaleString()}</span></h1></div><IconButton label="Close drawing library" className="mobile-close" onClick={() => setLibraryOpen(false)}><X size={18} /></IconButton></div>
+        <div className="library-heading"><div><span className="eyebrow">Project files</span><h1>Drawings <span>{total.toLocaleString()}</span></h1></div><IconButton label="Close drawing library" className="mobile-close" onClick={() => setLibraryOpen(false)}><X size={18} /></IconButton></div>
         <label className="search-field"><Search size={16} /><span className="sr-only">Search drawings</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a drawing…" />{search && <button type="button" aria-label="Clear search" onClick={() => setSearch('')}><X size={13} /></button>}</label>
         <label className="collection-filter"><span>Collection</span><select aria-label="Drawing collection" value={collection} onChange={event => setCollection(event.target.value)}><option value="">All collections{collections.length ? ` (${collections.reduce((sum, source) => sum + Number(source.count || 0), 0).toLocaleString()})` : ''}</option>{collections.map(source => <option key={source.source} value={source.source}>{collectionLabel(source.source)} ({Number(source.count || 0).toLocaleString()})</option>)}</select></label>
         <div className="library-list-heading"><span>{searchTerm ? 'Search results' : collection ? collectionLabel(collection) : 'All documents'}</span><span>{documentsLoading ? <LoaderCircle size={12} className="spin" /> : `${documents.length} shown`}</span></div>
@@ -533,16 +538,17 @@ function App() {
           {documents.map(doc => <button key={doc.id} type="button" className={`document-item ${String(doc.id) === String(selectedId) ? 'is-selected' : ''}`} onClick={() => selectDocument(doc.id)} title={documentName(doc)} aria-pressed={String(doc.id) === String(selectedId)}><span className={`document-icon format-${formatOf(doc).toLowerCase()}`}><DocumentIcon doc={doc} /></span><span className="document-item-text"><strong>{documentName(doc)}</strong><span>{formatOf(doc)}<span className="mini-dot" />{readable(doc.source || (doc.indexed ? 'Indexed' : 'Ready to open'))}</span></span>{doc.indexed && <span className="indexed-dot" title="Indexed" aria-label="Indexed" />}</button>)}
           {documents.length < total && <button type="button" className="load-more" onClick={loadMore} disabled={documentsLoading}>{documentsLoading ? 'Loading…' : 'Load more drawings'}<ChevronDown size={14} /></button>}
         </div>
-        <div className="library-footer"><input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><button type="button" className="button upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</button>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
+        <div className="library-footer"><input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc" className="sr-only" onChange={event => uploadFiles(event.target.files)} /><BoardButton variant="secondary" className="upload-button" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}{uploading ? 'Adding drawings…' : 'Upload drawings'}</BoardButton>{uploadMessage && <p className="upload-feedback" role="status">{uploadMessage}</p>}<div className="library-footnote"><Layers3 size={13} /><span>PDF · CAD · BIM · images</span></div></div>
       </aside>
       <main className="main-drawing" aria-label="Selected drawing">
-        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><div className="empty-illustration"><Layers3 size={42} /></div><span className="eyebrow">INSPECT THE SOURCE</span><h2>Start with a drawing.</h2><p>Find an answer in the details.<br />Inspect its source records and drawing evidence.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
+        {selectedDocument ? <><div className="drawing-heading"><div className="drawing-heading-main"><div className="breadcrumb">Project library <ChevronRight size={12} /> <span>{readable(selectedDocument.source || 'Uploaded drawings')}</span></div><h2 title={documentName(selectedDocument)}>{documentName(selectedDocument)}</h2></div><div className="drawing-heading-actions">{detailLoading && <LoaderCircle size={16} className="spin" />}{pageCount > 1 && <div className="page-controls"><IconButton label="Previous page" onClick={() => changePage(page - 1)} disabled={page <= 1}><ChevronLeft size={16} /></IconButton><label><span className="sr-only">Page</span><select aria-label="Page" value={page} onChange={event => changePage(Number(event.target.value))}>{Array.from({ length: pageCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select><span>/ {pageCount}</span></label><IconButton label="Next page" onClick={() => changePage(page + 1)} disabled={page >= pageCount}><ChevronRight size={16} /></IconButton></div>}<a className="icon-button" href={`/api/documents/${encodeURIComponent(selectedId)}/original`} target="_blank" rel="noreferrer" title="Open original source" aria-label="Open original source"><ArrowDownToLine size={18} /></a></div></div>{detailError && <div className="drawing-warning" role="alert">{detailError}</div>}<DrawingCanvas document={selectedDocument} page={page} evidence={canvasEvidence} selectedEvidence={selectedEvidence} onSelectEvidence={selectEvidence} region={region} onRegion={askRegion} focusToken={focusToken} manualMode={manualMode && !answer?.source_changed} onManualRegion={markManual} onCancelManual={cancelManual} onMeasuredAnswer={acceptMeasuredAnswer} imageVersion={refreshVersion} />{sourceCredit && <details className="source-credit"><summary>Source &amp; licence · {readable(selectedDocument.source || 'Original drawing')}</summary><p>{shortText(sourceCredit)}{detail.license ? ` · ${shortText(detail.license)}` : ''}</p></details>}</> : <div className="workspace-empty"><div className="empty-illustration"><Layers3 size={42} /></div><span className="eyebrow">INSPECT THE SOURCE</span><h2>Open a drawing</h2><p>Choose a project file or upload a plan.<br />Ask a quantity question and inspect its source.</p><button type="button" className="button primary" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Upload drawings</button></div>}
       </main>
       <aside className={`answer-panel ${answerOpen ? 'is-open' : ''}`} aria-label="Ask Trace and inspect answers">
-        <div className="answer-panel-heading"><div><span className="assistant-mark"><Crosshair size={17} /></span><h2>Ask Trace</h2></div><IconButton label="Close answer panel" className="mobile-close" onClick={() => setAnswerOpen(false)}><X size={18} /></IconButton><span className="evidence-badge"><ShieldCheck size={12} /> Evidence first</span></div>
+        <div className="answer-panel-heading"><div><span className="assistant-mark"><Crosshair size={17} /></span><h2>Ask the drawing</h2></div><IconButton label="Close answer panel" className="mobile-close" onClick={() => setAnswerOpen(false)}><X size={18} /></IconButton><span className="evidence-badge"><ShieldCheck size={12} /> Source-linked</span></div>
+        <InferenceCost snapshot={sessionUsage.snapshot} unavailable={sessionUsage.unavailable} />
         <div className="answer-panel-scroll">
           <form className="question-form" onSubmit={event => ask(event, crossCheck)}><label className="question-label" htmlFor="question-input">What do you need to know?</label><div className={`question-input-wrap ${asking ? 'is-busy' : ''}`}><textarea ref={questionRef} id="question-input" placeholder="Ask about rooms, quantities, dimensions, or materials…" value={question} onChange={event => setQuestion(event.target.value)} disabled={asking} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) ask(event, crossCheck); }} rows={3} /><div className="question-input-footer"><span>{region ? 'Selected area' : scope === 'page' ? `Page ${page}` : 'Whole document'}</span><button type="submit" className="ask-button" disabled={!question.trim() || !selectedId || asking} aria-label="Ask question">{asking ? <LoaderCircle size={17} className="spin" /> : <ArrowUp size={18} />}</button></div></div><div className="query-options"><label><span>Search scope</span><select value={scope} onChange={event => changeScope(event.target.value)} disabled={!!region || asking}><option value="document">Whole document</option><option value="page">Current page</option></select></label><span className="keyboard-hint">⌘ ↵ to ask</span></div><label className="cross-check-option"><input type="checkbox" checked={crossCheck} onChange={event => setCrossCheck(event.target.checked)} disabled={asking} /><span>Compare native and visual counts<small>Optional. May use a model request; scopes must match.</small></span></label><label className="cross-check-option"><input type="checkbox" checked={verifyVisual} onChange={event => setVerifyVisual(event.target.checked)} disabled={asking} /><span>Recheck visual counts<small>Search again for missed or incorrect objects. Uses one extra model call.</small></span></label></form>
-          {askError && <div className="inline-error query-error" role="alert"><strong>Couldn’t complete the question</strong><span>{askError}</span><button type="button" onClick={event => ask(event, crossCheck)} disabled={asking}>Try again</button></div>}
+          {askError && <div className="inline-error query-error" role="alert"><strong>Couldn’t complete the question</strong><span>{askError}</span>{askErrorUsage !== undefined && <MessageInferenceCost usage={askErrorUsage} label="Failed message" />}<button type="button" onClick={event => ask(event, crossCheck)} disabled={asking}>Try again</button></div>}
           {asking && <div className="analysis-progress" role="status" aria-live="polite"><div><LoaderCircle size={17} className="spin" /><strong>Tracing the answer</strong><span>{elapsed}s</span></div><p>Waiting for the server response. Detailed drawings may take longer.</p><button type="button" className="button cancel-analysis" onClick={() => cancelAsk(true)}>Stop waiting</button></div>}
           {!answer && !asking && <section className="suggestions-section"><div className="section-label"><span>START WITH A QUESTION</span><CircleHelp size={14} /></div>{suggestions.length ? <div className="question-suggestions">{suggestions.slice(0, 5).map((item, i) => <button key={`${item}-${i}`} type="button" onClick={() => { setQuestion(item); questionRef.current?.focus(); }}><span>{item}</span><ArrowUp size={14} /></button>)}</div> : <div className="question-empty"><div className="subtle-target"><Crosshair size={22} /></div><strong>From question to source.</strong><p>Ask in your own words. Trace will find the relevant objects or drawing regions and show its work.</p><div className="workflow-steps"><span><span>1</span> Ask a question</span><span><span>2</span> Inspect the evidence</span><span><span>3</span> Verify the result</span></div></div>}</section>}
           {answer && !asking && <section className="answer-result" aria-live="polite">
@@ -553,7 +559,7 @@ function App() {
             {answer.value != null && <div className="answer-value">{formatQuantityValue(answer.value, answer.unit)}{answer.unit && <span>{answer.unit}</span>}</div>}
             <p className="answer-text">{shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             <div className="answer-metadata"><span>{readable(answer.method || 'Source analysis')}</span><span>{scopeText(answer.scope) || 'Requested source scope'}</span>{answer.duration_ms != null && <span>{(Number(answer.duration_ms) / 1000).toFixed(1)}s</span>}</div>
-            <AnalysisProvenance answer={answer} />
+            <MessageInferenceCost usage={answer.usage} />
             <UsageDetails answer={answer} />
             {answer.calculation && <div className="calculation"><span>Calculation</span><code>{calculationText(answer.calculation, answer)}</code></div>}
             {warnings.length > 0 && <div className="answer-warnings">{warnings.map((warning, i) => <p key={i}><CircleHelp size={14} /><span>{shortText(warning.message || warning)}</span></p>)}</div>}
@@ -589,7 +595,7 @@ function App() {
             </div>
           </section>}
           {restoringHistory && <p className="history-loading" role="status"><LoaderCircle size={14} className="spin" /> Checking the saved answer and source…</p>}
-          {history.length > 0 && !asking && <section className="recent-questions"><div className="section-label"><span>RECENT QUESTIONS</span><Clock3 size={13} /></div>{history.map(item => <button type="button" key={item.id || item.timestamp} title={`${item.question} · ${item.documentName}`} onClick={() => restoreHistory(item)}><MessageSquareText size={14} /><span><strong>{item.question}</strong><small>{item.documentName}</small></span><ChevronRight size={13} /></button>)}</section>}
+          {history.length > 0 && !asking && <section className="recent-questions"><BoardDivider align="start" className="recent-questions-divider">Recent questions</BoardDivider>{history.map(item => <button type="button" key={item.id || item.timestamp} title={`${item.question} · ${item.documentName}`} onClick={() => restoreHistory(item)}><MessageSquareText size={14} /><span><strong>{item.question}</strong><small>{item.documentName}</small><small className="history-cost">{messageCost(item.answer?.usage)}</small></span><ChevronRight size={13} /></button>)}</section>}
         </div>
         <footer className="answer-panel-footer"><ShieldCheck size={14} /><span>Inspect sources before making site decisions.</span></footer>
       </aside>
