@@ -36,3 +36,4 @@ Thumbs.db
 
 # Partner dataset (Stoa), not redistributable via Git
 preview_dataset/
+/dataset/
