@@ -4,7 +4,7 @@ Copy the text below into a new Codex session with access to the cloned repositor
 
 ---
 
-Continue our **Trace** project for the Junction 2026 **Stoa challenge**. Use an attached shared-chat snapshot as background if provided, and establish the current implementation from the repository before changing code. A snapshot does not transfer the original agent's tools, files, running processes or credentials.
+Continue our **Metria** project (formerly Trace) for the Junction 2026 **Stoa challenge**. Use an attached shared-chat snapshot as background if provided, and establish the current implementation from the repository before changing code. A snapshot does not transfer the original agent's tools, files, running processes or credentials.
 
 We are four people with roughly 24 hours, aiming for a competitive demo. The challenge is to answer natural-language questions about construction drawings and BIM accurately and verifiably, showing exactly which drawing objects or source values support an answer. We want durable source extraction, geometry, scope controls and human verification that remain useful as models improve.
 
@@ -19,7 +19,7 @@ If a checkout already exists, inspect its branch and working tree first. Do not 
 
 Read **README.md, HANDOFF.md, DATA_INVENTORY.md, DEMO.md**, then the final native and vision reports under `ops/reports/`. Read any applicable `AGENTS.md`. Inspect the implementation rather than assuming this summary matches every later commit.
 
-Repository-root `INFRA/architecture_pipeline.md` is an earlier proposal. Its CenterNet/SAM2/Gemini design and unverified 99% claims are not implemented Trace features or benchmark results. This handoff captures engineering context; the owner will share a native Codex conversation snapshot separately.
+Repository-root `INFRA/architecture_pipeline.md` is an earlier proposal. Its CenterNet/SAM2/Gemini design and unverified 99% claims are not implemented Metria features or benchmark results. This handoff captures engineering context; the owner will share a native Codex conversation snapshot separately.
 
 Current architecture: FastAPI on port 8787; React/JSX and Vite; SQLite with a separate persistent runtime; PyMuPDF, ezdxf/Shapely and IfcOpenShell for native extraction; hosted OpenAI Responses vision for other supported previews. Keep native calculations, visual candidates, and human-reviewed results distinguishable.
 

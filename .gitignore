@@ -41,3 +41,5 @@ preview_dataset/
 .env
 .env.*
 !.env.example
+
+/dataset/

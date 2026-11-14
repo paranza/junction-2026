@@ -2,11 +2,11 @@
 
 Four-person team at **Junction 2026: European Tech Renaissance**, 13-15 November 2026, Espoo, Finland.
 
-The team selected Stoa's Make Blueprints Talk challenge. The working **Trace** application is isolated in [`stoa-trace/`](stoa-trace/): construction drawing and BIM questions with source evidence, explicit highlighting, reproducible quantities and human review.
+The team selected Stoa's Make Blueprints Talk challenge. The working **Metria** application (formerly Trace) is isolated in [`stoa-trace/`](stoa-trace/): construction drawing and BIM questions with source evidence, explicit highlighting, reproducible quantities and human review.
 
 Read the [application setup](stoa-trace/README.md), [engineering handoff](stoa-trace/HANDOFF.md) and [prompt for a teammate's Codex session](stoa-trace/FRIEND_PROMPT.md). The source dataset, generated runtime and credentials are separate from Git. [Dataset inventory and limits](stoa-trace/DATA_INVENTORY.md) explains what is loaded.
 
-## Run Trace
+## Run Metria
 
 Use Python 3.11 and Node 22.14.0 with npm 10.9.2. From the repository root on macOS or Linux:
 
@@ -37,7 +37,7 @@ The unit suite uses fixtures and no model calls. Source-backed benchmark executi
 1. Read the [challenge research](docs/challenges.md). It covers all 19 titles from the dashboard screenshot and separates evidence from guesses.
 2. Check the [event rules and deadlines](docs/event.md) and [submission checklist](docs/submission.md).
 3. Follow the [tool and agent setup](docs/setup.md) and [contribution guide](CONTRIBUTING.md).
-4. Check the current [decisions](docs/decisions.md) and the Trace handoff before implementing another pipeline or provisioning infrastructure.
+4. Check the current [decisions](docs/decisions.md) and the Metria handoff before implementing another pipeline or provisioning infrastructure.
 
 ## Team
 
@@ -64,7 +64,7 @@ The [event notes](docs/event.md) flag conflicting guide details rather than sile
 
 ## Repository map
 
-- [Trace application](stoa-trace/): code, tests, setup, measured results and teammate handoff.
+- [Metria application](stoa-trace/): code, tests, setup, measured results and teammate handoff.
 - [Public Stoa project research](docs/research/): competitor approaches, dated updates, source links and monitoring instructions.
 - [AGENTS.md](AGENTS.md): shared guidance for coding assistants.
 - [CLAUDE.md](CLAUDE.md): imports the shared guidance for Claude Code.
@@ -79,4 +79,4 @@ Initialized on 13 November 2026 from the participant guide pasted by a teammate,
 
 [Event website](https://2026.hackjunction.com/) | [Junction Platform](https://hackjunction.app/)
 
-Team-authored repository content is covered by the [MIT license](LICENSE). Partner data, source-derived examples, third-party dependencies and the organizer screenshot retain their own terms. See [Trace third-party notices](stoa-trace/THIRD_PARTY_NOTICES.md).
+Team-authored repository content is covered by the [MIT license](LICENSE). Partner data, source-derived examples, third-party dependencies and the organizer screenshot retain their own terms. See [Metria third-party notices](stoa-trace/THIRD_PARTY_NOTICES.md).

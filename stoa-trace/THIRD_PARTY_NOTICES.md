@@ -1,6 +1,6 @@
 # Third-party notices
 
-Team-authored Trace code is covered by `LICENSE` (MIT). Third-party datasets, source-derived questions/evidence, drawing imagery and dependencies retain their own licences. The MIT licence does not relicense those materials.
+Team-authored Metria code is covered by `LICENSE` (MIT). Third-party datasets, source-derived questions/evidence, drawing imagery and dependencies retain their own licences. The MIT licence does not relicense those materials.
 
 ## Challenge dataset and diagnostic artifacts
 
@@ -26,7 +26,7 @@ React, React DOM, Vite and their frontend dependencies retain their package lice
 
 ## BoardUI interface primitives
 
-`frontend/src/boardui/` adapts the free MIT-licensed Button and Divider components from [BoardUI](https://github.com/BoardUI/boardui), upstream commit `ec5c5eb3e29c2441be63b9422cd54f411ef23466`. Copyright (c) 2026 Mertcan Dundar Esmergul (BoardUI). The MIT licence is retained in `frontend/src/boardui/LICENSE`, and the adaptation is described in its README. No BoardUI Pro component source or paid template is included. Trace's session inference-cost section is original team code.
+`frontend/src/boardui/` adapts the free MIT-licensed Button and Divider components from [BoardUI](https://github.com/BoardUI/boardui), upstream commit `ec5c5eb3e29c2441be63b9422cd54f411ef23466`. Copyright (c) 2026 Mertcan Dundar Esmergul (BoardUI). The MIT licence is retained in `frontend/src/boardui/LICENSE`, and the adaptation is described in its README. No BoardUI Pro component source or paid template is included. Metria's session inference-cost section is original team code.
 
 ## Hosted model services and pricing facts
 

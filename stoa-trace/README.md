@@ -1,4 +1,6 @@
-# Trace
+# Metria
+
+Formerly Trace. The folder name `stoa-trace/`, the `trace-drawing-workspace` package and the `STOA_` environment prefix are unchanged.
 
 Construction drawing questions with inspectable source evidence. The workspace combines native PDF, DXF, IFC and semantic SVG extraction with a hosted vision fallback. It computes quantities from checked source values, displays their locations, and lets an engineer add missed objects, exclude candidates and save an auditable review.
 

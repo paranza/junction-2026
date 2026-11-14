@@ -1,4 +1,4 @@
-# A three-minute Trace demo
+# A three-minute Metria demo
 
 Open the workspace, choose a source, and ask a question. Every example below is computed from the drawing/model rather than a lookup of the supplied answer labels.
 

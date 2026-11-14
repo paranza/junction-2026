@@ -1,4 +1,4 @@
-# Trace dataset inventory
+# Metria dataset inventory
 
 Verified on 14 November 2026 against the local files and the running `/api/documents` endpoint.
 

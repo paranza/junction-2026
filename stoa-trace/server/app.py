@@ -36,7 +36,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title='Trace · Drawing evidence', version='0.1.0', lifespan=lifespan)
+app = FastAPI(title='Metria · Drawing evidence', version='0.1.0', lifespan=lifespan)
 
 
 @app.middleware('http')

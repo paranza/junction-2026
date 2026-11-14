@@ -1,4 +1,4 @@
-# Trace handoff
+# Metria handoff
 
 Snapshot: **14 November 2026**, Junction 2026, Stoa challenge. This file lets a teammate continue without the original chat. Start with `README.md`, then `DATA_INVENTORY.md`, `DEMO.md`, and the final benchmark reports.
 
@@ -8,9 +8,9 @@ This is an engineering handoff, not a transcript. The owner will share a native 
 
 The challenge is to answer natural-language questions about real construction drawings and BIM **accurately, with source evidence a human can check in seconds**. The team has four people and roughly 24 hours to deliver a convincing, competitive demo. Stoa specifically values approaches that remain useful as frontier models improve.
 
-Trace combines deterministic extraction and calculations with a hosted vision fallback. The lasting work is the source-object inventory, coordinate mapping, scope controls, reproducible quantities, and review trail. The product centres on a drawing viewer and inspectable evidence.
+Metria combines deterministic extraction and calculations with a hosted vision fallback. The lasting work is the source-object inventory, coordinate mapping, scope controls, reproducible quantities, and review trail. The product centres on a drawing viewer and inspectable evidence.
 
-The repository-root `INFRA/architecture_pipeline.md` is an earlier research proposal. Its CenterNet, SAM2, Gemini pipeline and unverified 99% figures do not describe the implemented Trace system or validated results. Use the code and benchmark reports in `stoa-trace/` for the current architecture and evidence.
+The repository-root `INFRA/architecture_pipeline.md` is an earlier research proposal. Its CenterNet, SAM2, Gemini pipeline and unverified 99% figures do not describe the implemented Metria system or validated results. Use the code and benchmark reports in `stoa-trace/` for the current architecture and evidence.
 
 ## Repository and working deployment
 
