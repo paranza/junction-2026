@@ -11,7 +11,7 @@
 | Existing Verda deployment | Existing VM and database retained. See `deployment-verification.md` for the last actual deployment. Scheduled merge checks are configured. |
 | Batch answers | `stoa-trace/ops/batch_answers.py` accepts label-free JSONL/CSV requests, uploads unmatched files and writes evidence-bearing answers. Native default; model requests require explicit opt-in and obey the runtime cap. |
 | Demo and submission | Script, runbook and form draft prepared. No encoded two-minute video or final submission is claimed. User redirected work to product quality. |
-| Unknown files and Gemini | New raster formats, explicit calibration, dimension calculations, visual recount and a selectable Gemini adapter. Gemini activation and real inference remain pending a private key. |
+| Unknown files and Gemini | New raster formats, explicit calibration, dimension calculations, visual recount and a selectable Gemini adapter. Gemini is live on the existing VM, with a successful production image request, cached follow-up and session-cost verification. Medium reasoning and a larger output budget prevent the initial high-reasoning truncation failure. Visual rechecks are optional pending measured benefit. Full development and independent-file results are recorded in the Gemini release reports when complete. |
 
 The quality target is 99.9% on questions supported by the input. Abstentions on answerable questions are failures. This target has not been achieved or established by the current tests. Reserved reference values never enter application prompts, extraction, caches or normalizer tables.
 
