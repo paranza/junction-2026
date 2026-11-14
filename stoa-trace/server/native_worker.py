@@ -43,6 +43,13 @@ def main():
         from .rendering import dxf_render
         pdf,transform=dxf_render(path)
         result={'pdf':base64.b64encode(pdf).decode(),'transform':transform}
+    elif operation=='ifc_stairs':
+        from .native_qa import _represented_stairs
+        result=_represented_stairs(request['scoped'],request['model_doc'],path)
+    elif operation=='ifc_rooms':
+        from .native_qa import _ifc_model,_room_quantity
+        model=_ifc_model(path)
+        result=[_room_quantity(obj,request['key'],model) for obj in request['objects']]
     elif operation=='legacy_render':
         from .extraction import render_page
         result={'png':base64.b64encode(render_page(path,request['page'],request['scale'])).decode()}

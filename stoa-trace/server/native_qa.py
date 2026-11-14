@@ -312,6 +312,12 @@ def _represented_stairs(scoped, model_doc, source_path):
     flights = [o for o in scoped if o.get('type') == 'IfcStairFlight']
     if not flights:
         return list(selected.values())
+    from . import native_worker
+    if not native_worker.in_worker():
+        try:
+            return native_worker.call('ifc_stairs',path=str(source_path.resolve()),scoped=scoped,model_doc=model_doc)
+        except ValueError:
+            return None
     model = _ifc_model(source_path)
     if model is None:
         return None
@@ -531,8 +537,15 @@ def _native_ifc(question, document, source_path, root):
             return None
         if selected:
             needs_geometry = any(not _finite_quantity(o, key) or o.get('properties', {}).get(key) == 0 for o in selected)
-            model = _ifc_model(source_path) if needs_geometry else None
-            selected = [_room_quantity(o, key, model) for o in selected]
+            from . import native_worker
+            if needs_geometry and not native_worker.in_worker():
+                try:
+                    selected = native_worker.call('ifc_rooms',path=str(source_path.resolve()),objects=selected,key=key)
+                except ValueError:
+                    return None
+            else:
+                model = _ifc_model(source_path) if needs_geometry else None
+                selected = [_room_quantity(o, key, model) for o in selected]
             if any(o is None for o in selected):
                 return None
             total = round(sum(o["properties"][key] for o in selected), 4)

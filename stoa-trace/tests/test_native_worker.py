@@ -21,6 +21,21 @@ class NativeWorkerTests(unittest.TestCase):
     results=list(pool.map(read,paths))
    for index,(text,size,source) in enumerate(results):
     self.assertIn(f'Room {index}: 12.5 m2',text);self.assertEqual(size,(480,320));self.assertEqual(source.resolve(),paths[index].resolve())
+ def test_concurrent_ifc_geometry_queries(self):
+  from tests.test_native_quality import IfcSourceGeometryQuality
+  from server.native_qa import answer_native
+  fixture=IfcSourceGeometryQuality()
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);paths=[]
+   for index in range(4):
+    model,context=fixture.model();fixture.room(model,context)
+    path=root/f'geometry-{index}.ifc';model.write(path);paths.append(path)
+   def read(path):
+    document=extraction.extract_document(path,root)
+    return answer_native('What is the net floor area of room Office in m²?',document,path,root)
+   with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    answers=list(pool.map(read,paths))
+   self.assertEqual([a['value'] for a in answers],[12.0]*4)
  def test_native_process_crash_is_a_file_error(self):
   with patch.object(native_worker.subprocess,'run',return_value=subprocess.CompletedProcess([], -11,stdout=b'')):
    with self.assertRaisesRegex(ValueError,'could not read'):
