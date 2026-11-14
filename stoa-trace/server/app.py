@@ -85,6 +85,14 @@ def documents(search: str = '', limit: int = 100, offset: int = 0, source: str |
     return store.list_documents(search[:300], max(1, min(limit, 1000)), max(0, offset), source)
 
 
+@app.get('/api/usage')
+def session_usage(session_id: uuid.UUID):
+    summary = store.session_usage(str(session_id))
+    return {'session_id': summary['session_id'], 'revision': summary['revision'],
+            'aggregate': summary['usage'], 'message_count': summary['message_count'],
+            'by_message': [{**item, 'request_id': item['message_id']} for item in summary['messages']]}
+
+
 @app.get('/api/documents/{doc_id}')
 def document_detail(doc_id: str):
     doc = known_document(doc_id)
@@ -202,6 +210,7 @@ class AskRequest(BaseModel):
     mode: str = 'auto'
     cross_check: bool = False
     verify_visual: bool = True
+    session_id: uuid.UUID | None = None
 
 
 class MeasurementRequest(BaseModel):
@@ -306,7 +315,7 @@ def _evidence(result, doc_id):
 
 def _solver_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'native_qa.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -515,6 +524,30 @@ def _compute_analysis(payload, question, data, source):
 
 @app.post('/api/ask')
 def ask(payload: AskRequest):
+    message_id = uuid.uuid4().hex
+    session_id = str(payload.session_id) if payload.session_id else None
+    store.record_message_usage(session_id, message_id, {}, payload.question, 'pending')
+    with llm.usage_scope(session_id=session_id, message_id=message_id):
+        try:
+            result = _ask_question(payload, message_id)
+        except HTTPException as exc:
+            usage = llm.usage_snapshot()
+            store.record_message_usage(session_id, message_id, usage, payload.question, 'error')
+            detail = exc.detail.get('message', 'The question could not be completed.') if isinstance(exc.detail, dict) else str(exc.detail)
+            raise HTTPException(exc.status_code, {'message': detail, 'usage': usage,
+                                'message_id': message_id, 'session_id': session_id}, headers=exc.headers) from None
+        except Exception as exc:
+            usage = llm.usage_snapshot()
+            store.record_message_usage(session_id, message_id, usage, payload.question, 'error')
+            store.record_event('question_error', {'message_id': message_id, 'error_type': type(exc).__name__})
+            raise HTTPException(500, {'message': 'The question could not be completed. Try again.',
+                                'usage': usage, 'message_id': message_id, 'session_id': session_id}) from None
+        store.record_message_usage(session_id, message_id, result['usage'], payload.question,
+                                   'completed', answer_id=result['id'])
+        return result
+
+
+def _ask_question(payload: AskRequest, answer_id: str):
     started = time.monotonic()
     doc = known_document(payload.document_id)
     if payload.mode not in {'auto', 'native', 'vision'} or payload.scope not in {'document', 'page'}:
@@ -539,17 +572,16 @@ def ask(payload: AskRequest):
                             'prompt': llm.PROMPT_REVISION, 'question': canonical_question,
                             'page': payload.page, 'scope': payload.scope, 'region': payload.region,
                             'mode': payload.mode, 'cross_check': payload.cross_check, 'verify_visual': payload.verify_visual})
-    with llm.usage_scope():
-        with store.key_lock('answer:' + key):
-            result = store.cached_analysis(key)
-            hit = result is not None
-            if hit:
-                result['cached_analysis_usage'] = result.get('usage', {})
-            else:
-                result = _compute_analysis(payload, question, data, source)
-                result['usage'] = llm.usage_snapshot()
-                store.save_analysis(key, 'answer', result)
-        result['usage'] = llm.usage_snapshot(cache_hit=hit)
+    with store.key_lock('answer:' + key):
+        result = store.cached_analysis(key)
+        hit = result is not None
+        if hit:
+            result['cached_analysis_usage'] = result.get('usage', {})
+        else:
+            result = _compute_analysis(payload, question, data, source)
+            result['usage'] = llm.usage_snapshot()
+            store.save_analysis(key, 'answer', result)
+    result['usage'] = llm.usage_snapshot(cache_hit=hit)
     result = _evidence(result, payload.document_id)
     if canonical_question != question:
         result['interpreted_question'] = canonical_question
@@ -575,7 +607,8 @@ def ask(payload: AskRequest):
     result['question'] = payload.question
     result['document_id'] = doc['id']
     result['document'] = doc
-    result['id'] = uuid.uuid4().hex
+    result['id'] = answer_id
+    result['message_id'] = answer_id
     result['duration_ms'] = round((time.monotonic() - started) * 1000)
     result['attribution'] = store.attribution(doc)
     result['request_context'] = {'document_id': doc['id'], 'scope': payload.scope, 'page': payload.page, 'region': payload.region}
