@@ -2,7 +2,19 @@
 
 The existing protected deployment is <https://stoa-86-38-182-146.sslip.io>. Credentials remain in private local configuration. No second VM was created.
 
-Current runtime source matches **`328d561`** from the measured-review-policy branch, deployed on 14 November 2026. All 16 server source hashes were compared with the VM. The integrated main commit is recorded in the final release record. Active inference uses **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap and 600-second transport timeout. Gemma 4 31B with minimal reasoning is available as an optional visual count recheck. Rechecks are off by default while their measured benefit remains unproven.
+Current runtime source matches **`70c1af2`**, deployed on 14 November 2026. All 18 server source files, including the question-template JSON, and both generated frontend assets match the VM. Subsequent commits record reports and documentation. The integrated main commit is recorded in the final release record. Active inference uses **Gemini 4 Carbon**, medium reasoning, high image resolution, a 24,000-token output cap and 600-second transport timeout. Gemma 4 31B with minimal reasoning is available as an optional visual count recheck. Rechecks are off by default while their measured benefit remains unproven.
+
+## Cloudinary evidence release verification
+
+- **280 backend tests**, **27 frontend tests** and production build passed for the integrated release.
+- The final 7,066-question native development regression retained **all 2,929 previously correct numeric answers**, with zero case outcome changes, source changes, request errors or model calls. [Paired aggregate](../../stoa-trace/ops/reports/gemini-release/native-regression.json).
+- Authentication, 924 documents, native IFC 211-door evidence, PNG preview, review/restoration, JSON export and restart persistence passed again.
+- A real Cloudinary crop from an existing Gemini answer returned a **320 × 336 PNG**, 5,880 bytes. Authenticated delivery and cached replay passed; unauthenticated access returned 401. The saved answer's count, evidence, source and review remained unchanged.
+- The live model-request ledger stayed at **17/1,000**. Cloudinary close-ups make zero model calls; their media quotas are separate from LLM inference estimates.
+- Backup before replacement: `/srv/stoa/backups/trace-before-cloudinary-evidence-20261114.sqlite3`. Retained previous image: `stoa-junction:before-cloudinary-evidence-20261114`. No uploads, answers, reviews, credentials or counters were reset.
+- The existing local `localhost:8791` workspace was updated while retaining its runtime and 252 existing answers. A real browser upload, Gemini answer, Cloudinary close-up, cached replay and mobile dialog check passed. The local runtime remains separate from the shared VM's ledger.
+
+[Deployment hashes and verification](../../stoa-trace/ops/reports/gemini-release/cloudinary-deployment.json), [actual browser crop](../assets/trace-cloudinary-closeup.jpg), [Cloudinary entry draft](cloudinary-entry-draft.md). The free Cloudinary workspace still requires the owner's private claim flow for permanence; no award form was submitted.
 
 ## Gemini and UI release verification
 

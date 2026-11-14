@@ -1,0 +1,93 @@
+{
+  "source_commit": "70c1af2",
+  "source_files_verified": 18,
+  "source_hashes": {
+    "server/__init__.py": "9fb4bc3056c051d527f006b820f70ecff9b9ae269a59a2ecc5426afcb9958490",
+    "server/app.py": "75a1b311120c69a99e125bb975bfee1c02cde15fae6db391560919bfb9cf2257",
+    "server/cloudinary_media.py": "63c46298eb30f9730036d22c88fbc3e99f7547eeefa70bb9830e3c1cae4568c1",
+    "server/config.py": "b4607187033388f027d921a65bb6992539ed6870c542610d8520ccb9f888d5da",
+    "server/costs.py": "30401703c22aeb4308de04526eb3f83475d234ccd8c25e53be3a72a7ae139c82",
+    "server/extraction.py": "5a42460e8fb690cafae55df1cf1505dbb035f864b2e6ea59fe0ffe9d06381a85",
+    "server/gemini_provider.py": "d777df636d41da822195e603943ea0b161eea0a852737b655007fff4cc73e582",
+    "server/inventory.py": "1e29aaf44eef9f3760eb0be5ac056c7290f875b67ad294b8d50d906ab2c577c5",
+    "server/llm.py": "da0e2f9ce31f448f37d31c95060ee0be95239b4a40ac89672ecd16c4ed8a8d3c",
+    "server/measurements.py": "d1df1f24bbb0dcec3affa3f4335fcfd44c6a5296e69972e26ba96cf480d6ba21",
+    "server/native_qa.py": "d82671c1f303ec13a72674bc4794998a781d62a5f7fe08c48631a73d99530f63",
+    "server/normalize.py": "e46aabf6b2d047b75cbe40aa9cd3c27c100d2f8be7463a226e4f147d2fb5438b",
+    "server/rendering.py": "a7ba33c43a001b81b19be7f9d77785bc3e57047ecbfaa4f29c01f51e7dfbc45d",
+    "server/selection.py": "27c9973a47d058c95a0aa52570c3262dd72886058baae5fc9e9f877d9c08d50c",
+    "server/store.py": "3737842e3aff9a0877190acc3bbc443cafb610b6735cfa22af664a135240eed7",
+    "server/verification.py": "1e8b5a605a5c4a247c6e742c46820bc490f45644fff8585a2e35f30eae41d3f4",
+    "server/visual_audit.py": "e31916b8b7268df94328387c2158005e461272d2f90db9c617682e18b0632c29",
+    "server/question_templates.json": "b3063f8d075c7f073fa0b2306ebe80a3ae1d1e903f6d90f54c1e655aae9834c4"
+  },
+  "frontend_assets_match": [
+    "/assets/index-Bo94MiFI.js",
+    "/assets/index-BZxau33G.css"
+  ],
+  "recorded_solver_revision": "784854678cca4d0d090b",
+  "runtime_signatures": {
+    "provider_signature": "gemini:gemini-4-carbon:gemini-interactions-v3:2026-05-20:image_resolution=high:thinking_level=medium:max_output_tokens=24000:timeout_seconds=600",
+    "inventory_signature": {
+      "revision": "located-inventory-v4",
+      "small_image_crops": false
+    },
+    "audit_signature": {
+      "revision": "visual-count-audit-v4",
+      "provider": "gemini",
+      "model": "gemma-4-31b-it",
+      "model_signature": "gemma-interactions-v2:2026-05-20:image_resolution=high:thinking_level=minimal:max_output_tokens=24000:timeout_seconds=600"
+    }
+  },
+  "model_requests": 17,
+  "model_request_ceiling": 1000,
+  "backend_tests": 280,
+  "frontend_tests": 27,
+  "frontend_build": "passed",
+  "remote_verification": {
+    "health": {
+      "documents": 924,
+      "model": "gemini-4-carbon",
+      "model_available": true,
+      "provider": "gemini",
+      "status": "ok"
+    },
+    "model_calls": 0,
+    "native_answer": {
+      "evidence_count": 211,
+      "id": "72fc3c70808c4f518727761d641c34fd",
+      "method": "native_ifc_entity_count",
+      "value": 211
+    },
+    "png_preview": "ok",
+    "restart_persistence": "ok",
+    "review_and_json_export": "ok",
+    "status": "ok",
+    "unauthenticated_status": 401,
+    "url": "https://stoa-86-38-182-146.sslip.io"
+  },
+  "cloudinary_media_proof": {
+    "status": "ok",
+    "source_commit": "70c1af2",
+    "provider": "cloudinary",
+    "width": 320,
+    "height": 336,
+    "bytes": 5880,
+    "png_sha256": "e01526200d46db1e2198716bd25749fcb1dbd0c585a4bc4e269db7ce686f824c",
+    "authenticated_workspace_delivery": true,
+    "unauthenticated_status": 401,
+    "repeat_cache_hit": true,
+    "original_answer_unchanged": true,
+    "source_count": 4,
+    "extra_model_calls": 0,
+    "source_kind": "Actual Gemini answer on procedural development PNG",
+    "source_region": [
+      0.3933333333333333,
+      0.183,
+      0.46,
+      0.267
+    ]
+  },
+  "database_backup": "/srv/stoa/backups/trace-before-cloudinary-evidence-20261114.sqlite3",
+  "previous_image": "stoa-junction:before-cloudinary-evidence-20261114"
+}

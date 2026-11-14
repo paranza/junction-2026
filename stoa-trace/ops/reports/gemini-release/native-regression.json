@@ -1,0 +1,71 @@
+{
+  "code_revision": "70c1af2",
+  "recorded_solver_revision": "784854678cca4d0d090b",
+  "manifest_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+  "raw_report_sha256": "970496f235dd30ae58694e866d16ca804235be552ad07790ee0613a49539c865",
+  "summary": {
+    "cases": 7066,
+    "answered": 3026,
+    "coverage": 0.42824794791961507,
+    "numeric_cases": 6801,
+    "numeric_answered": 3023,
+    "numeric_correct": 2929,
+    "accuracy_all": 0.4306719600058815,
+    "accuracy_answered": 0.968905061197486,
+    "accuracy_definition": "Numeric cases only; all includes unanswered and failed cases as incorrect. Free text requires manual review.",
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "review_flagged_answers": 0,
+    "errors": 0,
+    "methods": {
+      "native": 4040,
+      "native_ifc_quantity": 826,
+      "native_ifc_entity_count": 137,
+      "native_pdf_schedule_area": 7,
+      "native_cad_area_annotations": 568,
+      "native_cad_symbol_inventory": 620,
+      "native_cad_room_labels": 742,
+      "native_pdf_schedule_rows": 3,
+      "native_pdf_schedule_row": 2,
+      "native_cad_unit_outlines": 120,
+      "native_ifc_project_records": 1
+    },
+    "statuses": {
+      "insufficient_evidence": 4040,
+      "supported": 3026
+    },
+    "usage": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_hits": 3376,
+      "cost_estimate_usd": 0.0,
+      "cost_note": "Current requests only. Unknown rates/usage remain unknown; cached extraction costs are not charged twice."
+    },
+    "latency_ms": {
+      "requests": 7066,
+      "total": 124222.64,
+      "p50": 7.62,
+      "p95": 51.36
+    },
+    "evidence": {
+      "items": 25771,
+      "answers_with_evidence": 3008,
+      "answers_with_geometry": 2222,
+      "answers_with_invalid_geometry": 0,
+      "items_without_geometry": 9976,
+      "human_verified_citation_correctness": null,
+      "note": "Only normalized geometry syntax and source-ID structure were checked; reference truth and detection completeness were not verified."
+    }
+  },
+  "paired_with_previous": {
+    "paired_cases": 7066,
+    "previous_correct": 2929,
+    "previous_correct_retained": 2929,
+    "correct_to_wrong": 0,
+    "correct_to_unanswered": 0,
+    "value_or_status_changes": 0,
+    "source_identity_changes": 0
+  },
+  "scope": "Development preview only. Separate 924-question preview reserve not inspected or scored. Native mode uses no hosted model."
+}
