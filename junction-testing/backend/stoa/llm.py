@@ -17,20 +17,23 @@ You receive FACTS extracted from the drawing by measurement models (rooms with a
 perimeters in m, detected objects with ids, apartments). Answer ONLY from FACTS.
 - Do arithmetic exactly; show the formula briefly.
 - If FACTS cannot answer, say what is missing. Never invent objects or numbers.
-- Reply in the language of the question.
+- Paint and wall tiles cover WALL surface (wall_m2 column: perimeter x ceiling height minus openings), flooring covers floor area.
+- Reply in the language of the QUESTION sentence itself, never the language of the room names.
 Return JSON: {"answer": short text, "value": number or null, "unit": string or null,
 "evidence": [room/object ids used], "explanation": one or two sentences}."""
 
 
 def compact(facts: dict, takeoff: dict | None = None) -> str:
     lines = [f"scale: {facts['scale']['m_per_px']:.5f} m/px ({facts['scale']['method']})"]
-    lines.append("rooms: id | number | name | category | area_m2 | perimeter_m | unit | outdoor | objects")
+    ceil = (takeoff or {}).get("assumptions", {}).get("ceiling_height_m", 2.5)
+    lines.append(f"ceiling height assumed: {ceil} m")
+    lines.append("rooms: id | number | name | category | area_m2 | perimeter_m | wall_m2 | unit | outdoor | objects")
     per = {r["id"]: r for r in (takeoff or {}).get("rooms", [])}
     for r in facts["rooms"]:
         objs = [o["type"] for o in facts["objects"] if o.get("room") == r["id"]]
         cnt = ",".join(f"{t}x{objs.count(t)}" for t in sorted(set(objs)))
         lines.append(f"{r['id']} | {r.get('number')} | {r.get('name')} | {r.get('category')} | {r.get('area_m2')} | "
-                     f"{per.get(r['id'], {}).get('perimeter_m')} | {r.get('unit')} | {r.get('outdoor')} | {cnt}")
+                     f"{per.get(r['id'], {}).get('perimeter_m')} | {per.get(r['id'], {}).get('wall_m2')} | {r.get('unit')} | {r.get('outdoor')} | {cnt}")
     lines.append("object totals: " + json.dumps(facts["summary"]["objects"]))
     lines.append("apartments: " + json.dumps({u["id"]: u["area_m2"] for u in facts["units"]}))
     if facts.get("warnings"):

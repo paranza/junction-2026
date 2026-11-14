@@ -102,13 +102,6 @@ def analyze_dxf(path):
         x0, y0, x1, y1 = f["bbox"]
         q = ip(np.array([[x0, y0], [x1, y1]]))
         cv2.rectangle(img, tuple(q[0]), tuple(q[1]), (70, 70, 70), 1)
-    for t in plan.texts:
-        if t["layer"] == "ROOM_TEXT":
-            p = T(t["xy"]); txt = t["text"].encode("ascii", "replace").decode()
-            size = 0.32
-            (tw, th), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, size, 1)
-            cv2.putText(img, txt, (int(p[0] - tw / 2), int(p[1] + th / 2)), cv2.FONT_HERSHEY_SIMPLEX, size, (30, 30, 30), 1, cv2.LINE_AA)
-
     rooms = []
     for i, r in enumerate(plan.rooms):
         poly = T(r["polygon"]) if r["polygon"] is not None else None
@@ -463,6 +456,18 @@ def _assign_rooms(facts):
     polys = [(r["id"], np.array(r["polygon"], np.float32)) for r in facts["rooms"] if len(r["polygon"]) >= 3]
     for o in facts["objects"]:
         o["room"] = next((rid for rid, p in polys if cv2.pointPolygonTest(p, (float(o["x"]), float(o["y"])), False) >= 0), None)
+    for r in facts["rooms"]:  # unnamed rooms: infer the type from what is inside
+        if r.get("name") or r.get("category") not in ("shaft", "unlabelled", "room", "other"):
+            continue
+        kinds = {o["type"] for o in facts["objects"] if o.get("room") == r["id"]}
+        if kinds & {"bathtub", "shower"}:
+            r["category"] = "bathroom"
+        elif "wc" in kinds:
+            r["category"] = "wc_room"
+        elif kinds & {"stove", "kitchen"}:
+            r["category"] = "kitchen"
+        elif r.get("shaft"):
+            r["category"] = "shaft"
 
 
 def load_gray(path):

@@ -59,8 +59,14 @@ def _res(value, unit, explanation, evidence):
     return {"value": value, "unit": unit, "explanation": explanation, "evidence": evidence}
 
 
+# Questions that need extra arithmetic or assumptions go to the LLM over facts.
+FREEFORM = r"\b(litres?|liters?|paint\w*|costs?|price|eur|order|need|tiles?|coats?|bags?|kg|how long|compare|which room|largest|smallest|biggest|percent)\b|€|%|\bper (m|litre|liter|square)"
+
+
 def answer(question: str, facts: dict):
     q = norm(question)
+    if re.search(FREEFORM, q):
+        return None
     rooms = facts.get("rooms", [])
     objs = facts.get("objects", [])
     name = quoted_name(question)

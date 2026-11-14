@@ -21,7 +21,7 @@ let F = null;                 // current facts
 let view = { s: 1, x: 0, y: 0 };
 let layers = { rooms: true, labels: true, walls: false, units: true };
 let objOn = {};
-let history = [];
+let chatHistory = [];
 
 // ------------------------------------------------------------- status + samples
 fetch("/api/health").then((r) => r.json()).then((h) => {
@@ -77,8 +77,9 @@ async function upload(file) {
 
 // ------------------------------------------------------------- render
 function show(facts) {
+  window.history.replaceState(null, "", "?id=" + facts.id);
   F = facts;
-  history = [];
+  chatHistory = [];
   $("#chat").innerHTML = "";
   objOn = Object.fromEntries(Object.keys(facts.summary.objects).map((k) => [k, true]));
   const img = $("#img");
@@ -391,7 +392,7 @@ async function ask(q) {
   pending.className = "msg a"; pending.textContent = "…";
   chat.appendChild(pending); chat.scrollTop = chat.scrollHeight;
   try {
-    const r = await fetch(`/api/analysis/${F.id}/ask`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q, history }) });
+    const r = await fetch(`/api/analysis/${F.id}/ask`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q, history: chatHistory }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.detail);
     const det = (j.method || "").startsWith("deterministic");
@@ -401,9 +402,17 @@ async function ask(q) {
       <span class="meth ${det ? "det" : ""}">${esc(j.method)}${j.tokens && j.tokens.in ? ` · ${j.tokens.in}+${j.tokens.out} tokens` : ""}</span>`;
     const evl = pending.querySelector(".ev");
     if (evl) { evl.onclick = () => { highlight(ev); focusOn(ev); }; highlight(ev); }
-    history.push({ q, a: j.answer });
+    chatHistory.push({ q, a: j.answer });
   } catch (err) {
     pending.textContent = "Error: " + err.message;
   }
   chat.scrollTop = chat.scrollHeight;
 }
+
+// ------------------------------------------------------------- shareable links: /?id=<analysis id>
+(async () => {
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) return;
+  const r = await fetch(`/api/analysis/${encodeURIComponent(id)}`);
+  if (r.ok) { $("#drop").classList.add("hidden"); show(await r.json()); }
+})();

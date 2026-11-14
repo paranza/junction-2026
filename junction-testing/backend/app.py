@@ -35,6 +35,15 @@ except ImportError:
 from stoa import llm, pipeline, questions, takeoff  # noqa: E402
 
 app = FastAPI(title="Blueprint analyzer")
+PIPELINE_VERSION = "3"  # bump when analysis output changes; part of the cache key
+
+
+def _weights_stamp() -> str:
+    """Cache key part: retrained weights must not reuse old analyses."""
+    w = os.path.join(HERE, "weights")
+    return ",".join(f"{f}:{int(os.path.getmtime(os.path.join(w, f)))}" for f in sorted(os.listdir(w))) if os.path.isdir(w) else ""
+
+
 ALLOWED = {".png", ".jpg", ".jpeg", ".pdf", ".dxf", ".bmp", ".tif", ".tiff", ".webp"}
 MAX_BYTES = 40 * 1024 * 1024
 
@@ -61,7 +70,7 @@ async def analyze(file: UploadFile = File(...)):
     data = await file.read()
     if len(data) > MAX_BYTES:
         raise HTTPException(413, "file too large (40 MB max)")
-    aid = hashlib.sha1(data).hexdigest()[:16]
+    aid = hashlib.sha1(data + PIPELINE_VERSION.encode() + _weights_stamp().encode()).hexdigest()[:16]
     d = os.path.join(RUNTIME, aid)
     if os.path.exists(os.path.join(d, "facts.json")):  # same file analysed before: free
         facts = _load(aid)
