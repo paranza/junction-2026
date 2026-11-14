@@ -2,6 +2,7 @@
 
 Research for Junction 2026, Stoa's Make Blueprints Talk challenge. All times in the current report are explicit; Europe/Helsinki is UTC+02:00 during this event.
 
+- [Differentiation: what is taken, what is open](stoa-differentiation.md): feature counts across teams, accuracy by source, open gaps and recommended plan.
 - [Current competitor assessment](stoa-competitors.md): actual approaches, overnight changes, benchmark caveats and implications for our Trace project.
 - [Original research and comparison](initial-research.md): archived first-pass findings and the improvement plan. Several statements were superseded; use the current assessment for decisions.
 - [Current machine-readable snapshot](stoa-competitor-snapshot.json): public repository names, default branches, pinned HEADs, check times and repeatable discovery queries.
