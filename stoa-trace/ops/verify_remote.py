@@ -30,9 +30,18 @@ def main():
     except HealthError as exc:
         assert exc.http_status==401
         report['unauthenticated_status']=401
-    health=api('/api/health')
+    # A rebuild can finish before Uvicorn has indexed the existing library.
+    # Poll only the read-only health route; never repeat an answer/review write.
+    for attempt in range(20):
+        try:
+            health=api('/api/health')
+            break
+        except HealthError as exc:
+            if attempt == 19 or exc.http_status not in (None, 502, 503, 504):
+                raise
+            time.sleep(1)
     assert health['status']=='ok' and health['documents']>=913
-    report['health']={k:health[k] for k in ('status','documents','model_available')}
+    report['health']={k:health[k] for k in ('status','documents','model_available','provider','model') if k in health}
     if args.exercise:
         documents=api('/api/documents?search=bsc-esplanades_1807-ep-ar-v18.ifc&limit=10')['documents']
         doc=next(x for x in documents if x['name']=='bsc-esplanades_1807-ep-ar-v18.ifc')
