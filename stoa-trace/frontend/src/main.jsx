@@ -1148,8 +1148,7 @@ function App() {
               type="file"
               multiple
               accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc"
-              className="sr-only"
-              tabIndex={-1}
+              hidden
               onChange={event => uploadFiles(event.target.files)}
             />
       <header className="app-header">
