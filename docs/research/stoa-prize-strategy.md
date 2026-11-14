@@ -4,6 +4,14 @@ Evidence checked on **14 November 2026, approximately 11:30 Europe/Helsinki**. T
 
 The existing project is Trace, entered for Stoa's **Make Blueprints Talk**. At the observation time, about 22.5 hours remained until the recorded Sunday 15 November, 10:00 Helsinki final deadline. Check the live submission form and organizer notices before submitting.
 
+## Overall main prize and eligibility
+
+The authenticated [Junction Guide](https://hackjunction.app/participate/45/guide), under Junction Rules, confirms a **EUR 10,000 overall main prize**. It permits submitting one project to multiple challenges and describes challenge prizes alongside the overall main prize. This supports entering Stoa and relevant technical challenges with the same project, while the detailed conditions for receiving several technical awards remain unresolved.
+
+The overall winner is selected through live peer review to choose five finalists, followed by a stage pitch and grand-jury decision. All teammates must participate in the required live peer review for overall-prize eligibility. This makes a clear, reliable and visibly useful core product more important than collecting additional service integrations.
+
+The Guide requires event-written project code, apart from open-source libraries, a team of one to four, at least one selected challenge and organizer access to source under the stated MIT requirement. Source history and dependency notices must support those conditions. This document does not infer a violation from a pre-event documentation or configuration commit.
+
 ## Main challenge criteria
 
 The [authenticated Stoa brief](https://hackjunction.app/participate/45/challenges/335) assigns **25% each** to:
@@ -25,6 +33,7 @@ Amounts below preserve the original currency. Cash, credits, vouchers, hardware 
 
 | Challenge | Cash awards | Additional reward or qualification | Fit for Trace |
 | --- | --- | --- | --- |
+| [Overall Junction main prize](https://hackjunction.app/participate/45/guide) | EUR 10,000 | Peer-review finalist selection followed by grand-jury judging; required team participation. | Highest cash stake. A strong Stoa product can also compete here. |
 | [Stoa: Make Blueprints Talk](https://hackjunction.app/participate/45/challenges/335) | First EUR 1,000; second EUR 750; third EUR 250 | First also lists a work-trial opportunity, which is not counted as cash. | Main entry. Focus on measured quantities and visible evidence. |
 | [Best Use of Gemini API](https://hackjunction.app/participate/45/tech-challenges/48) | First EUR 4,000; second EUR 2,000; third EUR 1,000 | First also lists USD 1,000 Google Cloud credits per member. Meaningful, innovative and technically impressive Gemini use; open to any industry. | Highest immediate cash priority. Real visual blueprint recognition and source-grounded answers can serve both this and Stoa. |
 | [Best Use of Gemma](https://hackjunction.app/participate/45/tech-challenges/47) | Three selected teams receive EUR 1,000 each, without ranked placements | Innovative and impactful use of Google's Gemma open models. | Strong conditional add-on if a genuine Gemma component improves extraction, audit or operating cost. |
@@ -48,13 +57,13 @@ Workshop attendance, an available API key or a partner logo does not establish c
 
 ## Recommended implementation order
 
-### 1. Make Stoa plus Gemini the core entry
+### 1. Protect the overall main prize with a strong Stoa plus Gemini core entry
 
 Finish real Gemini access verification and the raster evaluation before choosing a release model. Run development comparisons without reference answers entering inference. Record exact-count accuracy, measurement accuracy with the stated tolerance, unanswered answerable questions, object localization, latency, tokens and model calls separately. Freeze the chosen model and settings before releasing the reserved external evaluation.
 
 Use one focused demo flow: upload a construction drawing, ask a door or room quantity question, inspect numbered source evidence and calculation, correct a candidate when necessary, and retain the original result and review history. A second quantity question can reuse the drawing inventory and show the saved inference cost. Every displayed success claim should correspond to an observed result.
 
-This directly addresses all four Stoa criteria while showing substantive Gemini use. The largest listed add-on cash prize is Gemini; weak additional integrations should not displace this work.
+This directly addresses all four Stoa criteria while showing substantive Gemini use. For the overall main prize, make the construction engineer's problem, saved work and visible result understandable to a general judge in one short demonstration. The EUR 10,000 overall prize is the highest single cash stake verified here, and Gemini is the largest listed add-on cash prize. Additional integrations should improve that same product and preserve the time needed for a reliable demo and pitch.
 
 ### 2. Add Gemma only in a useful, measured role
 
@@ -88,15 +97,21 @@ Permission to enter multiple categories does **not** establish all of the follow
 - Whether a team can receive multiple cash awards for the same submitted project.
 - Whether a particular sponsor excludes another sponsor's entry or requires a separate submission artifact.
 - Whether the observed closed selection status concerns preliminary main-challenge choice or final technical entries.
-- The overall grand-prize cash amount or any restrictions on combining it with partner prizes.
+- Any restrictions on receiving several technical awards together with a main-challenge or overall prize.
 
-The public website advertises EUR 100,000 across the weekend and still states that a full prize breakdown is forthcoming. That aggregate is not a team-level cash award. The final form, current written rules or an organizer response must resolve the unknowns above. No organizer message, additional challenge selection or separate form submission has been made as part of this research.
+The public website advertises EUR 100,000 across the weekend and still states that a full prize breakdown is forthcoming. That aggregate is not a team-level cash award. The authenticated Guide separately confirms the EUR 10,000 main prize. The final form, individual award terms, current written rules or an organizer response must resolve the remaining selection and award-combination questions. No organizer message, additional challenge selection or separate form submission has been made as part of this research.
 
-Purely as arithmetic, the first awards for Stoa, Gemini, Gemma, Aiven and Context total **EUR 7,750**, with Modal adding **USD 2,000**. Stoa plus Gemini alone totals EUR 5,000; adding Gemma makes EUR 6,000. These are conditional combinations of listed awards, **not confirmed stackable totals, winning probabilities or expected payouts**. Keep Google Cloud, Codex, Modal and Verda credits, gift cards, hardware and work opportunities outside those cash sums.
+Purely as arithmetic, the first awards for Stoa, Gemini, Gemma, Aiven and Context total **EUR 7,750**, with Modal adding **USD 2,000**. Stoa plus Gemini alone totals EUR 5,000; adding Gemma makes EUR 6,000. Including the EUR 10,000 overall main prize would make the full arithmetic EUR 17,750 plus USD 2,000. The overall main prize plus Stoa and Gemini totals EUR 15,000 arithmetically; adding Gemma makes EUR 16,000. These are conditional combinations of listed awards, **not confirmed unrestricted stackable totals, winning probabilities or expected payouts**. Keep Google Cloud, Codex, Modal and Verda credits, gift cards, hardware and work opportunities outside those cash sums.
+
+## Submission status requiring clarification
+
+A read-only inspection of the actual project submission form on 14 November showed a **Closed** status with a negative countdown, while the project remained **Draft** and only its name was populated. The punchline, description, challenge, demo, source and video fields were blank. The Guide still states a Sunday 15 November, 10:00 submission deadline and requires FINAL status; it also permits edits before that deadline.
+
+These observations are inconsistent enough to require current platform or organizer clarification. They do not by themselves prove that the team is disqualified or that the official deadline has passed. Confirm that the team can edit and finalize the intended submission before relying on the countdown or leaving the access question until Sunday. This research did not edit or submit the form.
 
 ## Submission and judging work that protects eligibility
 
-The supplied participant guide, summarized in [event notes](../event.md) and the [submission checklist](../submission.md), requires the following to be verified against the live form:
+The authenticated [Junction Guide](https://hackjunction.app/participate/45/guide), together with the supplied guide summaries in [event notes](../event.md) and the [submission checklist](../submission.md), requires the following to be verified against the live form:
 
 - All four teammates joined the correct team and required challenge selections are saved.
 - A working demo and source link are accessible to organizers. The currently protected deployment needs an actual organizer-access plan.
@@ -109,7 +124,7 @@ Prepared scripts and drafts are not uploaded artifacts or submitted entries. The
 
 ## Evidence scope
 
-- Authenticated primary briefs: the individual Junction links in the tables and the Stoa criteria link, observed in Chrome on 14 November 2026.
+- Authenticated primary sources: the individual Junction links in the tables, the Stoa criteria link and [Junction Guide](https://hackjunction.app/participate/45/guide), observed in Chrome on 14 November 2026. The actual draft submission form was inspected read-only for status and field completion.
 - Public primary source: [Junction 2026 event website](https://2026.hackjunction.com/) for co-entry context, schedule and judging structure.
 - Public organizer announcement: [Junction's LinkedIn feed](https://uk.linkedin.com/company/hackjunction) confirms the Aiven best-use-platform challenge and Context.dev's open technical challenge. Its changing feed is supporting evidence, not a replacement for the individual briefs.
 - Public technical primary sources: Google's hosted Gemma guide and Interactions API reference linked above. Actual service success still requires testing.
