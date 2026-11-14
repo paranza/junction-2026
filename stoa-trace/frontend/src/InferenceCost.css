@@ -1,25 +1,24 @@
-.session-inference { flex-shrink: 0; font-size: 13px; }
-.session-cost-trigger { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 7px 10px; border-radius: 6px; color: var(--muted); background: transparent; font-size: 13px; }
-.session-cost-trigger:hover { color: var(--ink); background: #f0f5f2; }
-.session-cost-trigger strong { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font: 500 13px/1.5 var(--font-mono); }
-.session-inference-popover { position: fixed; inset: 72px 24px auto auto; width: min(370px, calc(100vw - 24px)); max-height: calc(100dvh - 96px); margin: 0; overflow-y: auto; padding: 20px; border: 1px solid #bfccc5; border-radius: 9px; background: #fff; color: var(--ink); font-size: 13px; }
+.session-inference { flex-shrink: 0; font-size: 12px; }
+.session-cost-trigger { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 8px; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; }
+.session-cost-trigger:hover { color: var(--ink); background: var(--ui-surface-hover); }
+.session-cost-trigger strong { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font: 500 12px/1.5 var(--font-mono); }
+.session-inference-popover { position: fixed; inset: calc(var(--ui-header-height, 54px) + 8px) 12px auto auto; width: min(370px, calc(100vw - 24px)); max-height: calc(100dvh - 86px); margin: 0; overflow-y: auto; padding: 18px; border: 1px solid var(--ui-border-hover); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 13px; }
 .session-inference-popover::backdrop { background: transparent; }
-.session-inference-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 14px; font-weight: 600; }
-.session-inference-heading strong { font: 500 15px/1.5 var(--font-mono); text-align: right; overflow-wrap: anywhere; }
+.session-inference-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; font-size: 14px; font-weight: 600; }
+.session-inference-heading strong { font: 500 14px/1.5 var(--font-mono); text-align: right; overflow-wrap: anywhere; }
 .session-inference-metrics { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.session-inference-popover > p { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
-.session-message-details { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
-.session-message-details h3 { margin: 0 0 12px; font-size: 13px; font-weight: 500; }
+.session-inference-popover > p { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.session-message-details { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.session-message-details h3 { margin: 0 0 10px; font-size: 13px; font-weight: 500; }
 .session-message-details ol { padding: 0; margin: 0; list-style: none; }
-.session-message-details li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.session-message-details li { padding: 10px 0; border-bottom: 1px solid var(--line); }
 .session-message-details li:last-child { padding-bottom: 0; border: 0; }
 .session-message-details li > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.6; }
 .session-message-details li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-top: 6px; font-size: 12px; }
 .session-message-details li strong { font: 500 12px/1.6 var(--font-mono); }
 .session-message-details li small, .session-message-details > p { color: var(--muted); font-size: 12px; }
-.message-inference-cost { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 10px; margin: 12px 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.message-inference-cost { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 10px; margin: 10px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .message-inference-cost strong { color: var(--muted); font: 400 12px/1.6 var(--font-mono); overflow-wrap: anywhere; }
-.history-cost { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
-@media (max-width: 900px) { .session-inference-popover { top: 68px; right: 12px; } }
-@media (max-width: 540px) { .session-cost-trigger { gap: 7px; padding-inline: 6px; font-size: 12px; } .session-cost-trigger strong { max-width: 80px; font-size: 12px; } }
-@media (pointer: coarse) { .session-cost-trigger { min-height: 44px; } }
+.history-cost { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+@media (max-width: 540px) { .session-cost-trigger { gap: 5px; padding-inline: 5px; font-size: 11px; } .session-cost-trigger strong { max-width: 80px; font-size: 11px; } }
+@media (pointer: coarse) { .session-cost-trigger { min-height: 40px; } }

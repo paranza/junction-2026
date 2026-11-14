@@ -1,42 +1,22 @@
-.measurement-panel {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  z-index: 6;
-  width: min(340px, calc(100vw - 36px));
-  max-height: min(68vh, 620px);
-  overflow: auto;
-  color: var(--ink, #202938);
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #d4dce6);
-  border-radius: 10px;
-  box-shadow: 0 6px 24px #172b4d14;
-  font-size: 12px;
-}
-.measurement-panel > summary {
-  padding: 12px 14px;
-  cursor: pointer;
-  font-weight: 650;
-}
-.measurement-panel > form { display: flex; flex-direction: column; gap: 12px; padding: 0 14px 14px; }
-.measurement-panel p { margin: 0; line-height: 1.5; }
-.measurement-panel fieldset { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 9px 0 0; border: 0; border-top: 1px solid var(--border, #d4dce6); }
-.measurement-panel legend { padding: 0 5px 0 0; font-weight: 650; }
+.measurement-panel { position: absolute; left: 12px; bottom: 12px; z-index: 21; width: max-content; max-width: calc(100% - 24px); max-height: min(68dvh, calc(100% - 24px)); overflow: auto; color: var(--ink); background: var(--surface); border: 1px solid var(--ui-border-hover); border-radius: 8px; font-size: 12px; }
+.measurement-panel[open] { width: min(350px, calc(100% - 24px)); }
+.measurement-panel > summary { padding: 10px 12px; cursor: pointer; font-weight: 500; }
+.measurement-panel > form { display: flex; flex-direction: column; gap: 12px; padding: 0 12px 12px; }
+.measurement-panel p { margin: 0; line-height: 1.6; }
+.measurement-panel fieldset { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 9px 0 0; border: 0; border-top: 1px solid var(--line); }
+.measurement-panel legend { padding: 0 5px 0 0; font-weight: 600; }
 .measurement-panel label { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .measurement-value-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px; gap: 8px; }
-.measurement-panel input, .measurement-panel select, .measurement-panel textarea {
-  width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; color: inherit;
-  background: #fff; border: 1px solid var(--border, #cbd5e1); border-radius: 6px; font: inherit;
-}
-.measurement-panel input::placeholder, .measurement-panel textarea::placeholder { color: #586879; opacity: 1; }
+.measurement-panel input, .measurement-panel select, .measurement-panel textarea { width: 100%; min-width: 0; box-sizing: border-box; min-height: 34px; padding: 8px; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.measurement-panel input::placeholder, .measurement-panel textarea::placeholder { color: var(--muted); opacity: 1; }
 .measurement-panel textarea { resize: vertical; }
 .measurement-panel .button { min-height: 34px; justify-content: center; }
 .measurement-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
-.measurement-panel .text-button { align-self: flex-start; min-height: 28px; }
-.measurement-hint, .measurement-coordinate-entry p { color: #4c5c6e; font-size: 11px; }
-.measurement-coordinate-entry { border-top: 1px solid var(--border, #d4dce6); padding-top: 8px; }
+.measurement-panel .text-button { align-self: flex-start; min-height: 32px; }
+.measurement-hint, .measurement-coordinate-entry p { color: var(--muted); font-size: 12px; }
+.measurement-coordinate-entry { border-top: 1px solid var(--line); padding-top: 8px; }
 .measurement-coordinate-entry summary { cursor: pointer; margin-bottom: 8px; }
 .measurement-coordinate-entry label { margin-top: 8px; }
 .measurement-error { color: #9b2828; padding: 8px; background: #fff3f3; border-radius: 6px; }
-.measurement-panel :focus-visible { outline: 2px solid #3158b9; outline-offset: 2px; }
-@media (max-width: 600px) { .measurement-panel { max-height: 58vh; } }
+.measurement-panel :focus-visible { outline: 2px solid var(--ui-fg); outline-offset: 2px; }
+@media (max-width: 600px) { .measurement-panel { left: 10px; bottom: 10px; max-width: calc(100% - 20px); max-height: calc(100% - 20px); } .measurement-panel input, .measurement-panel select, .measurement-panel textarea { font-size: 16px; } }
