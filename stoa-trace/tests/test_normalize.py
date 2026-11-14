@@ -73,6 +73,14 @@ class TranslationSafety(unittest.TestCase):
     def assert_rejected(self, original, translated):
         self.assertFalse(translation_preserves_constraints(original, translated), (original, translated))
 
+    def test_low_opening_quote_closes_with_either_high_quote(self):
+        # Polish and Romanian close „ with ”; German closes it with “.
+        original = 'Care este numărul de ferestre din modelul „BIM-Speed Barlad block (A + MEP)”?'
+        self.assert_preserved(original, 'What is the number of windows in the "BIM-Speed Barlad block (A + MEP)" model?')
+        self.assert_rejected(original, 'What is the number of windows in the "BIM-Speed Barlad block" model?')
+        self.assert_preserved('Ile drzwi pokazano na rzucie kondygnacji „-1”?', 'How many doors are shown on the floor plan of "-1"?')
+        self.assert_preserved('Wie viele Räume „Bad“ gibt es?', 'How many rooms "Bad" are there?')
+
     def test_known_multilingual_templates_preserve_constraints(self):
         for original, translated in CASES:
             with self.subTest(original=original):

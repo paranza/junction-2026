@@ -64,6 +64,8 @@ def _measurement_language_supported(question, labels=()):
             # Removing every known number can erase an unresolved second room
             # or a numeric size/floor condition.
             q = re.sub(r"\b(?:rooms?|spaces?)\s+['\"]?"+re.escape(label)+r"['\"]?(?!\w)", " room ", q)
+            # A quoted number is an explicit name (a storey called '0'), not a free value.
+            q = re.sub(r"['\"‘’“”„«»]\s*"+re.escape(label)+r"\s*['\"‘’“”„«»]", " ", q)
         else:
             q = re.sub(r"(?<!\w)"+re.escape(label)+r"(?!\w)", " ", q)
     # An apartment selector letter ("apartment B") is part of the scope, not a free word.
@@ -83,6 +85,8 @@ def _measurement_language_supported(question, labels=()):
 
 
 def _quantity_key(question, target):
+    # Quoted labels are names: 'Seminarraum Groß' folds to "gross" but is not a quantity term.
+    question = re.sub(_QUOTED_TEXT, " ", question)
     q = _normal(question)
     if re.search(r"\bnet\b", q) and re.search(r"\bgross\b", q):
         return None
@@ -107,7 +111,7 @@ def _finite_quantity(obj, key):
 # Whole-model words in the dataset languages, including inflections (et "mudelis", da "modellen").
 _MODEL_WORDS = r"(?:model|modellen|modell|modele|modello|mudel\w*|gebaude|building|bygning\w*)"
 
-_QUOTED_TEXT = r'''(?:"[^"]*"|'(?:[^']|(?<=\w)'(?=\w))*'|«[^»]*»|“[^”]*”|„[^“]*“)'''
+_QUOTED_TEXT = r'''(?:"[^"]*"|'(?:[^']|(?<=\w)'(?=\w))*'|«[^»]*»|“[^”]*”|„[^“”]*[“”])'''
 
 
 def _without_model_titles(question):
@@ -498,6 +502,8 @@ def _native_ifc(question, document, source_path, root):
                                         "unit": unit, "basis": "explicit native quantities; no missing terms"})
         rooms = [o for o in scoped if o.get("type") == "IfcSpace"]
         quoted = [m[1:-1] for m in re.findall(_QUOTED_TEXT, question)]
+        storey_names = {_compact(s.get("name")) for s in doc.get("metadata", {}).get("storeys", []) if s.get("name")}
+        quoted = [label for label in quoted if _compact(label) not in storey_names] or quoted
         selected = []
         for room in rooms:
             p = room.get("properties", {})

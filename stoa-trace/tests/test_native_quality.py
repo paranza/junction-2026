@@ -94,6 +94,30 @@ class NativeQuantityQuality(unittest.TestCase):
         props=next(o for o in doc['objects'] if o['type']=='IfcWall')['properties']
         self.assertNotIn('length_m',props); self.assertNotIn('net_volume_m3',props)
 
+    def test_ifc_repeated_quantity_name_in_one_set_uses_the_later_value(self):
+        import ifcopenshell
+        model=ifcopenshell.file(schema='IFC4')
+        area=model.create_entity('IfcSIUnit',UnitType='AREAUNIT',Name='SQUARE_METRE')
+        model.create_entity('IfcProject',GlobalId=ifcopenshell.guid.new(),Name='Generated fixture',
+                            UnitsInContext=model.create_entity('IfcUnitAssignment',Units=[area]))
+        walls=[model.create_entity('IfcWall',GlobalId=ifcopenshell.guid.new(),Name=f'Wall {n}') for n in 'AB']
+        # Wall A repeats NetSideArea inside one set (later value wins, as get_psets does);
+        # wall B has conflicting values in two different sets (refused).
+        same=model.create_entity('IfcElementQuantity',GlobalId=ifcopenshell.guid.new(),Name='Qto_WallBaseQuantities',Quantities=[
+            model.create_entity('IfcQuantityArea',Name='NetSideArea',AreaValue=17.6),
+            model.create_entity('IfcQuantityArea',Name='NetSideArea',AreaValue=42.94)])
+        model.create_entity('IfcRelDefinesByProperties',GlobalId=ifcopenshell.guid.new(),RelatedObjects=[walls[0]],RelatingPropertyDefinition=same)
+        for value,name in ((5.,'Qto_WallBaseQuantities'),(6.,'BaseQuantities')):
+            q=model.create_entity('IfcElementQuantity',GlobalId=ifcopenshell.guid.new(),Name=name,Quantities=[
+                model.create_entity('IfcQuantityArea',Name='NetSideArea',AreaValue=value)])
+            model.create_entity('IfcRelDefinesByProperties',GlobalId=ifcopenshell.guid.new(),RelatedObjects=[walls[1]],RelatingPropertyDefinition=q)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            path=Path(folder)/'fixture.ifc'; model.write(path)
+            doc=extract_document(path,Path(folder))
+        a,b=(next(o['properties'] for o in doc['objects'] if o['label']==f'Wall {n}') for n in 'AB')
+        self.assertEqual(a['net_side_area_m2'],42.94); self.assertEqual(a['quantity_conflicts']['net_side_area_m2'],[17.6,42.94])
+        self.assertNotIn('net_side_area_m2',b); self.assertIn('net_side_area_m2',b['ambiguous_quantities'])
+
 
 class IfcSourceGeometryQuality(unittest.TestCase):
     """Independently generated 4m by 3m rooms and stair assemblies, no labels."""

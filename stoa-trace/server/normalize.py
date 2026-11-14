@@ -20,7 +20,8 @@ TABLE = Path(__file__).with_name("question_templates.json")
 
 def _quoted_spans(text):
     """Yield quote spans without mistaking contractions or inch marks for labels."""
-    pairs = {'«': '»', '„': '“', '“': '”', '‘': '’', "'": "'", '"': '"'}
+    # A low opening quote closes with “ in German and with ” in Polish, Romanian and Hungarian.
+    pairs = {'«': '»', '„': '“”', '“': '”', '‘': '’', "'": "'", '"': '"'}
     i = 0
     while i < len(text):
         opening = text[i]
@@ -30,7 +31,7 @@ def _quoted_spans(text):
             continue
         end = i + 1
         while True:
-            end = text.find(closing, end)
+            end = min((found for found in (text.find(mark, end) for mark in closing) if found >= 0), default=-1)
             if end < 0:
                 break
             if opening != "'" or end + 1 == len(text) or not text[end + 1].isalnum():

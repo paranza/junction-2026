@@ -836,16 +836,23 @@ def _ifc_explicit_quantities(entity, metadata):
             value = float(raw)*factor
             path = f"{definition.Name}.{quantity.Name}"
             if key in result and not math.isclose(result[key], value, rel_tol=1e-9, abs_tol=1e-9):
-                # Conflicting same-role source values are not arbitrarily chosen.
-                result.pop(key, None)
-                result.setdefault("ambiguous_quantities", []).append(key)
-                continue
+                previous = result.get("quantity_sources", {}).get(key, {})
+                repeated = previous.get("quantity_set_id") == definition.id() and previous.get("property_path") == path
+                if not repeated:
+                    # Conflicting values under different names or sets are not arbitrarily chosen.
+                    result.pop(key, None)
+                    result.setdefault("ambiguous_quantities", []).append(key)
+                    continue
+                # The same quantity name repeated inside one set: the later declaration wins,
+                # as IfcOpenShell's get_psets resolves it. Earlier values stay inspectable.
+                result.setdefault("quantity_conflicts", {}).setdefault(key, [result[key]]).append(value)
             if key in result.get("ambiguous_quantities", []):
                 continue
             result[key] = value
             result.setdefault("quantity_sources", {})[key] = {
                 "property_path": path, "value": value, "unit": unit_name,
-                "raw_value": raw, "unit_scale": factor, "unit_basis": unit_basis}
+                "raw_value": raw, "unit_scale": factor, "unit_basis": unit_basis,
+                "quantity_set_id": definition.id()}
             if key == "net_area_m2":
                 result["area_source"] = path
                 result["area_unit_basis"] = unit_basis
