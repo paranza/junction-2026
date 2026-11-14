@@ -5,6 +5,7 @@ https://aistudio.google.com/api-reference/interactions-api/create-interaction
 https://aistudio.google.com/docs/structured-output
 https://aistudio.google.com/docs/image-understanding
 https://aistudio.google.com/docs/media-resolution
+https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api
 
 Budget reservation and usage accounting belong to llm._request, once per attempt.
 This transport never retries or accepts a configurable destination for secrets.
@@ -21,7 +22,9 @@ import httpx
 ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions'
 API_REVISION = '2026-05-20'
 REVISION = 'gemini-interactions-v2'
+GEMMA_REVISION = 'gemma-interactions-v1'
 DEFAULT_MODEL = 'gemini-4-carbon'
+GEMMA_MODELS = frozenset({'gemma-4-31b-it', 'gemma-4-26b-a4b-it'})
 IMAGE_RESOLUTIONS = frozenset({'low', 'medium', 'high', 'ultra_high'})
 _IMAGE = re.compile(r'data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)\Z')
 
@@ -37,18 +40,21 @@ def image_resolution():
     return resolution
 
 
-def config_signature():
+def config_signature(model=None):
     """Keep visual caches separate without making invalid vision config break native tools."""
     try:
         resolution = image_resolution()
     except ProviderError:
         resolution = 'invalid'
-    return f'{REVISION}:{API_REVISION}:image_resolution={resolution}'
+    revision = GEMMA_REVISION if model in GEMMA_MODELS else REVISION
+    return f'{revision}:{API_REVISION}:image_resolution={resolution}'
 
 
 def prepare_request(content, system, schema, max_tokens, model):
     # Validate before shared llm._request reserves a potentially billable attempt.
     resolution = image_resolution()
+    if str(model).startswith('gemma-') and model not in GEMMA_MODELS:
+        raise ProviderError('The configured Gemma model is not supported by this adapter.')
     inputs = []
     for part in content:
         if part.get('type') == 'input_text' and isinstance(part.get('text'), str):
@@ -67,10 +73,12 @@ def prepare_request(content, system, schema, max_tokens, model):
                            'resolution': resolution})
         else:
             raise ProviderError('This drawing input is not supported by Gemini.')
+    bounded_thinking = 'minimal' if model in GEMMA_MODELS else 'low'
+    thinking = bounded_thinking if max_tokens < 1000 else 'high'
     return {'model': model, 'input': inputs, 'system_instruction': system, 'store': False,
             'response_format': {'type': 'text', 'mime_type': 'application/json', 'schema': schema},
             'generation_config': {'max_output_tokens': max_tokens,
-                                  'thinking_level': 'low' if max_tokens < 1000 else 'high',
+                                  'thinking_level': thinking,
                                   'thinking_summaries': 'none'}}
 
 

@@ -27,7 +27,7 @@ _usage = contextvars.ContextVar('trace_model_usage', default=None)
 
 @contextmanager
 def usage_scope():
-    token = _usage.set({'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0, 'unknown_usage': False})
+    token = _usage.set({'model_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'cached_input_tokens': 0, 'unknown_usage': False, 'models': []})
     try:
         yield
     finally:
@@ -39,10 +39,14 @@ def usage_snapshot(cache_hit=False):
     unknown = current.pop('unknown_usage', False)
     current.update(cache_hit=bool(cache_hit), cost_estimate_usd=0.0 if not current['model_calls'] else None,
                    cost_basis='native' if not current['model_calls'] else 'unconfigured')
+    models = current.get('models') or ([PROVIDER + '/' + MODEL] if current['model_calls'] else [])
+    current['models'] = list(models)
+    if len(models) > 1:
+        current['cost_basis'] = 'mixed_models'
     # Rates belong to a specific provider/model. A switch must not silently
     # apply the previous model's prices to a new provider's tokens.
     price_model = os.environ.get('STOA_PRICE_MODEL', '')
-    if current['model_calls'] and not unknown and price_model == PROVIDER + '/' + MODEL:
+    if current['model_calls'] and not unknown and len(models) == 1 and price_model == models[0]:
         try:
             input_rate = float(os.environ['STOA_INPUT_USD_PER_MILLION'])
             output_rate = float(os.environ['STOA_OUTPUT_USD_PER_MILLION'])
@@ -89,31 +93,38 @@ def model_available():
 
 def provider_signature():
     """Non-secret configuration fingerprint for every model-dependent cache."""
-    revision = gemini_provider.config_signature() if PROVIDER == 'gemini' else 'responses-v1'
+    revision = gemini_provider.config_signature(MODEL) if PROVIDER == 'gemini' else 'responses-v1'
     return f'{PROVIDER}:{MODEL}:{revision}'
 
 
-def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
+def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=None):
     if PROVIDER not in ('openai', 'gemini'):
         raise ModelError('STOA_PROVIDER must be openai or gemini. Native drawing tools remain available.')
     if not model_available():
         variable = 'GEMINI_API_KEY' if PROVIDER == 'gemini' else 'OPENAI_API_KEY'
         raise ModelError(f'Vision is not configured. Set {variable} privately on the server. Native drawing tools remain available.')
+    selected_model = MODEL if model is None else model
+    if (not isinstance(selected_model, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', selected_model)
+            or (selected_model != MODEL and (PROVIDER != 'gemini' or selected_model not in gemini_provider.GEMMA_MODELS))):
+        raise ModelError('A model override must use a supported Gemma model with the Gemini provider.')
     if PROVIDER == 'gemini':
         try:
-            payload = gemini_provider.prepare_request(content, system, schema, max_tokens, MODEL)
+            payload = gemini_provider.prepare_request(content, system, schema, max_tokens, selected_model)
         except gemini_provider.ProviderError as error:
             raise ModelError(str(error)) from None
     else:
-        payload = {'model': MODEL, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
+        payload = {'model': selected_model, 'store': False, 'reasoning': {'effort': 'medium'}, 'max_output_tokens': max_tokens,
                    'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
                    'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
-    if not store.reserve_model_request(MAX_CALLS, {'provider': PROVIDER, 'model': MODEL, 'images': sum(x.get('type') == 'input_image' for x in content)}):
+    if not store.reserve_model_request(MAX_CALLS, {'provider': PROVIDER, 'model': selected_model, 'images': sum(x.get('type') == 'input_image' for x in content)}):
         raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
     ledger = _usage.get()
     if ledger is not None:
         ledger['model_calls'] += 1
         ledger['unknown_usage'] += 1
+        identity = PROVIDER + '/' + selected_model
+        if identity not in ledger.setdefault('models', []):
+            ledger['models'].append(identity)
     if PROVIDER == 'gemini':
         try:
             body = gemini_provider.request(payload, KEY)
@@ -140,7 +151,7 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
         ledger['output_tokens'] += int(usage.get('output_tokens', 0))
         ledger['cached_input_tokens'] += int(usage.get('input_tokens_details', {}).get('cached_tokens', 0))
         ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
-    store.record_event('model_response', {'provider': PROVIDER, 'model': MODEL, 'usage': usage, 'status': body.get('status')})
+    store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status')})
     if body.get('status') != 'completed':
         raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.')
     text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')
@@ -151,6 +162,8 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000):
     if not isinstance(result, dict):
         raise ModelError('The model returned an unreadable result.')
     result['_usage'] = body.get('usage') or {}
+    result['_provider'] = PROVIDER
+    result['_model'] = selected_model
     return result
 
 
