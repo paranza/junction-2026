@@ -1,0 +1,851 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-14T09:01:11.305345+00:00",
+  "source_commit": "48d932c3bb2708744eb14056306b080623a84c79",
+  "evaluation": "frozen development partition only",
+  "mode": "native",
+  "manifest_cases_sha256": "f5b772de621f06dc8c7dc8d9d83f0e99ab56a6488d2867f0a377eb6f42accb07",
+  "development_cases": 7066,
+  "reserved_partition_evaluated": false,
+  "external_frozen_drawings_evaluated": false,
+  "baseline": {
+    "generated_at": "2026-11-14T08:06:40.251542+00:00",
+    "cases": 7066,
+    "answered": 1592,
+    "coverage": 0.2253042739881121,
+    "numeric_cases": 6801,
+    "numeric_answered": 1589,
+    "numeric_correct": 1517,
+    "accuracy_all": 0.22305543302455522,
+    "accuracy_answered": 0.9546884833228445,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "numeric_incorrect_answered": 72,
+    "model_calls": 0
+  },
+  "current": {
+    "cases": 7066,
+    "answered": 3022,
+    "coverage": 0.4276818567789414,
+    "numeric_cases": 6801,
+    "numeric_answered": 3019,
+    "numeric_correct": 2903,
+    "accuracy_all": 0.4268489927951772,
+    "accuracy_answered": 0.9615766810202053,
+    "text_cases": 265,
+    "text_answered_for_manual_review": 3,
+    "errors": 0,
+    "numeric_incorrect_answered": 116,
+    "model_calls": 0
+  },
+  "changes": {
+    "correct_retained": 1517,
+    "correct_to_incorrect": 0,
+    "correct_to_unanswered": 0,
+    "incorrect_to_correct": 7,
+    "unanswered_to_correct": 1379,
+    "unanswered_to_incorrect": 51,
+    "incorrect_retained": 65,
+    "incorrect_to_unanswered": 0
+  },
+  "incorrect_answered_breakdown": {
+    "all_answered_numeric": {
+      "questions": 116,
+      "by_source": {
+        "ifc_models": 28,
+        "swiss_dwellings": 88
+      },
+      "by_type": {
+        "area": 38,
+        "count": 78
+      },
+      "by_language_hint": {
+        "de": 15,
+        "en": 58,
+        "et": 11,
+        "fr": 14,
+        "it": 15,
+        "unknown": 3
+      },
+      "by_method": {
+        "native_cad_area_annotations": 18,
+        "native_cad_room_labels": 6,
+        "native_cad_symbol_inventory": 46,
+        "native_cad_unit_outlines": 18,
+        "native_ifc_entity_count": 8,
+        "native_ifc_quantity": 20
+      },
+      "by_native_evidence_class": {
+        "IfcSpace": 20,
+        "IfcStair": 6,
+        "apartment": 18,
+        "door": 46,
+        "no_evidence": 2,
+        "room": 24
+      }
+    },
+    "newly_answered_numeric": {
+      "questions": 51,
+      "by_source": {
+        "ifc_models": 13,
+        "swiss_dwellings": 38
+      },
+      "by_type": {
+        "area": 19,
+        "count": 32
+      },
+      "by_language_hint": {
+        "de": 13,
+        "et": 10,
+        "fr": 14,
+        "it": 11,
+        "unknown": 3
+      },
+      "by_method": {
+        "native_cad_area_annotations": 9,
+        "native_cad_room_labels": 3,
+        "native_cad_symbol_inventory": 23,
+        "native_cad_unit_outlines": 3,
+        "native_ifc_entity_count": 3,
+        "native_ifc_quantity": 10
+      },
+      "by_native_evidence_class": {
+        "IfcSpace": 10,
+        "IfcStair": 3,
+        "apartment": 3,
+        "door": 23,
+        "room": 12
+      }
+    }
+  },
+  "verified_model_request_events": 0,
+  "by_source": {
+    "cubicasa5k": {
+      "baseline": {
+        "cases": 3534,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 3534,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 3534,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 0,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "ifc_bench": {
+      "baseline": {
+        "cases": 249,
+        "answered": 1,
+        "coverage": 0.004016064257028112,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 249,
+        "answered": 1,
+        "coverage": 0.004016064257028112,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 249,
+        "text_answered_for_manual_review": 1,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 0,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "ifc_models": {
+      "baseline": {
+        "cases": 1049,
+        "answered": 505,
+        "coverage": 0.48141086749285034,
+        "numeric_cases": 1049,
+        "numeric_answered": 505,
+        "numeric_correct": 483,
+        "accuracy_all": 0.4604385128693994,
+        "accuracy_answered": 0.9564356435643564,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 22,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 1049,
+        "answered": 959,
+        "coverage": 0.9142040038131554,
+        "numeric_cases": 1049,
+        "numeric_answered": 959,
+        "numeric_correct": 931,
+        "accuracy_all": 0.8875119161105816,
+        "accuracy_answered": 0.9708029197080292,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 28,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 483,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 7,
+        "unanswered_to_correct": 441,
+        "unanswered_to_incorrect": 13,
+        "incorrect_retained": 15,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "opening_design": {
+      "baseline": {
+        "cases": 64,
+        "answered": 12,
+        "coverage": 0.1875,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 64,
+        "answered": 12,
+        "coverage": 0.1875,
+        "numeric_cases": 48,
+        "numeric_answered": 10,
+        "numeric_correct": 10,
+        "accuracy_all": 0.20833333333333334,
+        "accuracy_answered": 1.0,
+        "text_cases": 16,
+        "text_answered_for_manual_review": 2,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 10,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 0,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "swiss_dwellings": {
+      "baseline": {
+        "cases": 2170,
+        "answered": 1074,
+        "coverage": 0.4949308755760369,
+        "numeric_cases": 2170,
+        "numeric_answered": 1074,
+        "numeric_correct": 1024,
+        "accuracy_all": 0.471889400921659,
+        "accuracy_answered": 0.9534450651769087,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 50,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 2170,
+        "answered": 2050,
+        "coverage": 0.9447004608294931,
+        "numeric_cases": 2170,
+        "numeric_answered": 2050,
+        "numeric_correct": 1962,
+        "accuracy_all": 0.904147465437788,
+        "accuracy_answered": 0.9570731707317073,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 88,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 1024,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 938,
+        "unanswered_to_incorrect": 38,
+        "incorrect_retained": 50,
+        "incorrect_to_unanswered": 0
+      }
+    }
+  },
+  "by_language_hint": {
+    "de": {
+      "baseline": {
+        "cases": 383,
+        "answered": 20,
+        "coverage": 0.05221932114882506,
+        "numeric_cases": 383,
+        "numeric_answered": 20,
+        "numeric_correct": 18,
+        "accuracy_all": 0.04699738903394256,
+        "accuracy_answered": 0.9,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 2,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 383,
+        "answered": 352,
+        "coverage": 0.9190600522193212,
+        "numeric_cases": 383,
+        "numeric_answered": 352,
+        "numeric_correct": 337,
+        "accuracy_all": 0.8798955613577023,
+        "accuracy_answered": 0.9573863636363636,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 15,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 18,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 319,
+        "unanswered_to_incorrect": 13,
+        "incorrect_retained": 2,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "en": {
+      "baseline": {
+        "cases": 3689,
+        "answered": 1505,
+        "coverage": 0.4079696394686907,
+        "numeric_cases": 3425,
+        "numeric_answered": 1502,
+        "numeric_correct": 1444,
+        "accuracy_all": 0.4216058394160584,
+        "accuracy_answered": 0.9613848202396804,
+        "text_cases": 264,
+        "text_answered_for_manual_review": 3,
+        "errors": 0,
+        "numeric_incorrect_answered": 58,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 3689,
+        "answered": 1518,
+        "coverage": 0.4114936297099485,
+        "numeric_cases": 3425,
+        "numeric_answered": 1515,
+        "numeric_correct": 1457,
+        "accuracy_all": 0.4254014598540146,
+        "accuracy_answered": 0.9617161716171617,
+        "text_cases": 264,
+        "text_answered_for_manual_review": 3,
+        "errors": 0,
+        "numeric_incorrect_answered": 58,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 1444,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 13,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 58,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "et": {
+      "baseline": {
+        "cases": 315,
+        "answered": 25,
+        "coverage": 0.07936507936507936,
+        "numeric_cases": 315,
+        "numeric_answered": 25,
+        "numeric_correct": 17,
+        "accuracy_all": 0.05396825396825397,
+        "accuracy_answered": 0.68,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 8,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 315,
+        "answered": 311,
+        "coverage": 0.9873015873015873,
+        "numeric_cases": 315,
+        "numeric_answered": 311,
+        "numeric_correct": 300,
+        "accuracy_all": 0.9523809523809523,
+        "accuracy_answered": 0.9646302250803859,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 11,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 17,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 7,
+        "unanswered_to_correct": 276,
+        "unanswered_to_incorrect": 10,
+        "incorrect_retained": 1,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "fi": {
+      "baseline": {
+        "cases": 1767,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 1767,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 1767,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 1767,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 0,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "fr": {
+      "baseline": {
+        "cases": 340,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 340,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 340,
+        "answered": 319,
+        "coverage": 0.9382352941176471,
+        "numeric_cases": 340,
+        "numeric_answered": 319,
+        "numeric_correct": 305,
+        "accuracy_all": 0.8970588235294118,
+        "accuracy_answered": 0.9561128526645768,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 14,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 305,
+        "unanswered_to_incorrect": 14,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "it": {
+      "baseline": {
+        "cases": 374,
+        "answered": 42,
+        "coverage": 0.11229946524064172,
+        "numeric_cases": 374,
+        "numeric_answered": 42,
+        "numeric_correct": 38,
+        "accuracy_all": 0.10160427807486631,
+        "accuracy_answered": 0.9047619047619048,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 4,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 374,
+        "answered": 354,
+        "coverage": 0.946524064171123,
+        "numeric_cases": 374,
+        "numeric_answered": 354,
+        "numeric_correct": 339,
+        "accuracy_all": 0.9064171122994652,
+        "accuracy_answered": 0.9576271186440678,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 15,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 38,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 301,
+        "unanswered_to_incorrect": 11,
+        "incorrect_retained": 4,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "unknown": {
+      "baseline": {
+        "cases": 198,
+        "answered": 0,
+        "coverage": 0.0,
+        "numeric_cases": 197,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": 0.0,
+        "accuracy_answered": null,
+        "text_cases": 1,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 198,
+        "answered": 168,
+        "coverage": 0.8484848484848485,
+        "numeric_cases": 197,
+        "numeric_answered": 168,
+        "numeric_correct": 165,
+        "accuracy_all": 0.8375634517766497,
+        "accuracy_answered": 0.9821428571428571,
+        "text_cases": 1,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 3,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 165,
+        "unanswered_to_incorrect": 3,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    }
+  },
+  "by_type": {
+    "area": {
+      "baseline": {
+        "cases": 1541,
+        "answered": 687,
+        "coverage": 0.44581440622972096,
+        "numeric_cases": 1541,
+        "numeric_answered": 687,
+        "numeric_correct": 668,
+        "accuracy_all": 0.4334847501622323,
+        "accuracy_answered": 0.9723435225618632,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 19,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 1541,
+        "answered": 1369,
+        "coverage": 0.8883841661258923,
+        "numeric_cases": 1541,
+        "numeric_answered": 1369,
+        "numeric_correct": 1331,
+        "accuracy_all": 0.863724853990915,
+        "accuracy_answered": 0.9722425127830533,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 38,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 668,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 663,
+        "unanswered_to_incorrect": 19,
+        "incorrect_retained": 19,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "count": {
+      "baseline": {
+        "cases": 5210,
+        "answered": 888,
+        "coverage": 0.17044145873320538,
+        "numeric_cases": 5210,
+        "numeric_answered": 888,
+        "numeric_correct": 835,
+        "accuracy_all": 0.16026871401151632,
+        "accuracy_answered": 0.9403153153153153,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 53,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 5210,
+        "answered": 1622,
+        "coverage": 0.3113243761996161,
+        "numeric_cases": 5210,
+        "numeric_answered": 1622,
+        "numeric_correct": 1544,
+        "accuracy_all": 0.2963531669865643,
+        "accuracy_answered": 0.9519112207151664,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 78,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 835,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 7,
+        "unanswered_to_correct": 702,
+        "unanswered_to_incorrect": 32,
+        "incorrect_retained": 46,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "length": {
+      "baseline": {
+        "cases": 16,
+        "answered": 7,
+        "coverage": 0.4375,
+        "numeric_cases": 16,
+        "numeric_answered": 7,
+        "numeric_correct": 7,
+        "accuracy_all": 0.4375,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 16,
+        "answered": 14,
+        "coverage": 0.875,
+        "numeric_cases": 16,
+        "numeric_answered": 14,
+        "numeric_correct": 14,
+        "accuracy_all": 0.875,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 7,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 7,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "text": {
+      "baseline": {
+        "cases": 265,
+        "answered": 3,
+        "coverage": 0.011320754716981131,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 265,
+        "text_answered_for_manual_review": 3,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 265,
+        "answered": 3,
+        "coverage": 0.011320754716981131,
+        "numeric_cases": 0,
+        "numeric_answered": 0,
+        "numeric_correct": 0,
+        "accuracy_all": null,
+        "accuracy_answered": null,
+        "text_cases": 265,
+        "text_answered_for_manual_review": 3,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 0,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 0,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    },
+    "volume": {
+      "baseline": {
+        "cases": 34,
+        "answered": 7,
+        "coverage": 0.20588235294117646,
+        "numeric_cases": 34,
+        "numeric_answered": 7,
+        "numeric_correct": 7,
+        "accuracy_all": 0.20588235294117646,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "current": {
+        "cases": 34,
+        "answered": 14,
+        "coverage": 0.4117647058823529,
+        "numeric_cases": 34,
+        "numeric_answered": 14,
+        "numeric_correct": 14,
+        "accuracy_all": 0.4117647058823529,
+        "accuracy_answered": 1.0,
+        "text_cases": 0,
+        "text_answered_for_manual_review": 0,
+        "errors": 0,
+        "numeric_incorrect_answered": 0,
+        "model_calls": 0
+      },
+      "changes": {
+        "correct_retained": 7,
+        "correct_to_incorrect": 0,
+        "correct_to_unanswered": 0,
+        "incorrect_to_correct": 0,
+        "unanswered_to_correct": 7,
+        "unanswered_to_incorrect": 0,
+        "incorrect_retained": 0,
+        "incorrect_to_unanswered": 0
+      }
+    }
+  },
+  "limitations": [
+    "These development questions have informed changes; this is not held-out validation or a 99.9% accuracy claim.",
+    "Correctness means agreement with supplied development labels, not independent engineering ground truth.",
+    "Native mode does not measure raster model accuracy; unsupported native requests may abstain.",
+    "Text is excluded from numeric accuracy and requires manual review.",
+    "Language hints are evaluation metadata rather than a claim of universal language understanding.",
+    "Only aggregate metrics are published; no question text, answer labels, case identifiers, raw responses or local paths are included."
+  ]
+}
