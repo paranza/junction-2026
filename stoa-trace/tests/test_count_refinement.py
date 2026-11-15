@@ -41,6 +41,9 @@ class SourceReconciliation(unittest.TestCase):
         self.assertFalse(cr.valid_review(self.entries,{**self.review,'accept_new':[{'id':1,'label':'Cabinet','category':'cabinet'}]},['chair']))
         self.assertFalse(cr.valid_review(self.entries,{**self.review,'accept_new':[], 'confirm_existing':[1]},['chair']))
         self.assertFalse(cr.valid_review(self.entries,None,['chair']))
+        result=cr.reconcile(self.initial,self.entries,[(self.entries,None)],['chair'])
+        self.assertIsNone(result['value'])
+        self.assertIsNone(cr.reconcile(self.initial,self.entries,[],['chair'])['value'])
 
 
 class ResumeSourceInventory(unittest.TestCase):
@@ -59,7 +62,10 @@ class ResumeSourceInventory(unittest.TestCase):
                  patch.object(count_reader,'answer',return_value=initial) as first_pass, \
                  patch.object(cr,'refine',side_effect=[{'value':None,'retryable_analysis':True},initial,initial]) as refine:
                 deep_reader.answer('Count chairs',{'page_count':1},source)
-                deep_reader.answer('Count chairs',{'page_count':1},source)
+                # A cached typed count remains eligible even when the heuristic
+                # question classifier cannot recognize the wording.
+                with patch('server.llm.requested_quantity',return_value=None):
+                    deep_reader.answer('Count chairs',{'page_count':1},source)
                 self.assertEqual(first_pass.call_count,1)
                 self.assertEqual(refine.call_args.args[5],initial)
                 deep_reader.answer('Count windows',{'page_count':1},source)

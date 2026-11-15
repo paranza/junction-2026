@@ -322,7 +322,9 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     tools = None; tool_rounds = 0; visual_rounds = 0; tool_outputs = []
     document = llm._scoped_context(document, path, page, scope, region, [page])
     count_cache = None
-    refine_counts = config_signature()['count_refinement']['mode']=='on' and llm.requested_quantity(question)=='count'
+    # The model's typed result determines whether refinement applies. A novel
+    # phrasing need not match the fast-path quantity vocabulary to get reviewed.
+    refine_counts = config_signature()['count_refinement']['mode']=='on'
     if refine_counts:
         from . import count_refinement
         from .inspection_cache import InspectionCache

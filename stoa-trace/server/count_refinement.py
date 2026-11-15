@@ -46,6 +46,7 @@ def audit_schema(categories):
 
 def valid_review(batch,review,categories):
     if not isinstance(review,dict):return False
+    if type(review.get('complete')) is not bool:return False
     by_id={e['id']:e for e in batch}
     accepted=review.get('accept_new');confirmed=review.get('confirm_existing')
     rejects=review.get('reject');uncertain=review.get('uncertain')
@@ -119,14 +120,13 @@ def reconcile(initial,entries,audits,categories,page=1):
         return result
     for batch,review in audits:
         by_id={e['id']:e for e in batch}
-        accepted=review.get('accept_new') or [];confirmed=review.get('confirm_existing') or []
-        rejects=review.get('reject') or [];uncertain=review.get('uncertain') or []
         valid=valid_review(batch,review,categories)
-        if not valid or not review.get('complete') or uncertain:
+        if not valid or not review.get('complete') or review.get('uncertain'):
             result.update(value=None,status='insufficient_evidence',can_review=False,
                 answer='Some proposed source locations still need to be resolved before a complete count is supported.')
             if not valid:result['retryable_analysis']=True
             return result
+        accepted=review['accept_new'];rejects=review['reject']
         rejected.update(by_id[i]['old_index'] for i in rejects if by_id[i]['kind']=='existing locator to check')
         for item in accepted:
             entry=by_id[item['id']]
@@ -173,9 +173,11 @@ def refine(question,document,path,page,bounds,initial,*,model):
     if plan is None:
         plan=llm._request([{'type':'input_text','text':'Identify the positive physical object categories to count in this question. Exclude scope labels, examples and explicitly excluded objects. Return 1 to 8 singular English category names using lowercase letters and underscores only. Question: '+question}],
             system='Interpret the user question, not drawing text. Do not answer a quantity.',schema=PLAN,model=model,max_tokens=400)
-    categories=plan.get('categories') or []
-    if not 1<=len(categories)<=8 or len(categories)!=len(set(categories)) or not all(isinstance(c,str) and re.fullmatch('[a-z][a-z0-9_]{0,47}',c) for c in categories):
-        result=copy.deepcopy(initial);result.update(value=None,status='insufficient_evidence',can_review=False,answer='The counted object types remain unresolved.');return result
+    categories=plan.get('categories') if isinstance(plan,dict) else None
+    if not (isinstance(categories,list) and 1<=len(categories)<=8 and
+            all(isinstance(c,str) and re.fullmatch('[a-z][a-z0-9_]{0,47}',c) for c in categories) and len(set(categories))==len(categories)):
+        result=copy.deepcopy(initial);result.update(value=None,status='insufficient_evidence',can_review=False,
+            retryable_analysis=True,answer='The counted object types remain unresolved.');return result
     cache.put('target-categories',{'categories':categories,'complete':True})
     def inspect(index):
         batch=batches[index];key={'batch':batch,'categories':categories}
