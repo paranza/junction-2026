@@ -509,10 +509,85 @@
         "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
         "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
       },
-      "completed": false,
-      "summary": null,
-      "cumulative_model_requests": 16,
-      "results": []
+      "completed": true,
+      "summary": {
+        "questions": 4,
+        "answered": 3,
+        "technical_errors": 0,
+        "attempts": 136,
+        "finished_at": 1794721659.316771,
+        "reserved_questions": 0
+      },
+      "cumulative_model_requests": 136,
+      "results": [
+        {
+          "id": "school-doors",
+          "resume": null,
+          "value": null,
+          "unit": null,
+          "evidence_count": 118,
+          "seconds": 327.05028658299125,
+          "error_type": null,
+          "source_refinement": null
+        },
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 322,
+          "unit": "count",
+          "evidence_count": 322,
+          "seconds": 435.8454022909864,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 402,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 322,
+            "new_forms_reviewed": 80
+          }
+        },
+        {
+          "id": "school-windows",
+          "resume": null,
+          "value": 68,
+          "unit": "count",
+          "evidence_count": 68,
+          "seconds": 225.5271192920045,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 388,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 68,
+            "new_forms_reviewed": 320
+          }
+        },
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": 106,
+          "unit": "count",
+          "evidence_count": 106,
+          "seconds": 179.32397550001042,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 212,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 106,
+            "new_forms_reviewed": 106
+          }
+        }
+      ]
     }
   ],
   "production_model_requests_consumed_by_studies": 0,

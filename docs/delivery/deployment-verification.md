@@ -1,5 +1,15 @@
 # Deployment verification
 
+## Count source review, checker scale alignment and continuation
+
+Reviewed main application `5f6111351c6312cadd676d9e02b0be8919519119` is deployed on the existing protected VM and loaded by both local apps. 489 backend tests, 63 frontend tests and the production build passed. Source/build hashes match the container. SQLite backup API integrity, previous image retention, authentication, native 211-door evidence, PNG preview, review/export, restart persistence and installed OCR/geometry checks passed. Verification made zero model requests.
+
+All 39 previous answers, 11 uploads, the event prefix, credentials, the runtime configuration file and explicit provider/model policies are preserved. Production remains **17/1,000**; local runtimes remain **4/1,000** and **140/200**, with identical persisted rows/uploads across activation. The previous local assets and SQLite backups are retained. Native solver files and the native-reachable analysis function are unchanged; neither reserve nor the full easy benchmark was rerun.
+
+Count refinement, partitioned count enumeration and dedicated whole-route tracing remain opt-in. The released source includes their tested mechanisms, source checker-bar edge alignment, open-vocabulary manual count corrections and Continue analysis with the original question/page/selection. This release is not a claim that all complex sponsor quantities are correct. The cold opt-in count run returned three of four numerical answers; one local ownership-completeness flag prevented the door result. That failure is retained and is being addressed separately from the deployed source.
+
+[Deployment and hashes](../../stoa-trace/ops/reports/source-count-refinement/deployment.json), [tests/build](../../stoa-trace/ops/reports/source-count-refinement/build-checks.json), [local continuity](../../stoa-trace/ops/reports/source-count-refinement/local-continuity.json), [actual development results](../../stoa-trace/ops/reports/source-count-refinement/development-studies.json).
+
 ## Source recovery and saved chat restoration
 
 Reviewed main application `1d3597f953e3d180391ccd90c9897f57c58ae18a` is deployed on the existing protected VM and loaded in both local apps. The frozen backend passed 472 tests; the frontend follow-up passed 60 tests and a fresh build. Authentication, native answer/evidence, previews, review/export, restart persistence and installed OCR/geometry checks passed with zero model requests. Source/build hashes match the running container.

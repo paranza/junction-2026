@@ -115,3 +115,9 @@ partial runtime with model requests disabled; the original and copied cumulative
 counters both stayed at 18. Progress text uses actual completed source areas and
 avoids repeating the same transport failure. No production study data was
 modified by this UI check.
+
+## Cold dedicated count profile
+
+The frozen `5f61113` cold upload/API run returned 322 school chairs, 68 school windows and 106 external-control chairs. The door question returned no number because one of 16 tiles marked its owned scope incomplete despite describing out-of-core exclusions. This is three of four numerical responses, zero technical HTTP failures and 136 requests in the original summary, not a new general accuracy estimate. The source-only four-answer replay above did not predict this end-to-end failure. Local recovery and resumable incomplete-count handling are being implemented as a separate candidate; the failure is retained rather than overwritten.
+
+Reviewed source `5f61113` is on main, deployed and loaded locally with the experimental modes still off by default. Verification preserved the production counter at 17/1,000 and local counters at 4/1,000 and 140/200, using zero model requests.
