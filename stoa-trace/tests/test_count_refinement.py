@@ -15,7 +15,7 @@ class SourceReconciliation(unittest.TestCase):
             'evidence':[{'bbox':[.1,.1,.2,.2],'label':'Seat A'}, {'bbox':[.3,.1,.4,.2],'label':'Empty locator'}]}
         self.entries=[{'id':0,'kind':'existing locator to check','old_index':1,'bbox':[.3,.1,.4,.2]},
                       {'id':1,'kind':'new source form','bbox':[.6,.6,.7,.7]}]
-        self.review={'accept_new':[{'id':1,'label':'Task chair at desk','category':'chair'}],
+        self.review={'accept_new':[{'id':1,'label':'Task chair at desk','category':'chair','basis':'Visible seat and backrest next to desk'}],
                      'confirm_existing':[],'reject':[0],'uncertain':[],'complete':True,'reason':'Located source objects'}
 
     def test_rejects_empty_locator_and_adds_source_reviewed_new_shape(self):
@@ -29,7 +29,7 @@ class SourceReconciliation(unittest.TestCase):
         self.assertEqual(self.initial,original)
 
     def test_missing_duplicate_or_invented_ids_cannot_produce_a_total(self):
-        for change in ({'reject':[]},{'reject':[0,0]},{'reject':[900]},{'confirm_existing':[0],'reject':[0]},
+        for change in ({'reject':[]},{'reject':[0,0]},{'reject':[900]},{'confirm_existing':[{'id':0,'category':'chair','basis':'Visible source seat/backrest'}],'reject':[0]},
                        {'uncertain':[0],'reject':[]},{'complete':False}):
             with self.subTest(change=change):
                 review={**self.review,**change}
@@ -44,6 +44,9 @@ class SourceReconciliation(unittest.TestCase):
         result=cr.reconcile(self.initial,self.entries,[(self.entries,None)],['chair'])
         self.assertIsNone(result['value'])
         self.assertIsNone(cr.reconcile(self.initial,self.entries,[],['chair'])['value'])
+        ungrounded=copy.deepcopy(self.review)
+        del ungrounded['accept_new'][0]['basis']
+        self.assertIsNone(cr.reconcile(self.initial,self.entries,[(self.entries,ungrounded)],['chair'])['value'])
 
 
 class ResumeSourceInventory(unittest.TestCase):
@@ -77,8 +80,8 @@ class StagedSourceAudit(unittest.TestCase):
         from server import llm
         initial={'operation':'count','value':2,'unit':'count','evidence':[
             {'bbox':[.1,.1,.2,.2],'label':'A seat'}, {'bbox':[.3,.1,.4,.2],'label':'A false locator'}]}
-        old={'accept_new':[],'confirm_existing':[0],'reject':[1],'uncertain':[],'complete':True,'reason':'Source checked'}
-        new={'accept_new':[{'id':2,'label':'Different seat','category':'chair'}],
+        old={'accept_new':[],'confirm_existing':[{'id':0,'category':'chair','basis':'Visible source seat/backrest'}],'reject':[1],'uncertain':[],'complete':True,'reason':'Source checked'}
+        new={'accept_new':[{'id':2,'label':'Different seat','category':'chair','basis':'Visible source seat/backrest'}],
              'confirm_existing':[],'reject':[],'uncertain':[],'complete':True,'reason':'Source checked'}
         proposed=[{'id':0,'kind':'new source form','bbox':[.6,.6,.8,.8]}]
         with tempfile.TemporaryDirectory() as folder:
@@ -100,7 +103,7 @@ class StagedSourceAudit(unittest.TestCase):
     def test_optional_discovery_budget_does_not_erase_a_source_audited_count(self):
         from server import llm
         initial={'operation':'count','value':1,'unit':'count','evidence':[{'bbox':[.1,.1,.2,.2]}]}
-        old={'accept_new':[],'confirm_existing':[0],'reject':[],'uncertain':[],'complete':True,'reason':'Source checked'}
+        old={'accept_new':[],'confirm_existing':[{'id':0,'category':'chair','basis':'Visible source seat/backrest'}],'reject':[],'uncertain':[],'complete':True,'reason':'Source checked'}
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
             with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \

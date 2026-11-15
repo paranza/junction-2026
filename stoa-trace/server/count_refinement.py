@@ -16,7 +16,7 @@ from . import llm,rendering,symbol_proposals as symbols
 from .drawing_tools import fingerprint
 from .inspection_cache import InspectionCache
 
-REVISION='source-form-refinement-v2-staged-source-audit'
+REVISION='source-form-refinement-v3-physical-roles'
 MAX_ITEMS=768
 BATCH_SIZE=32
 _source_lock=threading.BoundedSemaphore(1)
@@ -31,6 +31,7 @@ Each gallery cell shows ORIGINAL SOURCE pixels around one marked location. Compu
 For old flagged locators, confirm only when the marked position really encloses a qualifying individual object. An empty box or a box on source text cannot be confirmed from its old label. Reject a group box as an individual observation. For new forms, accept only qualifying individual objects in the marked box, with a short physical description and one of the target categories. Surrounding frames and an interior outline are ONE physical object: accept at most one of their proposals. Do not count a nearby object outside the marked box instead. Use the original unmarked surroundings to distinguish chair/table roles and passage doors/cabinetry.
 Every supplied ID must be explicitly confirmed/accepted, rejected or uncertain. complete=true only if all supplied locations can be classified. This reviews supplied locations; it does not independently establish whole-page completeness. Explain uncertainty instead of guessing.'''
 SYSTEM+='''\nReadable original source legends/schedules may be provided as context-only images. Use their actual symbol and tag definitions to distinguish excluded stools/lounge seats/cabinets from chairs, or door types from furniture. A similar outline alone cannot override a source legend or the question's exclusions. Context images supply meaning, never extra counted objects. If the distinction requires an unavailable/unreadable key, mark that location uncertain instead of assuming a generic category.'''
+SYSTEM+='''\nEvery accepted or confirmed object needs a short, concrete source basis explaining its physical role and why the exclusions do not apply. A name alone is insufficient: a space labelled Store may be a walk-in room OR a shallow wall cupboard. For people-passage doors establish the adjoining occupiable/walkable space or actual lift shaft. Straight leaves across shallow wall recesses, shelving bays or built-in cupboards remain cabinetry even when thick wall lines surround them or the adjacent label says Store. Inspect the enclosure depth and relation to the corridor/room. Do not assume every wall-integrated leaf is a passage door, and do not reject a genuine lift entrance just because it lacks a swing arc. For seats, identify the source tag/legend class or actual seat/backrest, not merely a rectangle near a desk.'''
 
 
 def policy():
@@ -41,9 +42,11 @@ def policy():
 def audit_schema(categories):
     return {'type':'object','additionalProperties':False,'properties':{
         'accept_new':{'type':'array','items':{'type':'object','additionalProperties':False,'properties':{
-            'id':{'type':'integer'},'label':{'type':'string'},'category':{'type':'string','enum':categories}},
-            'required':['id','label','category']}},
-        'confirm_existing':{'type':'array','items':{'type':'integer'}},
+            'id':{'type':'integer'},'label':{'type':'string'},'category':{'type':'string','enum':categories},'basis':{'type':'string'}},
+            'required':['id','label','category','basis']}},
+        'confirm_existing':{'type':'array','items':{'type':'object','additionalProperties':False,'properties':{
+            'id':{'type':'integer'},'category':{'type':'string','enum':categories},'basis':{'type':'string'}},
+            'required':['id','category','basis']}},
         'reject':{'type':'array','items':{'type':'integer'}},
         'uncertain':{'type':'array','items':{'type':'integer'}},'complete':{'type':'boolean'},
         'reason':{'type':'string'}},'required':['accept_new','confirm_existing','reject','uncertain','complete','reason']}
@@ -56,11 +59,12 @@ def valid_review(batch,review,categories):
     accepted=review.get('accept_new');confirmed=review.get('confirm_existing')
     rejects=review.get('reject');uncertain=review.get('uncertain')
     if not all(isinstance(v,list) for v in (accepted,confirmed,rejects,uncertain)):return False
-    if not all(isinstance(e,dict) for e in accepted):return False
-    ids=[e.get('id') for e in accepted]+confirmed+rejects+uncertain
+    if not all(isinstance(e,dict) for e in accepted+confirmed):return False
+    ids=[e.get('id') for e in accepted+confirmed]+rejects+uncertain
     if not all(type(i) is int for i in ids) or len(ids)!=len(set(ids)) or set(ids)!=set(by_id):return False
-    return (all(by_id[e['id']]['kind']=='new source form' and e.get('category') in categories and isinstance(e.get('label'),str) and e['label'].strip() for e in accepted)
-        and all(by_id[i]['kind']=='existing locator to check' for i in confirmed))
+    if not all(e.get('category') in categories and isinstance(e.get('basis'),str) and e['basis'].strip() for e in accepted+confirmed):return False
+    return (all(by_id[e['id']]['kind']=='new source form' and isinstance(e.get('label'),str) and e['label'].strip() for e in accepted)
+        and all(by_id[e['id']]['kind']=='existing locator to check' for e in confirmed))
 
 
 def image_content(image,label):
@@ -132,12 +136,16 @@ def reconcile(initial,entries,audits,categories,page=1):
             if not valid:result['retryable_analysis']=True
             return result
         accepted=review['accept_new'];rejects=review['reject']
+        for item in review['confirm_existing']:
+            old=evidence[by_id[item['id']]['old_index']]
+            old.update(category=item['category'],qualification_basis=item['basis'][:500])
         rejected.update(by_id[i]['old_index'] for i in rejects if by_id[i]['kind']=='existing locator to check')
         for item in accepted:
             entry=by_id[item['id']]
             added.append({'id':'source-form-'+str(item['id']),'page':page,
                 'label':item['label'][:200],'category':item['category'],'bbox':entry['bbox'],
-                'evidence_kind':'visual','source_verified':False,'measurement_basis':'source_form_and_visual_review'})
+                'evidence_kind':'visual','source_verified':False,'measurement_basis':'source_form_and_visual_review',
+                'qualification_basis':item['basis'][:500]})
     evidence=[e for i,e in enumerate(evidence) if i not in rejected]
     if len(categories)==1:
         for e in evidence:e['category']=categories[0]
