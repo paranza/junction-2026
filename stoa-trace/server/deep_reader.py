@@ -85,6 +85,8 @@ For a numeric table cell whose unit appears only in its column header, cite the 
 To use a measured tool result in a final expression, cite its exact tool_id in an evidence item. The application replaces asserted values/units/coordinates with its stored tool result; label describes its semantics. Use eN in expression as before. A tool_id cannot refer to OCR, a calibration, an error or an incomplete result. Do not fabricate tool IDs. Source calibration and geometry remain reviewable even when arithmetic is checked. Reading printed operands directly is preferable when the question asks for printed quantities. Use tools when they add missing capability rather than forcing unnecessary tracing for a printed answer.
 '''
 
+SYSTEM += '''\nFor questions about quantities shown in this plan, measure the visible, source-calibrated two-dimensional geometry unless the user explicitly asks for installed totals, hidden runs or referenced sheets. A readable graphic scale is sufficient to measure drawn lengths; a pipe schedule, bill of materials or printed dimension for every run is not required. Identify the actual drawn system and state that scope. Do not substitute a refusal about unshown vertical/off-sheet lengths for a requested visible-plan measurement. Never invent unshown geometry.'''
+
 
 def config_signature():
     mode = os.environ.get('STOA_COMPLEX_READER', 'auto').strip().lower()
@@ -96,12 +98,12 @@ def config_signature():
     dense = os.environ.get('STOA_PARTITIONED_COUNTS', 'off').strip().lower()
     if dense not in {'off','on'}:
         raise ValueError('STOA_PARTITIONED_COUNTS must be off or on.')
-    routes = os.environ.get('STOA_ROUTE_READER', 'off').strip().lower()
-    if routes not in {'off','on'}:raise ValueError('STOA_ROUTE_READER must be off or on.')
+    routes = os.environ.get('STOA_ROUTE_READER', 'auto').strip().lower()
+    if routes not in {'off','on','auto'}:raise ValueError('STOA_ROUTE_READER must be off, auto or on.')
     refine = os.environ.get('STOA_COUNT_REFINEMENT', 'off').strip().lower()
     if refine not in {'off','on'}:raise ValueError('STOA_COUNT_REFINEMENT must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': max(((48 if refine=='on' else 32) if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),20 if routes=='on' else 0),
+            'maximum_requests': max(((48 if refine=='on' else 32) if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),92 if routes!='off' else 0),
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
             'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True,
                                   'count_policy':COUNT_POLICY if dense=='on' else POLICY,
@@ -352,7 +354,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         if not refine_counts or result.get('operation')!='count' or result.get('value') is None:return result
         count_cache.put('source-observations',{'complete':True,'result':result})
         return count_refinement.refine(question,document,path,page,bounds,result,model=config_signature()['model'])
-    if config_signature()['route_reader']['mode']=='on':
+    if config_signature()['route_reader']['mode']!='off':
         from . import route_reader
         if route_reader.requested(question):
             routed=route_reader.answer(question,document,path,page,scope,bounds,

@@ -1,5 +1,5 @@
 from pathlib import Path
-import tempfile,unittest
+import tempfile,unittest,os
 from unittest.mock import patch
 from PIL import Image
 from server import route_reader as rr,llm
@@ -23,6 +23,20 @@ class SourceRouteTakeoff(unittest.TestCase):
         self.assertFalse(rr.requested('What is the nominal pipe diameter in metres?'))
         self.assertFalse(rr.requested('How many pipes are shown?'))
         self.assertFalse(rr.requested('What is the floor area?'))
+
+    def test_ordinary_plumbing_plan_question_automatically_uses_the_route_reader(self):
+        from server import deep_reader
+        question='can you tell me how many meters of plumbing are there in this plan?'
+        expected={'value':12,'unit':'m','answer':'Estimated visible 2D centreline'}
+        with patch.dict(os.environ,{'STOA_ROUTE_READER':'auto','STOA_PARTITIONED_COUNTS':'off','STOA_COUNT_REFINEMENT':'off'}), \
+             patch.object(deep_reader,'eligible',return_value=True), \
+             patch.object(llm,'_scoped_context',return_value={}), \
+             patch.object(rr,'answer',return_value=expected) as routed, \
+             patch.object(llm,'_request') as generic:
+            result=deep_reader.answer(question,{},Path('unfamiliar.png'),1,'page')
+        self.assertEqual(result,expected)
+        self.assertEqual(routed.call_args.args[0],question)
+        generic.assert_not_called()
 
     def test_clipping_owns_shared_boundary_once_and_retains_only_selected_geometry(self):
         path=[{'label':'Pipe','points':[[.1,.4],[.9,.4]]}]

@@ -163,7 +163,7 @@ class SourceTools(unittest.TestCase):
                    {'action':'tool','tools':[{'name':'path','calibration_id':'t1','geometry':[[.1,.2],[.6,.2],[.6,.7]]}]},
                    {'action':'answer','result':{'operation':'length','complete':True,'unit':'m','expression':'e0','warnings':[],
                      'evidence':[{'tool_id':'t2','label':'Run','value':999,'unit':'km'}]}}]
-        with patch.dict(os.environ,{'STOA_COMPLEX_READER':'auto'}),patch.object(llm,'PROVIDER','gemini'),\
+        with patch.dict(os.environ,{'STOA_COMPLEX_READER':'auto','STOA_ROUTE_READER':'off'}),patch.object(llm,'PROVIDER','gemini'),\
              patch.object(llm,'_request',side_effect=decisions) as request,\
              patch.object(dt.DrawingSession,'_words',return_value={'words':[{'text':'10 m'}],'complete':True}):
             result=deep_reader.answer('What is the length?',{'page_count':1,'pages':[{'page':1,'width':6000,'height':4000}]},self.path,region=[0,0,1,1])

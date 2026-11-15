@@ -16,7 +16,7 @@ from pathlib import Path
 from . import llm,rendering
 from .drawing_tools import DrawingSession,ToolError,contains
 
-REVISION='source-route-takeoff-v5-native-detail-coverage'
+REVISION='source-route-takeoff-v6-visible-plan-scope'
 MAX_TILES=9
 POINT={'type':'array','items':{'type':'number'},'minItems':2,'maxItems':2}
 BOX={'type':'array','items':{'type':'number'},'minItems':4,'maxItems':4}
@@ -50,6 +50,8 @@ When reviewing a trace, inspect original source and the colored proposed polylin
 SYSTEM+='''\nReturn exclusions as tight original-source equipment BODY polygons in LOCAL IMAGE 1 coordinates when the question excludes equipment internals. The host subtracts those polygons from the traced routes; merely saying that internals were excluded is insufficient. Bound the actual pump, motor, vessel, inline-device or valve body as appropriate to the question, not an entire foundation pad, maintenance zone, room or enclosing equipment base. Connecting pipework and adjacent bypasses must remain outside the masks. Supports, annotation dots, leaders and unrelated structural outlines are not equipment-body cutouts. For an explicitly requested gross route through inline fittings, respect that definition instead of subtracting those fittings. Return [] where no applicable equipment body overlaps the requested routes. Mask polygons cannot introduce unshown connections. During review the blue polygons are fallible exclusion proposals: check their tight source boundaries independently, remove false masks and add missing bodies before returning the corrected paths AND exclusions.'''
 SYSTEM+='''\nPlanning method source_annotation delegates questions answered by actually printed LENGTH quantities, schedules or dimension records to the source-reading agent; use null region/reference for that method. Nominal diameters are not route lengths and do not justify that method. Use source_geometry when the question requires tracing/measuring actual routes. Missing unshown installed/vertical runs remain complete=false rather than a substituted visible or nominal quantity.'''
 SYSTEM+='''\nFirst choose the method from the physical meaning of the question, not specific keywords. source_geometry is for length takeoffs of distribution routes/networks, including water services, drains, process lines and other routed systems even when the word pipe is absent. Use source_reader with null region/reference for other length questions such as room dimensions or baseboard perimeters; the general source agent handles those. Do not reinterpret these as piping or invent a route. source_annotation remains for printed route-length quantities.'''
+
+SYSTEM+='''\nA question asking how much piping/plumbing is in this plan means the visible 2D centreline geometry on the supplied plan, unless it explicitly requests installed totals, vertical risers/drops, hidden or off-sheet lengths. Do not require a schedule, bill of materials or printed run dimensions when an applicable graphic scale can calibrate the visible geometry. Plumbing can be ordinary user wording for the actual pipework shown; identify its system from source labels and measure it rather than refusing solely because it is fuel/process piping. Explain the visible-only scope in the answer. For explicitly requested unavailable installed scope remain complete=false; do not invent those missing routes.'''
 
 
 def requested(question):
@@ -240,40 +242,49 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
         cache.put(key,audited)
         return index,core,parts,audited
     outputs=[]
-    for start in range(0,len(planned),3):
-        tasks=[lambda i=i,core=core,crop=crop:inspect(i,core,crop) for i,(core,crop) in enumerate(planned) if start<=i<start+3]
+    for start in range(0,len(planned),6):
+        tasks=[lambda i=i,core=core,crop=crop:inspect(i,core,crop) for i,(core,crop) in enumerate(planned) if start<=i<start+6]
         outputs.extend(llm.run_in_parallel(tasks))
     coverage=[]
-    for index,core,parts,review in sorted(outputs):
-        detail_tiles=coverage_plan(document,page,core,region)
-        if not detail_tiles:
-            coverage.append((index,core,planned[index][1],parts,review,None));continue
-        def inspect_detail(number,detail_core,crop):
-            key={'coverage_core':detail_core,'crop':crop}
-            cached=cache.get(key)
+    def inspect_detail(index,parts,number,detail_core,crop):
+        key={'coverage_core':detail_core,'crop':crop}
+        cached=cache.get(key)
+        try:
+            if cached is None:
+                source=rendering.render_region(path,page,crop,3400)
+                prompt=[{'type':'input_text','text':f'Independent native-detail coverage audit for: {question}\nParent tile {index+1}, detail {number+1}/4, FULL PAGE owned core {detail_core}, source crop {crop}. Return geometry in LOCAL IMAGE 1 coordinates. Inspect ALL source pipework, including areas without colored proposals. Search for missed short branches, parallel runs, dashed systems, boundary stubs and connections around equipment. Also remove false leaders, duplicate outlines and equipment internals. The previous trace and its implied length are not source truth. Return the complete replacement path list and tight equipment-body masks for this detail, not just additions. complete=false if unresolved.'}]
+                prompt+=image_content(full,'IMAGE 0: original full source context.')
+                prompt+=image_content(source,'IMAGE 1: original closer source detail. Read this independently.')
+                prompt+=image_content(overlay(source,local_proposals(parts,crop)),
+                                      'IMAGE 2: earlier fallible paths. Uncolored areas still require source inspection.')
+                cached=llm._request(prompt,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
             try:
-                if cached is None:
-                    source=rendering.render_region(path,page,crop,3400)
-                    prompt=[{'type':'input_text','text':f'Independent native-detail coverage audit for: {question}\nParent tile {index+1}, detail {number+1}/4, FULL PAGE owned core {detail_core}, source crop {crop}. Return geometry in LOCAL IMAGE 1 coordinates. Inspect ALL source pipework, including areas without colored proposals. Search for missed short branches, parallel runs, dashed systems, boundary stubs and connections around equipment. Also remove false leaders, duplicate outlines and equipment internals. The previous trace and its implied length are not source truth. Return the complete replacement path list and tight equipment-body masks for this detail, not just additions. complete=false if unresolved.'}]
-                    prompt+=image_content(full,'IMAGE 0: original full source context.')
-                    prompt+=image_content(source,'IMAGE 1: original closer source detail. Read this independently.')
-                    prompt+=image_content(overlay(source,local_proposals(parts,crop)),
-                                          'IMAGE 2: earlier fallible paths. Uncolored areas still require source inspection.')
-                    cached=llm._request(prompt,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
                 detail_parts=clipped_paths(cached.get('paths') or [],crop,detail_core,region,cached.get('exclusions') or [])
-                hit=cache.get(key) is not None
-                if cached.get('complete') is True:cache.put(key,cached)
-                return index,detail_core,crop,detail_parts,{**cached,'cache_hit':hit},number+1
-            except (ToolError,llm.ModelError) as error:
-                if isinstance(error,llm.ModelError) and not error.recoverable:raise
-                # Keep already located source geometry as partial evidence;
-                # never label its unverified sum a complete network quantity.
-                fallback=clipped_paths(local_proposals(parts,crop),crop,detail_core,region)
-                return index,detail_core,crop,fallback,{'complete':False,'warnings':[],
-                    'reason':'Native-detail coverage could not complete: '+str(error),'retryable':True},number+1
-        for start in range(0,len(detail_tiles),3):
-            tasks=[lambda n=n,c=c,r=r:inspect_detail(n,c,r) for n,(c,r) in enumerate(detail_tiles) if start<=n<start+3]
-            coverage.extend(llm.run_in_parallel(tasks))
+            except ToolError as error:
+                if 'prompt' not in locals():raise
+                repair=prompt+[{'type':'input_text','text':'The proposed geometry failed host validation: '+str(error)+'. Correct the geometry on the same original source and return complete replacement paths/masks. Do not infer a desired length. Invalid proposal: '+json.dumps(cached,ensure_ascii=False)}]
+                cached=llm._request(repair,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
+                detail_parts=clipped_paths(cached.get('paths') or [],crop,detail_core,region,cached.get('exclusions') or [])
+            hit=cache.get(key) is not None
+            if cached.get('complete') is True:cache.put(key,cached)
+            return index,detail_core,crop,detail_parts,{**cached,'cache_hit':hit},number+1
+        except (ToolError,llm.ModelError) as error:
+            if isinstance(error,llm.ModelError) and not error.recoverable:raise
+            # Keep already located source geometry as partial evidence;
+            # never label its unverified sum a complete network quantity.
+            fallback=clipped_paths(local_proposals(parts,crop),crop,detail_core,region)
+            return index,detail_core,crop,fallback,{'complete':False,'warnings':[],
+                'reason':'Native-detail coverage could not complete: '+str(error),'retryable':True},number+1
+    detail_tasks=[]
+    for index,core,parts,review in sorted(outputs):
+        details=coverage_plan(document,page,core,region)
+        if not details:
+            coverage.append((index,core,planned[index][1],parts,review,None));continue
+        detail_tasks.extend(lambda i=index,p=parts,n=n,c=c,r=r:inspect_detail(i,p,n,c,r)
+                            for n,(c,r) in enumerate(details))
+    for start in range(0,len(detail_tasks),6):
+        coverage.extend(llm.run_in_parallel(detail_tasks[start:start+6]))
+    coverage.sort(key=lambda item:(item[0],item[-1] or 0))
     evidence=[];warnings=list(plan.get('warnings') or []);trace=list(calibration_trace);complete=True
     for index,core,crop,parts,review,detail in coverage:
         complete=complete and review.get('complete') is True;warnings.extend(review.get('warnings') or [])
@@ -303,6 +314,8 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
          'expression':'sum('+','.join('e'+str(i) for i in range(len(evidence)))+')'}
     result=finalize(raw,[{'image':full,'page':page,'region':[0,0,1,1],'kind':'overview'}],document,question,bounds,trace,tools)
     result['route_inspection']=inspection
+    if complete and result.get('value') is not None:
+        result['answer']=f"Estimated visible 2D pipe centreline: {result['value']:.2f} m. Measured from the highlighted source routes using the drawing scale; unshown vertical and off-sheet runs are excluded."
     if not complete:
         reasons=' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete'])
         result['answer']='The full visible pipe inventory is incomplete. '+reasons
