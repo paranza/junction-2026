@@ -1,0 +1,128 @@
+{
+  "classification": "small exposed development studies, not blind general accuracy",
+  "implementation_revision": "98f9bca5977f08615cb42728829d6c173c7c3723",
+  "prior_candidate_revision": "f8ba483ff35727381428b35a0a801236afdb6925",
+  "reserved_evaluations": 0,
+  "reference_values_sent_to_model": false,
+  "source_or_question_specific_dispatch": false,
+  "previous_seven": {
+    "numeric_answerable": 7,
+    "correct": 7,
+    "source": "previously used public complex drawings"
+  },
+  "new_public_twelve": {
+    "answerable_numeric": 10,
+    "correct": 10,
+    "missing_information_controls": 2,
+    "controls_passed": 2,
+    "prior_reader_numeric_correct": 8,
+    "prior_reader_numeric_total": 10,
+    "comparison": "Prior reader paired run versus later candidate after general fixes; development comparison, not a frozen untouched paired estimate",
+    "blank_header_reference_audit": true
+  },
+  "initial_final_candidate": {
+    "cases": 21,
+    "correct": 19,
+    "numeric_correct": 17,
+    "numeric_total": 17,
+    "controls_passed": 2,
+    "synthetic_technical_errors": 2,
+    "actual_provider_attempts": 42,
+    "failure": "requires_continuation after provider thought segment ceiling; original run preserved"
+  },
+  "continuation_adapter": {
+    "revision": "98f9bca5977f08615cb42728829d6c173c7c3723",
+    "bounded_hops": 3,
+    "each_hop_reserves_cumulative_attempt": true,
+    "tokens_persisted": false,
+    "unit_tests_cover_real_continuation_response": true,
+    "confirmation_completed": 2,
+    "confirmation_correct": 2,
+    "confirmation_attempts": 8,
+    "live_continuation_status_observed_in_confirmation": false,
+    "limitation": "Confirmation succeeded without continuation status; live resume itself is unit-tested, not claimed exercised in these successful requests"
+  },
+  "new_real_complex_stress": {
+    "revision": "98f9bca5977f08615cb42728829d6c173c7c3723",
+    "questions": 5,
+    "raw_correct": 4,
+    "source_audited_correct": 5,
+    "answers": 5,
+    "technical_errors": 0,
+    "provider_attempts": 14,
+    "not_independent_full_drawings": true,
+    "door_reference_audit": "Original expected 16 omitted four physical passage openings; source audit after inference confirms 20. Raw manifest and false flag retained. No app code or response changed. This case is post-inference reference validation, not a blind scored success.",
+    "rows": [
+      {
+        "id": "real-school-selected-doors",
+        "value": 3,
+        "unit": "count",
+        "seconds": 29.572,
+        "original_correct": true,
+        "source_audited_correct": true,
+        "needs_review": true
+      },
+      {
+        "id": "real-school-door-openings",
+        "value": 20,
+        "unit": "count",
+        "seconds": 165.794,
+        "original_correct": false,
+        "source_audited_correct": true,
+        "needs_review": true
+      },
+      {
+        "id": "real-service-pipe-length",
+        "value": 20.019698946363906,
+        "unit": "m",
+        "seconds": 205.561,
+        "original_correct": true,
+        "source_audited_correct": true,
+        "needs_review": true
+      },
+      {
+        "id": "real-school-chairs",
+        "value": 106,
+        "unit": "count",
+        "seconds": 364.8,
+        "original_correct": true,
+        "source_audited_correct": true,
+        "needs_review": true
+      },
+      {
+        "id": "real-selected-service-pipe-length",
+        "value": 20.082716415301388,
+        "unit": "m",
+        "seconds": 242.805,
+        "original_correct": true,
+        "source_audited_correct": true,
+        "needs_review": true
+      }
+    ],
+    "pipe_reference_m": 20.018686381372223,
+    "pipe_absolute_tolerance_m": 0.6,
+    "pipe_scope": "Shown incoming cold-water plan route only, not total installed pipe network; selected-region question reuses the same route",
+    "chairs_scope": "106 individually drawn student/teacher chairs in four classrooms; excludes stools, lounge seating and concealed cart chairs",
+    "door_scope": "Physical passage openings, double leaves count once, cabinetry excluded; existing pale context and operable partition stacks excluded"
+  },
+  "api_validation": {
+    "revision": "f8ba483ff35727381428b35a0a801236afdb6925",
+    "passed": true,
+    "cases": 2,
+    "actual_provider_attempts": 6,
+    "count_review_exclude_restore_export": true,
+    "geometry_export_and_cached_replay": true,
+    "cached_replay_zero_provider_attempts": true
+  },
+  "private_original_records_sha256": {
+    "geometry-final-candidate/freeze.json": "dc57bb3703e6f809aee3dc706affe97bc03be3afa0269baf0eecdb350517588c",
+    "geometry-final-candidate/rows.json": "bc158cfe36423a492f90a1462090499d6c518615735ba4ac59037914bd3e5c43",
+    "geometry-final-candidate/summary.json": "9ac228912945503685321067e6197f45c4cd4d7d1d9ed68307876a82a0d2565a",
+    "real-complex-stress-20261115/stress-cases.json": "f133d63bb59c1c8d543f7c7a17c6386018b8ca4e1fda79231747afbf1aa377e2",
+    "real-complex-stress-20261115/frozen-check/freeze.json": "597417425d41e7705a099b21c2d93f128abf21fcb6498b2df526a4c56245b487",
+    "real-complex-stress-20261115/frozen-check/rows.json": "33f735c1fc5de8d0cfeaa3e337b5942548e71f020364585db415534432a8eaba",
+    "real-complex-stress-20261115/door-reference-audit.json": "8263a1d49437f43fed35317581b3f3a313aace02ca33fcc544ea78d53eb5483b",
+    "geometry-tool-board/continuation-confirmation/freeze.json": "a8f2758d701f3db92c32e82fe10ed3b4cfdb77f1c15772167214d4d18f74515f",
+    "geometry-tool-board/continuation-confirmation/rows.json": "40c3d569099dfb5d6f728a78aada8d85e288f1ef0dc0adb3c67ee7ff911292d2"
+  }
+}

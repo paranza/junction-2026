@@ -1,0 +1,36 @@
+{
+  "code_revision": "98f9bca5977f08615cb42728829d6c173c7c3723",
+  "backend_tests": {
+    "status": "passed",
+    "tests": 452,
+    "log_sha256": "6ac6f740ac05dd34f1cbd479ab0f2d3989703119f79ad103b37207ec0976cc90",
+    "credentials_empty_in_test_process": true,
+    "legacy_fixture_reader": "off",
+    "new_reader_tests_enable_explicitly": true
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "tests": 59,
+    "reused_identical_source_from": "24b7a66596111bdb1fb95baf725898cbfc11f76b",
+    "git_tree": "8d4c6383d1a1a9269485ad0984ae38ddd830983d"
+  },
+  "frontend_build": {
+    "status": "passed",
+    "reused_identical_source_from": "24b7a66596111bdb1fb95baf725898cbfc11f76b"
+  },
+  "frontend_build_sha256": {
+    "frontend/dist/index.html": "ac63763c7e77ea257c6bdd6f7cbe7fae795dc838142b5b2a5ece28157e634d65",
+    "frontend/dist/assets/index-DJDJJ6la.js": "4916bde82b6109d05c84162432f1045c0a0ccffd86f33f46193540b8bfa2c0a4",
+    "frontend/dist/assets/index-BJdZkLss.css": "7c9e96310156641f17b0f50c1273264723a1eb994260d4a95faa52debe818231"
+  },
+  "installed_offline_geometry_smoke": {
+    "status": "passed",
+    "real_ocr_calibration": true,
+    "colored_centerline_graph": true,
+    "measured_m": 18.65356917382416,
+    "reference_m": 18.75,
+    "absolute_tolerance_m": 0.25,
+    "model_calls": 0,
+    "fixture": "synthetic, not a real drawing accuracy score"
+  }
+}

@@ -1,8 +1,8 @@
 # Complex drawing rehearsal questions
 
-Generated 15 November 2026 from three independently located public drawing PDFs. These are plausible practice questions, not leaked or predicted judge questions. The original files remain outside Git; download links, hashes and page locators are supplied. Public availability does not grant redistribution rights.
+Generated 15 November 2026 from five independently located public drawing PDFs. These are plausible practice questions, not leaked or predicted judge questions. The original files remain outside Git; download links, hashes and page locators are supplied. Public availability does not grant redistribution rights.
 
-Unless specified otherwise, use the named sheet and view, exclude legends and repeated details, preserve units and field-verification notes, and distinguish drawn geometry from complete installed quantities. Some questions intentionally require other sheets or missing information. No answer key is included. The separately frozen 12-check comparison tests only a subset; the remaining questions are ungraded practice.
+Unless specified otherwise, use the named sheet and view, exclude legends and repeated details, preserve units and field-verification notes, and distinguish drawn geometry from complete installed quantities. Some questions intentionally require other sheets or missing information. No answer key is included. The 12-check comparison and later five-question real-drawing stress check test only a subset; the remaining questions are ungraded practice. Raw references and their audits are recorded separately.
 
 ## NIST school, Area A
 
@@ -81,6 +81,28 @@ Unless specified otherwise, use the named sheet and view, exclude legends and re
 - **practice-46** (length): Measure shown conduit routes without inventing hidden paths.
 - **practice-47** (scope): Avoid counting the enlarged basement view twice.
 - **practice-48** (missing_information): Can diagrammatic wiring establish installed cable length?
+
+## Kelsey Norman elementary furniture plan
+
+[Original PDF, page 13](https://cdnsm5-ss11.sharpschool.com/UserFiles/Servers/Server_153000/File/Bid%20Documents/2020/Sept-Oct/KN%20Furniture%20Proposal%20Request.pdf#page=13), sheet **A106**. SHA-256: `26deaac6ec20d9c6921294d41cb203273215df27dfe30f584d4cb50e4ca3c1bc`.
+
+- **practice-49** (count): Count individually drawn student and teacher chairs in the four classrooms, excluding stools, lounge seating and concealed cart chairs.
+- **practice-50** (count): Count physical passage door openings, treating a double-leaf pair as one opening and excluding cupboard and appliance doors.
+- **practice-51** (filter): Separate labelled chairs from geometrically identical unlabelled chairs without omitting either.
+- **practice-52** (scope): Count doors in a selected classroom and corridor region only, excluding furniture swings.
+- **practice-53** (comparison): Compare individually drawn classroom chair counts by classroom.
+- **practice-54** (missing_information): Can the plan establish the total chairs supplied, including items inside storage carts, without a furniture schedule?
+
+## Flannery Field domestic-water service
+
+[Original PDF, page 40](https://img1.wsimg.com/blobby/go/8b740ebe-e1ca-43cb-b53b-69cf77a2892d/downloads/5fffc685-8589-4258-abd6-41efa51a1ee6/WASD%20Flannery%20Field%20Plans.pdf?ver=1744393643097#page=40), sheet **P-101**. SHA-256: `6e05c70bf541e682b4a660bf164c3607383603ac249a1839a2500473fe9276f4`.
+
+- **practice-55** (length): Measure the shown incoming cold-water plan route from the west PP01 tie-in to the inlet union before BFP101, excluding equipment and unshown vertical runs.
+- **practice-56** (selection): Measure the selected incoming cold-water route using the applicable graphic scale, even if the scale lies outside the selected quantity region.
+- **practice-57** (connectivity): Distinguish cold water, hot water and recirculation at a crossing without assuming every crossing is a junction.
+- **practice-58** (cross_reference): Read the BFP101 assembly tag and identify the referenced detail needed to establish its connections.
+- **practice-59** (filter): Separate buried dashed water routes from above-ground runs and distinguish diameter labels from length annotations.
+- **practice-60** (missing_information): Can this plan alone establish installed pipe quantities including risers, off-sheet continuations and equipment internals?
 
 ## Use with the application
 
