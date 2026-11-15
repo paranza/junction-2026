@@ -1,0 +1,15 @@
+{
+  "status": "interrupted_for_user_requested_submission",
+  "reference_answers_supplied_to_model": false,
+  "recorded_model_attempts": 60,
+  "whole_network_completeness_verified": false,
+  "completed_rows": [
+    {
+      "case": "real-service-pipe-length",
+      "value": 20.08326628788167,
+      "seconds": 86.11064137500944,
+      "error": null
+    }
+  ],
+  "reserved_evaluation_used": false
+}

@@ -1,0 +1,16 @@
+{
+  "code_revision": "e910cd5fac97f8e5fb7e39deea045e07849a4f90",
+  "port": 8791,
+  "route_reader": "auto",
+  "provider": "gemini",
+  "model": "gemini-4-argon",
+  "base_provider_policy_unchanged": true,
+  "runtime_path_unchanged": true,
+  "backup_integrity_verified": true,
+  "previous_process_graceful_shutdown": true,
+  "model_requests_before": 11,
+  "model_requests_after": 11,
+  "ceiling": 1000,
+  "activation_model_requests": 0,
+  "source_revision": "ed1c46940181a100eb3a"
+}
