@@ -27,6 +27,7 @@ MAX_DETAILS = 8
 POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'high', 'max_output_tokens': 65536}
 COUNT_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'low', 'max_output_tokens': 16384}
 COUNT_RESOLUTION_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'medium', 'max_output_tokens': 16384}
+ROUTE_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'low', 'max_output_tokens': 16384}
 ANSWER_SCHEMA = copy.deepcopy(llm.SCHEMA)
 ANSWER_SCHEMA['properties']['expression'] = {'type': ['string', 'null']}
 ANSWER_SCHEMA['required'].append('expression')
@@ -105,7 +106,8 @@ def config_signature():
             'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True,
                                   'count_policy':COUNT_POLICY if dense=='on' else POLICY,
                                   'local_resolution_policy':COUNT_RESOLUTION_POLICY if refine=='on' else None},
-            'route_reader':{'mode':routes,'maximum_source_tiles':9,'maximum_local_tools':12},
+            'route_reader':{'mode':routes,'policy':ROUTE_POLICY,'maximum_source_tiles':9,
+                            'maximum_detail_regions':36,'maximum_local_tools':39,'explicit_equipment_exclusions':True},
             'count_refinement':{'mode':refine,'maximum_locations':768,'maximum_audit_batches':25},
             'maximum_detail_views': MAX_DETAILS,
             'drawing_tools': 'drawing-tools-v3-source-geometry-review', 'maximum_local_tools': 12}
@@ -353,8 +355,9 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     if config_signature()['route_reader']['mode']=='on':
         from . import route_reader
         if route_reader.requested(question):
-            return route_reader.answer(question,document,path,page,scope,bounds,
-                                       model=config_signature()['model'],policy=POLICY)
+            routed=route_reader.answer(question,document,path,page,scope,bounds,
+                                       model=config_signature()['model'],policy=ROUTE_POLICY)
+            if routed is not None:return routed
     overview = rendering.render_region(path, page, bounds, 1800)
     if llm.requested_quantity(question) == 'count':
         from . import count_reader
