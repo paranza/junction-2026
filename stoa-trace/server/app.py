@@ -759,13 +759,16 @@ def _ask_question(payload: AskRequest, answer_id: str):
                                  'review_revision':(previous.get('review') or {}).get('revision',0)})
     with store.key_lock('answer:' + key):
         result = store.cached_analysis(key)
+        if result and result.get('retryable_analysis'):
+            result = None
         hit = result is not None
         if hit:
             result['cached_analysis_usage'] = result.get('usage', {})
         else:
             result = _compute_analysis(payload, question, data, source, previous=previous)
             result['usage'] = llm.usage_snapshot()
-            store.save_analysis(key, 'answer', result)
+            if not result.get('retryable_analysis'):
+                store.save_analysis(key, 'answer', result)
     result['usage'] = llm.usage_snapshot(cache_hit=hit)
     result = _evidence(result, payload.document_id)
     if canonical_question != question:

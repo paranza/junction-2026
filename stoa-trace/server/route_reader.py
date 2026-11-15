@@ -8,6 +8,7 @@ installed quantities.
 from __future__ import annotations
 import base64
 import copy
+import hashlib
 import json
 import math
 import re
@@ -15,7 +16,7 @@ from pathlib import Path
 from . import llm,rendering
 from .drawing_tools import DrawingSession,ToolError,contains
 
-REVISION='source-route-takeoff-v2-ocr-calibration'
+REVISION='source-route-takeoff-v3-resumable-traces'
 MAX_TILES=9
 POINT={'type':'array','items':{'type':'number'},'minItems':2,'maxItems':2}
 BOX={'type':'array','items':{'type':'number'},'minItems':4,'maxItems':4}
@@ -102,9 +103,15 @@ def image_content(image,label):
 
 def answer(question,document,path,page,scope,bounds,*,model,policy):
     from .deep_reader import _unsupported,finalize
+    from .drawing_tools import fingerprint
+    from .inspection_cache import InspectionCache
+    cache=InspectionCache({'revision':REVISION,'implementation':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        'source':fingerprint(Path(path)),'page':page,'question':question,'bounds':bounds,'scope':scope,
+        'model':model,'provider':llm.provider_signature(),'policy':policy})
     full=rendering.render_region(path,page,[0,0,1,1],2200)
     content=[{'type':'input_text','text':f'Plan source inspection for this exact question: {question}\nScope: {scope}, page {page}, quantity bounds {bounds}.'}]+image_content(full,'Full source page. Locate applicable plan region and physical scale.')
-    plan=llm._request(content,system=SYSTEM,schema=PLAN,model=model,visual_policy=policy,max_tokens=32768)
+    plan=cache.get('calibrated-plan');plan_cached=plan is not None
+    if plan is None:plan=llm._request(content,system=SYSTEM,schema=PLAN,model=model,visual_policy=policy,max_tokens=32768)
     if not plan.get('complete'):return _unsupported(plan.get('reason') or 'The requested route scope is not established by this source.')
     region=llm._mapped_box(plan.get('region'),[0,0,1,1])
     if not region or not contains(bounds,region):return _unsupported('Route planning escaped the requested quantity scope.')
@@ -137,14 +144,26 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
     if not region or not contains(bounds,region):return _unsupported('Revised route plan escaped the requested quantity scope.')
     planned=list(tile_plan(document,page,region))
     if len(planned)>MAX_TILES:return _unsupported('Route scope exceeds the source tile budget.')
+    cache.put('calibrated-plan',plan)
     def inspect(index,core,crop):
+        key={'core':core,'crop':crop};cached=cache.get(key)
+        if cached is not None:
+            return index,core,clipped_paths(cached.get('paths') or [],crop,core,region),{**cached,'cache_hit':True}
         source=rendering.render_region(path,page,crop,3400)
         local=[(core[0]-crop[0])/(crop[2]-crop[0]),(core[1]-crop[1])/(crop[3]-crop[1]),(core[2]-crop[0])/(crop[2]-crop[0]),(core[3]-crop[1])/(crop[3]-crop[1])]
         prompt=[{'type':'input_text','text':f'Trace actual source routes for: {question}\nTile {index+1}/{len(planned)}, local owned core {local}. Source page crop {crop}. Preserve all filters and ALL relevant routes in the core; inspect overlap for context. Coordinates are local IMAGE 1.'}]+image_content(full,'IMAGE 0: full source context, not geometry coordinates.')+image_content(source,'IMAGE 1: original source tile, local geometry coordinates.')
-        first=llm._request(prompt,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
-        review=prompt+image_content(overlay(source,first.get('paths') or []),'IMAGE 2: proposed source centrelines, not source truth. Review against IMAGE 1 and return a complete corrected list, adding missing paths and removing false ones.')
-        audited=llm._request(review,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
+        try:
+            first=llm._request(prompt,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
+            review=prompt+image_content(overlay(source,first.get('paths') or []),'IMAGE 2: proposed source centrelines, not source truth. Review against IMAGE 1 and return a complete corrected list, adding missing paths and removing false ones.')
+            audited=llm._request(review,system=SYSTEM,schema=TRACE,model=model,visual_policy=policy,max_tokens=32768)
+        except llm.ModelError as error:
+            if not error.recoverable:raise
+            # Sibling regions can still finish and persist their audits. Never
+            # publish their partial sum as the full requested network length.
+            return index,core,[],{'complete':False,'warnings':[],
+                'reason':'Source region request could not complete: '+str(error),'retryable':True}
         parts=clipped_paths(audited.get('paths') or [],crop,core,region)
+        cache.put(key,audited)
         return index,core,parts,audited
     outputs=[]
     for start in range(0,len(planned),3):
@@ -153,7 +172,8 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
     evidence=[];warnings=list(plan.get('warnings') or []);trace=list(calibration_trace);complete=True
     for index,core,parts,review in sorted(outputs):
         complete=complete and review.get('complete') is True;warnings.extend(review.get('warnings') or [])
-        trace.append({'tile':index+1,'source_region':core,'paths':len(parts),'complete':review.get('complete') is True,'reason':review.get('reason')})
+        trace.append({'tile':index+1,'source_region':core,'paths':len(parts),'complete':review.get('complete') is True,
+                      'reason':review.get('reason'),'cache_hit':review.get('cache_hit',False),'retryable':review.get('retryable',False)})
         if not parts:continue
         flat=[]
         for part in parts:
@@ -161,10 +181,21 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
             flat.extend(part)
         result=tools.execute({'name':'multipath','region':core,'calibration_id':calibration['id'],'geometry':flat})
         evidence.append({'label':f'Source route geometry in tile {index+1}','tool_id':result['id']})
-    if not complete or not evidence:return _unsupported('The full visible route inventory remains unresolved. '+ ' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete']),trace=trace)
+    if not evidence:
+        result=_unsupported('The full visible route inventory remains unresolved. '+ ' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete']),trace=trace)
+        result['retryable_analysis']=any(t.get('retryable') for t in trace)
+        return result
     warnings.append('This measures the traced visible 2D routes only. System interpretation, hidden/vertical lengths, dashed gaps and source alignment require review.')
-    raw={'operation':'length','unit':'m','complete':True,'scope':scope,'evidence':evidence,'warnings':warnings,
+    raw={'operation':'length','unit':'m','complete':complete,'scope':scope,'evidence':evidence,'warnings':warnings,
          'expression':'sum('+','.join('e'+str(i) for i in range(len(evidence)))+')'}
     result=finalize(raw,[{'image':full,'page':page,'region':[0,0,1,1],'kind':'overview'}],document,question,bounds,trace,tools)
-    result['route_inspection']={'revision':REVISION,'source_tiles':len(planned),'source_calibration':calibration['reference'],'plan_region':region}
+    result['route_inspection']={'revision':REVISION,'source_tiles':len(planned),'source_calibration':calibration['reference'],
+        'plan_region':region,'plan_cache_hit':plan_cached,'cached_tiles':sum(t.get('cache_hit',False) for t in trace),
+        'retryable_regions':sum(t.get('retryable',False) for t in trace)}
+    if not complete:
+        reasons=' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete'])
+        result['answer']='The full visible pipe inventory is incomplete. '+reasons
+        if result['route_inspection']['retryable_regions']:
+            result['retryable_analysis']=True
+            result['answer']+=' Retry this question to resume unfinished regions; completed source traces are retained.'
     return result

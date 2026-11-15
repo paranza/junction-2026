@@ -8,12 +8,16 @@ import hashlib
 import json
 import os
 import tempfile
+from pathlib import Path
 from . import store
 
 
 class InspectionCache:
     def __init__(self, identity):
-        self.identity=identity
+        folder=Path(__file__).parent
+        self.identity={'context':identity,'source_transform_code':{
+            name:hashlib.sha256((folder/name).read_bytes()).hexdigest()
+            for name in ('inspection_cache.py','rendering.py','drawing_tools.py')}}
         self.root=store.RUNTIME/'cache'/'source-inspection'
 
     def path(self,tile):

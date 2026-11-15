@@ -51,6 +51,21 @@ class SessionApi(unittest.TestCase):
         self.assertEqual(summary['aggregate']['cost_estimate_usd'], 0)
         self.assertTrue(all(row['status'] == 'completed' for row in summary['by_message']))
 
+    def test_retryable_partial_analysis_does_not_trap_a_question_in_the_answer_cache(self):
+        partial={'value':None,'unit':'m','operation':'length','method':'source_inspection_agent',
+            'status':'insufficient_evidence','evidence':[],'retryable_analysis':True}
+        completed={'value':12,'unit':'m','operation':'length','method':'source_inspection_agent',
+            'status':'needs_review','evidence':[]}
+        with patch.object(api,'_compute_analysis',side_effect=[partial,completed]) as compute:
+            first=self.ask(mode='auto',question='How many metres of pipe are shown?').json()
+            second=self.ask(mode='auto',question='How many metres of pipe are shown?').json()
+            third=self.ask(mode='auto',question='How many metres of pipe are shown?').json()
+        self.assertIsNone(first['value']);self.assertFalse(second['usage']['cache_hit'])
+        self.assertEqual(second['value'],12);self.assertEqual(third['value'],12)
+        self.assertTrue(third['usage']['cache_hit']);self.assertEqual(compute.call_count,2)
+        original=self.client.get('/api/answers/'+first['id']).json()
+        self.assertIsNone(original['value'])
+
     def test_incomplete_provider_answer_keeps_reported_cost_and_isolates_sessions(self):
         body = {'status': 'incomplete', 'usage': {'input_tokens': 100, 'output_tokens': 200,
                 'input_tokens_details': {'cached_tokens': 0}}, 'output': []}

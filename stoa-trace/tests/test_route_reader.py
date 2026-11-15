@@ -7,6 +7,14 @@ from server.drawing_tools import ToolError
 
 
 class SourceRouteTakeoff(unittest.TestCase):
+    def setUp(self):
+        self.cache_dir=tempfile.TemporaryDirectory()
+        self.cache_patch=patch('server.inspection_cache.store.RUNTIME',Path(self.cache_dir.name))
+        self.cache_patch.start()
+
+    def tearDown(self):
+        self.cache_patch.stop();self.cache_dir.cleanup()
+
     def test_intent_is_length_not_nominal_diameter_or_hidden_quantity_substitution(self):
         self.assertTrue(rr.requested('How many metres of pipe centreline are drawn?'))
         self.assertTrue(rr.requested('Quanti metri di tubi ci sono nel progetto?'))
@@ -43,9 +51,38 @@ class SourceRouteTakeoff(unittest.TestCase):
 
     def test_unavailable_vertical_or_offsheet_scope_is_not_replaced_by_visible_length(self):
         with patch.object(llm,'_request',return_value={'complete':False,'reason':'Referenced vertical runs are missing.'}),\
+             patch('server.drawing_tools.fingerprint',return_value='mock-source'),\
              patch('server.rendering.render_region',return_value=Image.new('RGB',(32,32))):
             result=rr.answer('How many metres of pipes including all vertical runs?',{},Path('x.png'),1,'document',[0,0,1,1],model='test',policy={})
         self.assertIsNone(result['value']);self.assertIn('vertical',result['answer'])
+
+    def test_transient_region_failure_retains_evidence_and_retry_resumes_only_missing_audit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'unknown.png';Image.new('RGB',(1000,600),'white').save(path)
+            doc={'page_count':1,'pages':[{'page':1,'width':1000,'height':600}],'objects':[]}
+            plan={'region':[0,0,1,1],'reference':{'points':[[.1,.2],[.6,.2]],'value':10,
+                'unit':'m','quote':'10 m','annotation_bbox':[.05,0,.3,.15]},'complete':True,'warnings':[],'reason':'Source scale'}
+            traced={'paths':[{'label':'Route','points':[[.2,.5],[.8,.5]]}],
+                    'complete':True,'warnings':[],'reason':'Reviewed source'}
+            failed=[]
+            def request(content,**kwargs):
+                if kwargs['schema'] is rr.PLAN:return plan
+                if 'Tile 1/2' in content[0]['text'] and not failed:
+                    failed.append(True);raise llm.ModelError('Read timed out',recoverable=True)
+                return traced
+            tiles=[([0,0,.5,1],[0,0,.5,1]),([.5,0,1,1],[.5,0,1,1])]
+            words={'words':[{'text':'10 m','bbox':[.1,.02,.2,.05]}],'complete':True}
+            with patch.object(llm,'_request',side_effect=request) as calls,\
+                 patch.object(rr,'tile_plan',side_effect=lambda *a:iter(tiles)),\
+                 patch('server.drawing_tools.DrawingSession._words',return_value=words):
+                first=rr.answer('How many metres of pipes?',doc,path,1,'page',[0,0,1,1],model='test',policy={})
+                self.assertIsNone(first['value']);self.assertEqual(len(first['evidence']),1)
+                self.assertEqual(first['route_inspection']['retryable_regions'],1)
+                second=rr.answer('How many metres of pipes?',doc,path,1,'page',[0,0,1,1],model='test',policy={})
+            self.assertAlmostEqual(second['value'],12)
+            self.assertEqual(second['route_inspection']['cached_tiles'],1)
+            self.assertTrue(second['route_inspection']['plan_cache_hit'])
+            self.assertEqual(calls.call_count,6)
 
     def test_calibration_retry_sees_positioned_source_words_and_preserves_failure(self):
         with tempfile.TemporaryDirectory() as directory:
