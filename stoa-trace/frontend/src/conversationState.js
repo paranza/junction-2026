@@ -9,7 +9,8 @@ const terminal = status => ['completed', 'error', 'failed'].includes(status);
 function cleanRecord(value) {
   if (!value || !safeMessageId(value.id) || typeof value.question !== 'string' || !value.question.trim()
       || !Number.isFinite(value.timestamp) || value.timestamp < 0 || !states.has(value.status)) return null;
-  return { id: value.id, answerId: safeId(value.answerId) ? value.answerId : null,
+  const id = value.id === `saved:${value.answerId}` && safeId(value.answerId) ? value.answerId : value.id;
+  return { id, answerId: safeId(value.answerId) ? value.answerId : null,
     question: value.question.slice(0, 2500), timestamp: value.timestamp,
     status: value.status, documentName: typeof value.documentName === 'string' ? value.documentName.slice(0, 512) : '' };
 }

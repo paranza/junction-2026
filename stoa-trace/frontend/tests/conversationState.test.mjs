@@ -47,7 +47,10 @@ test('an answer linked by the server survives transcript hydration and refresh',
     answer_id: 'answer-1', question: 'What is the measured perimeter?', created_at: 12, status: 'completed' }] };
   const records = mergeConversation([], recordsFromSnapshot(snapshot, session));
   assert.equal(records.length, 1);
+  assert.equal(records[0].id, 'answer-1');
   assert.deepEqual(pendingAnswerIds(records, {}), ['answer-1']);
+  assert.equal(mergeConversation(records, [recordFromAnswer({ id: 'answer-1', message_id: 'answer-1',
+    question: 'What is the measured perimeter?', created_at: 10 })]).length, 1);
   const storage = memory(); saveConversation(storage, session, records);
   assert.deepEqual(readConversation(storage, session), records);
   assert.deepEqual(mergeConversation([], [record('saved:../unsafe')]), []);
