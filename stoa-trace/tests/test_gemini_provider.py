@@ -120,6 +120,36 @@ class GeminiProviderTests(unittest.TestCase):
         self.reserve.assert_called_once()
         post.assert_not_called()
 
+    def test_stateless_continuation_is_separately_budgeted_and_usage_is_summed(self):
+        first=self.response(status='requires_continuation');first['continuation_token']='opaque-private-token'
+        first['steps']=[{'type':'model_output','content':[{'type':'text','text':'{"answer":'}]}]
+        second=self.response();second['steps']=[{'type':'model_output','content':[{'type':'text','text':'"continued"}'}]}]
+        _,post=self.client();post.side_effect=[httpx.Response(200,json=first),httpx.Response(200,json=second)]
+        with llm.usage_scope():
+            result=llm._request([{'type':'input_text','text':'Read source'}]);usage=llm.usage_snapshot()
+        self.assertEqual(result['answer'],'continued');self.assertEqual(usage['model_calls'],2)
+        self.assertEqual(usage['input_tokens'],240);self.assertEqual(usage['output_tokens'],200)
+        self.assertEqual(self.reserve.call_count,2)
+        first_payload=post.call_args_list[0].kwargs['json'];next_payload=post.call_args_list[1].kwargs['json']
+        self.assertEqual(next_payload['input'],first_payload['input']);self.assertFalse(next_payload['store'])
+        self.assertEqual(next_payload['continuation_token'],'opaque-private-token')
+        self.assertNotIn('previous_interaction_id',next_payload)
+        self.assertNotIn('opaque-private-token',str(self.event.call_args_list));self.assertNotIn('opaque-private-token',str(result))
+
+    def test_continuation_cannot_bypass_attempt_ceiling(self):
+        body=self.response(status='requires_continuation');body['continuation_token']='transient'
+        _,post=self.client(body);self.reserve.side_effect=[True,False]
+        with llm.usage_scope():
+            with self.assertRaisesRegex(llm.ModelError,'allowance'):llm._request([])
+            self.assertEqual(llm.usage_snapshot()['model_calls'],1)
+        self.assertEqual(post.call_count,1);self.assertEqual(self.reserve.call_count,2)
+
+    def test_repeated_continuation_token_stops_without_replay(self):
+        body=self.response(status='requires_continuation');body['continuation_token']='same-token'
+        _,post=self.client(body)
+        with self.assertRaisesRegex(llm.ModelError,'continuation budget'):llm._request([])
+        self.assertEqual(post.call_count,2)
+
     def test_failed_http_attempt_is_counted_once_and_error_is_sanitized(self):
         for code in (400, 401, 403, 404, 429, 503):
             with self.subTest(code=code):

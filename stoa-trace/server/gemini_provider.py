@@ -22,7 +22,7 @@ import httpx
 
 ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions'
 API_REVISION = '2026-05-20'
-REVISION = 'gemini-interactions-v3'
+REVISION = 'gemini-interactions-v4-continuation'
 GEMMA_REVISION = 'gemma-interactions-v2'
 DEFAULT_MODEL = 'gemini-4-argon'
 GEMMA_MODELS = frozenset({'gemma-4-31b-it', 'gemma-4-26b-a4b-it'})
@@ -169,7 +169,11 @@ def normalize_response(body):
                 output.append({'content': [{'type': 'output_text', 'text': part['text']}
                                           for part in parts if isinstance(part, dict)
                                           and part.get('type') == 'text' and isinstance(part.get('text'), str)]})
-    return {'status': body.get('status'), 'usage': usage, 'output': output}
+    result = {'status': body.get('status'), 'usage': usage, 'output': output}
+    token = body.get('continuation_token')
+    if body.get('status') == 'requires_continuation' and isinstance(token,str) and 0<len(token)<=131072:
+        result['continuation_token'] = token
+    return result
 
 
 def request(payload, key):

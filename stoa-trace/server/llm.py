@@ -161,58 +161,75 @@ def _request(content, system=SYSTEM, schema=SCHEMA, max_tokens=10000, *, model=N
                    'input': [{'role': 'system', 'content': system}, {'role': 'user', 'content': content}],
                    'text': {'format': {'type': 'json_schema', 'name': 'drawing_answer', 'strict': True, 'schema': schema}}}
     ledger = _usage.get()
-    request_id = uuid.uuid4().hex
-    tracking = ({'request_id': request_id, 'session_id': ledger['_session_id'], 'message_id': ledger['_message_id']}
-                if ledger is not None and ledger.get('_session_id') and ledger.get('_message_id') else {})
-    detail = {'provider': PROVIDER, 'model': selected_model, 'images': sum(x.get('type') == 'input_image' for x in content), **tracking}
-    if not store.reserve_model_request(MAX_CALLS, detail):
-        raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
-    call = {'model': PROVIDER + '/' + selected_model, 'usage': None, 'created': time.time()}
-    if ledger is not None:
-        ledger.setdefault('_calls', []).append(call)
-        ledger['model_calls'] += 1
-        ledger['unknown_usage'] += 1
-        identity = PROVIDER + '/' + selected_model
-        if identity not in ledger.setdefault('models', []):
-            ledger['models'].append(identity)
-    if PROVIDER == 'gemini':
-        try:
-            body = gemini_provider.request(payload, KEY)
-        except gemini_provider.ProviderError as error:
-            raise ModelError(str(error),recoverable=error.recoverable) from None
-    else:
-        try:
-            with httpx.Client(timeout=httpx.Timeout(180, connect=15), follow_redirects=False) as client:
-                response = client.post('https://api.openai.com/v1/responses', headers={'Authorization': 'Bearer ' + KEY}, json=payload)
-        except httpx.HTTPError:
-            raise ModelError('The model service could not be reached. Please retry or use native tools.') from None
-        if response.status_code != 200:
-            reason = {401: 'Model authentication failed.', 403: 'This model is not enabled for this project.', 429: 'The model account reached a rate or credit limit.'}.get(response.status_code, 'The model service could not complete this request.')
-            raise ModelError(reason)
-        try:
-            body = response.json()
-        except ValueError:
-            raise ModelError('The model returned an unreadable response.') from None
-        if not isinstance(body, dict):
-            raise ModelError('The model returned an unreadable response.')
-    usage = body.get('usage')
-    call['usage'] = usage
-    normalized_usage = costs.normalize_usage(usage)
-    if ledger is not None and normalized_usage is not None:
-        for field in costs.TOKEN_FIELDS:
-            ledger[field] += normalized_usage[field]
-        ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
-    store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status'), **tracking})
-    if body.get('status') != 'completed':
-        raise ModelError('The model did not finish its analysis. Narrow the question or select a smaller region.',recoverable=True)
-    text = ''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text')
+    fragments = []; continuation_tokens = set(); hop_usage = []
+    original_payload = payload
+    for hop in range(3 if PROVIDER == 'gemini' else 1):
+        request_id = uuid.uuid4().hex
+        tracking = ({'request_id': request_id, 'session_id': ledger['_session_id'], 'message_id': ledger['_message_id']}
+                    if ledger is not None and ledger.get('_session_id') and ledger.get('_message_id') else {})
+        detail = {'provider': PROVIDER, 'model': selected_model, 'images': sum(x.get('type') == 'input_image' for x in content), **tracking}
+        if not store.reserve_model_request(MAX_CALLS, detail):
+            raise ModelError('The configured model request allowance has been reached. Native tools remain available.')
+        call = {'model': PROVIDER + '/' + selected_model, 'usage': None, 'created': time.time()}
+        if ledger is not None:
+            ledger.setdefault('_calls', []).append(call)
+            ledger['model_calls'] += 1
+            ledger['unknown_usage'] += 1
+            identity = PROVIDER + '/' + selected_model
+            if identity not in ledger.setdefault('models', []):
+                ledger['models'].append(identity)
+        if PROVIDER == 'gemini':
+            try:
+                body = gemini_provider.request(payload, KEY)
+            except gemini_provider.ProviderError as error:
+                raise ModelError(str(error),recoverable=error.recoverable) from None
+        else:
+            try:
+                with httpx.Client(timeout=httpx.Timeout(180, connect=15), follow_redirects=False) as client:
+                    response = client.post('https://api.openai.com/v1/responses', headers={'Authorization': 'Bearer ' + KEY}, json=payload)
+            except httpx.HTTPError:
+                raise ModelError('The model service could not be reached. Please retry or use native tools.') from None
+            if response.status_code != 200:
+                reason = {401: 'Model authentication failed.', 403: 'This model is not enabled for this project.', 429: 'The model account reached a rate or credit limit.'}.get(response.status_code, 'The model service could not complete this request.')
+                raise ModelError(reason)
+            try:
+                body = response.json()
+            except ValueError:
+                raise ModelError('The model returned an unreadable response.') from None
+            if not isinstance(body, dict):
+                raise ModelError('The model returned an unreadable response.')
+        usage = body.get('usage')
+        call['usage'] = usage
+        normalized_usage = costs.normalize_usage(usage)
+        if ledger is not None and normalized_usage is not None:
+            for field in costs.TOKEN_FIELDS:
+                ledger[field] += normalized_usage[field]
+            ledger['unknown_usage'] = max(0, ledger['unknown_usage'] - 1)
+        store.record_event('model_response', {'provider': PROVIDER, 'model': selected_model, 'usage': usage, 'status': body.get('status'), **tracking})
+        fragments.append(''.join(part.get('text', '') for item in body.get('output', []) for part in item.get('content', []) if part.get('type') == 'output_text'))
+        hop_usage.append(normalized_usage)
+        if body.get('status') == 'completed':
+            break
+        token = body.get('continuation_token')
+        if (PROVIDER != 'gemini' or body.get('status') != 'requires_continuation'
+                or not isinstance(token,str) or not token or token in continuation_tokens or hop == 2):
+            raise ModelError('The model did not finish its analysis within the continuation budget.',recoverable=True)
+        continuation_tokens.add(token)
+        # Stateless continuation: resend the original input and configuration.
+        # The opaque token is transient, never written to events or answers.
+        payload = {**original_payload, 'continuation_token': token}
+    text = ''.join(fragments)
     try:
         result = json.loads(text)
     except (ValueError, TypeError):
         raise ModelError('The model returned an unreadable result.',recoverable=True) from None
     if not isinstance(result, dict):
         raise ModelError('The model returned an unreadable result.',recoverable=True)
-    result['_usage'] = body.get('usage') or {}
+    result['_usage'] = ({'input_tokens':sum(u['input_tokens'] for u in hop_usage),
+                         'output_tokens':sum(u['output_tokens'] for u in hop_usage),
+                         'input_tokens_details':{'cached_tokens':sum(u['cached_input_tokens'] for u in hop_usage)}}
+                        if hop_usage and all(u is not None for u in hop_usage) else {})
+    if any(u is None for u in hop_usage):result['_usage_incomplete']=True
     result['_provider'] = PROVIDER
     result['_model'] = selected_model
     return result

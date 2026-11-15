@@ -154,7 +154,7 @@ def _text_candidates(text, operation):
             yield {'value': value, 'unit': 'in', 'property_path': 'native_text', 'role': None}
         # Graphic scales and many imperial dimensions show feet alone. Do not
         # reinterpret the feet component of a combined feet-and-inches value.
-        for match in re.finditer(r'(?<![\w.,])(' + _NUMBER + r')\s*[\'′’]', text):
+        for match in re.finditer(r'(?<![\w.,])(' + _NUMBER + r')\s*[\'′’](?![a-zA-Z])', text):
             if any(start <= match.start() < end for start,end in compound_spans):continue
             value=printed_number(match.group(1),'ft')
             if value is not None:

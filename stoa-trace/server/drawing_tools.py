@@ -295,7 +295,11 @@ class DrawingSession:
         if self.calls>=MAX_TOOLS:raise ToolError('Local tool budget reached.')
         self.calls+=1
         if fingerprint(self.path)!=self.source:raise ToolError('Source changed during inspection.')
-        tool=request.get('name');r=self._region(request.get('region'));identity=f't{self.calls}'
+        tool=request.get('name')
+        # Calibration may read a scale outside a selected takeoff region. Only
+        # measured geometry/search regions remain restricted to that selection.
+        r=box(request.get('region') or [0,0,1,1]) if tool=='calibrate' else self._region(request.get('region'))
+        identity=f't{self.calls}'
         result={'id':identity,'name':tool,'page':self.page,'bbox':r,'source_verified':False,'needs_review':True}
         if tool=='ocr':
             data=self._words(r);query=str(request.get('query') or '').casefold().strip()
@@ -306,7 +310,7 @@ class DrawingSession:
         elif tool=='calibrate':
             reference=request.get('reference') or {};points=reference.get('points') or []
             if len(points)!=2:raise ToolError('Calibration requires two endpoints.')
-            points=[point(p,r) for p in points];annotation=self._region(reference.get('annotation_bbox'))
+            points=[point(p,r) for p in points];annotation=box(reference.get('annotation_bbox'))
             data=self._words(annotation)
             streams=[' '.join(w['text'] for w in data['words'] if w.get('orientation',0)==angle) for angle in (0,90)]
             quote=str(reference.get('quote') or '').strip()
@@ -415,7 +419,7 @@ class DrawingSession:
                               warning='This measures detected ink centerlines. Crossings may be junctions; text removal may cut runs. Check line isolation, components, dashed gaps, vertical and off-sheet scope. It is not independently verified physical pipe length.')
             if tool!='vectors' and (not math.isfinite(result['value']) or result['value']<=0):raise ToolError('No positive measured geometry.')
         elif tool=='symbols':
-            template_region=self._region(request.get('template'));source=self._image(r)
+            template_region=box(request.get('template'));source=self._image(r)
             # Render the template at the SAME page scale as the search raster.
             edge=max(8,round(max((template_region[2]-template_region[0])*source.width/(r[2]-r[0]),(template_region[3]-template_region[1])*source.height/(r[3]-r[1]))))
             if edge>500:raise ToolError('Choose a tight legend symbol crop, without its description.')
@@ -434,7 +438,13 @@ class DrawingSession:
     def operand(self,identity):
         result=self.results.get(identity)
         if not result or not result.get('complete') or result.get('value') is None:return None
-        return {k:result[k] for k in ('id','value','unit','page','bbox','label','source_verified','measurement_basis','measurement_key') if k in result}
+        operand={k:result[k] for k in ('id','value','unit','page','bbox','label','source_verified','measurement_basis','measurement_key') if k in result}
+        geometry=result.get('geometry')
+        if geometry:
+            b=_bbox(geometry)
+            operand['bbox']=[max(0,b[0]-1e-5),max(0,b[1]-1e-5),min(1,b[2]+1e-5),min(1,b[3]+1e-5)]
+            if result['unit']=='m²':operand['polygon']=geometry
+        return operand
 
     @staticmethod
     def _line_box(points,region,sx,sy):

@@ -50,6 +50,21 @@ class SourceTools(unittest.TestCase):
         self.calibrated();self.image.resize((800,600)).save(self.path)
         with self.assertRaises(dt.ToolError):self.session.execute({'name':'ocr'})
 
+    def test_reference_outside_selection_does_not_expand_quantity_scope(self):
+        self.session=dt.DrawingSession(self.path,1,[.1,.3,.7,.8]);cal=self.calibrated()
+        result=self.session.execute({'name':'path','calibration_id':cal['id'],'region':[.1,.3,.7,.8],
+            'geometry':[[.2,.4],[.6,.4]]})
+        self.assertAlmostEqual(result['value'],8)
+        with self.assertRaises(dt.ToolError):self.session.execute({'name':'path','calibration_id':cal['id'],
+            'region':[.1,.3,.7,.8],'geometry':[[.2,.4],[.9,.4]]})
+
+    def test_area_evidence_retains_actual_polygon_and_focus_bounds(self):
+        cal=self.calibrated();geometry=[[.1,.2],[.6,.2],[.6,.7],[.1,.7]]
+        result=self.session.execute({'name':'polygon','calibration_id':cal['id'],'geometry':geometry})
+        operand=self.session.operand(result['id'])
+        self.assertEqual(operand['polygon'],geometry)
+        self.assertLess(operand['bbox'][2]-.6,.001)
+
     def test_self_crossing_polygon_and_unclosed_room_rejected(self):
         cal=self.calibrated()
         with self.assertRaises(dt.ToolError):self.session.execute({'name':'polygon','calibration_id':cal['id'],

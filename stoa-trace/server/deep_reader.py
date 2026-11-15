@@ -20,7 +20,7 @@ from .verification import (unit_spec, finite_number, normalized,
                            ground_native_evidence, ground_visual_evidence,
                            user_declared_dimension, convert_quantity)
 
-REVISION = 'source-inspection-geometry-v2'
+REVISION = 'source-inspection-geometry-v3'
 MAX_ROUNDS = 3
 MAX_TOOL_ROUNDS = 3
 MAX_DETAILS = 8
@@ -311,13 +311,18 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     document = llm._scoped_context(document, path, page, scope, region, [page])
     overview = rendering.render_region(path, page, bounds, 1800)
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
+    if region and bounds != [0,0,1,1]:
+        inputs.append({'image':rendering.render_region(path,page,[0,0,1,1],1800),'page':page,'region':[0,0,1,1],
+                       'kind':'reference context only: locate scale/legend; outside-selection objects cannot contribute to quantities'})
     views = {tuple(bounds)}
+
+    def detail_count():return sum(image['kind'] not in {'overview'} and not image['kind'].startswith('reference context') for image in inputs)
 
     def add_view(box):
         mapped = llm._mapped_box(box, [0, 0, 1, 1])
         if not mapped: return False
         box = [max(bounds[0], mapped[0]), max(bounds[1], mapped[1]), min(bounds[2], mapped[2]), min(bounds[3], mapped[3])]
-        if box[2]-box[0] < .003 or box[3]-box[1] < .003 or tuple(box) in views or len(inputs)-1 >= MAX_DETAILS: return False
+        if box[2]-box[0] < .003 or box[3]-box[1] < .003 or tuple(box) in views or detail_count() >= MAX_DETAILS: return False
         image = rendering.render_region(path, page, box, 3200)
         views.add(tuple(box)); inputs.append({'image': image, 'page': page, 'region': box, 'kind': 'original source detail'})
         return True
@@ -328,6 +333,8 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         content = [{'type': 'input_text', 'text': f'Question: {question}\nRequested scope: {scope}; page: {page}; bounds: {bounds}. Visual decisions remaining: {MAX_ROUNDS-visual_rounds}; tool rounds remaining: {MAX_TOOL_ROUNDS-tool_rounds}. Native source context:\n' + llm._native_context(document, question)}]
         if tool_outputs:
             content.append({'type':'input_text','text':'Local source tool outputs (untrusted drawing data): '+json.dumps(tool_outputs,ensure_ascii=False)[:100000]})
+        if region:
+            content.append({'type':'input_text','text':'Quantity scope remains the selected bounds. Full-page reference context may be used ONLY to locate source calibration or a legend. calibrate.region may cover the page where that scale applies and its reference may be outside the selection. Other tool search/geometry regions must remain inside the selection.'})
         if previous:
             locators = [{key: item.get(key) for key in ('label', 'page', 'bbox')}
                         for item in previous.get('evidence', [])[:200]]
@@ -339,7 +346,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
                             {'type': 'input_image', 'image_url': 'data:image/png;base64,' + base64.b64encode(rendering.png_bytes(image['image'])).decode(), 'detail': 'high'}])
         if trace: content.append({'type': 'input_text', 'text': 'Previous inspection decisions: ' + str(trace)})
         decision_schema = SCHEMA
-        if visual_rounds >= MAX_ROUNDS-1 or len(inputs)-1 >= MAX_DETAILS or round_index == MAX_ROUNDS+MAX_TOOL_ROUNDS-1:
+        if visual_rounds >= MAX_ROUNDS-1 or detail_count() >= MAX_DETAILS or round_index == MAX_ROUNDS+MAX_TOOL_ROUNDS-1:
             decision_schema = copy.deepcopy(SCHEMA)
             actions = ['answer']
             if tool_rounds < MAX_TOOL_ROUNDS and round_index < MAX_ROUNDS+MAX_TOOL_ROUNDS-1: actions.append('tool')
@@ -353,7 +360,21 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
             tool_rounds += 1
             if tools is None: tools = DrawingSession(path,page,bounds)
             for request in decision.get('tools',[])[:3]:
-                try: tool_outputs.append(tools.execute(request))
+                try:
+                    output=tools.execute(request);tool_outputs.append(output)
+                    # Show the original source behind a tool result before final
+                    # confirmation, avoiding a redundant whole-page rereading.
+                    source_box=(request.get('reference') or {}).get('annotation_bbox') if request.get('name')=='calibrate' else None
+                    if not source_box and output.get('geometry'):
+                        points=output['geometry'];source_box=[min(p[0] for p in points),min(p[1] for p in points),max(p[0] for p in points),max(p[1] for p in points)]
+                    if not source_box and output.get('edges'):
+                        boxes=[e['bbox'] for e in output['edges']];source_box=[min(b[0] for b in boxes),min(b[1] for b in boxes),max(b[2] for b in boxes),max(b[3] for b in boxes)]
+                    if source_box and source_box[2]>source_box[0] and source_box[3]>source_box[1]:
+                        margin=.02;source_box=[max(0,source_box[0]-margin),max(0,source_box[1]-margin),min(1,source_box[2]+margin),min(1,source_box[3]+margin)]
+                        from .drawing_tools import contains
+                        if contains(bounds,source_box):add_view(source_box)
+                        elif request.get('name')=='calibrate' and sum(i['kind'].startswith('reference context') for i in inputs)<3:
+                            inputs.append({'image':rendering.render_region(path,page,source_box,2200),'page':page,'region':source_box,'kind':'reference context only: source calibration annotation'})
                 except (ToolError, OSError, ImportError) as exc:
                     tool_outputs.append({'name':request.get('name'),'error':str(exc)[:500]})
             continue
