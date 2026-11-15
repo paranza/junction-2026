@@ -1,5 +1,12 @@
 # Verda CPU deployment
 
+**Current owner-authorized access mode (15 November): public demo, no Basic Auth.**
+Do not rerun `protect` during deployment. The historical Basic Auth setup below
+is retained for provenance. The protected verifier’s 401 assertion must be
+adapted to expect anonymous 200 for this public release; retain the native,
+preview, review/export, restart and counter checks. See
+`docs/delivery/deployment-verification.md` for the current release record.
+
 This deployment uses one on-demand `CPU-TURIN.4V.16G` VM, a 55 GB OS volume,
 and the public preview dataset. It does not require a GPU or an external database.
 The frontend and API share one origin. SQLite and uploaded files persist in the

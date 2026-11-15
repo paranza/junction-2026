@@ -1,5 +1,29 @@
 # Deployment verification
 
+## Current access: public demo, explicitly requested by the owner
+
+Application `e910cd5` is deployed and verified on the existing Verda VM. The
+owner then explicitly requested deployment without authentication. Caddy Basic
+Auth was removed, its previous configuration retained, and anonymous HTTPS
+requests to both the application and health endpoint returned 200. Do not
+reapply `protect` or restore Basic Auth as part of routine deployment. The
+provider keys remain server-side, persistent data is unchanged and the
+cumulative 1,000-attempt ceiling remains in place.
+
+The new source uses Gemini route inspection automatically for supported length
+questions and describes measured visible 2D geometry instead of refusing solely
+because a complete installed network is not shown. 501 backend tests passed;
+the unchanged frontend retains its 64-test/build verification. The source and
+native-reachable analysis are unchanged from the passing 7,066-case native
+gate. No reserved evaluation was repeated. The real external route control
+returned 20.083 m; full Discord network completeness was not established before
+the owner redirected work to submission preparation.
+
+The protected verifier ran successfully before the owner changed access. Its
+401 assertion describes the prior access mode: public verification must instead
+expect anonymous 200 and retain the same native-answer, preview, review/export
+and persistence checks. [Release and public access record](../../stoa-trace/ops/reports/visible-plan-scope/deployment.json).
+
 ## Sunday scheduled release and native upload controls, 15 November
 
 Reviewed main application `009801f01a45780e5aac3f76b0e2ec15c28b8304` is deployed
