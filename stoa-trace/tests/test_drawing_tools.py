@@ -33,6 +33,7 @@ class SourceTools(unittest.TestCase):
         path=self.session.execute({'name':'path','calibration_id':cal['id'],
             'geometry':[[.1,.2],[.6,.2],[.6,.7]]})
         self.assertAlmostEqual(path['value'],16,places=5)
+        self.assertEqual(self.session.operand(path['id'])['polyline'],path['geometry'])
         self.assertFalse(result['source_verified'])
 
     def test_fabricated_reference_and_scope_escape_rejected(self):
@@ -45,6 +46,23 @@ class SourceTools(unittest.TestCase):
 
     def calibrated_unmocked(self):
         return self.session.execute({'name':'calibrate','reference':{'points':[[.1,.2],[.6,.2]],'value':10,'unit':'m','quote':'10 m','annotation_bbox':[0,0,.3,.2]}})
+
+    def test_calibration_retains_unit_suffix_from_the_same_located_token(self):
+        words={'words':[{'text':"8'",'bbox':[.1,.05,.2,.1]}],'complete':True}
+        with patch.object(self.session,'_words',return_value=words):
+            result=self.session.execute({'name':'calibrate','reference':{
+                'points':[[.1,.2],[.6,.2]],'value':8,'unit':'ft','quote':'8','annotation_bbox':[0,0,.3,.2]}})
+        self.assertEqual(result['reference']['quote'],"8'")
+        self.assertAlmostEqual(self.session.calibrations[result['id']]['metres'],2.4384)
+        self.assertFalse(result['source_verified'])
+
+    def test_calibration_does_not_take_units_from_another_token_or_wrong_value(self):
+        for texts in (['8','ft'],['8 m'],["18'"],['8']):
+            words={'words':[{'text':t,'bbox':[.1,.05,.2,.1]} for t in texts],'complete':True}
+            with self.subTest(texts=texts),patch.object(self.session,'_words',return_value=words):
+                with self.assertRaises(dt.ToolError):
+                    self.session.execute({'name':'calibrate','reference':{
+                        'points':[[.1,.2],[.6,.2]],'value':8,'unit':'ft','quote':'8','annotation_bbox':[0,0,.3,.2]}})
 
     def test_source_change_invalidates_tools(self):
         self.calibrated();self.image.resize((800,600)).save(self.path)

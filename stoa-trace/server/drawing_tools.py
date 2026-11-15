@@ -319,12 +319,22 @@ class DrawingSession:
             if text is None:raise ToolError('Calibration quote was not reproduced by positioned source OCR/text. Inspect its annotation region.')
             item={'value':reference.get('value'),'unit':reference.get('unit'),'quoted_text':quote}
             checked,_=ground_native_evidence({'text':quote},item,'length')
+            # OCR may retain a printed suffix that the requested substring
+            # omitted, e.g. quote="8" in the located token "8'". Qualify from
+            # that SAME source token, never a unit elsewhere on the sheet.
+            if checked.get('value') is None:
+                for word in data['words']:
+                    printed=str(word.get('text') or '')
+                    if not clean(quote) or clean(quote) not in clean(printed):continue
+                    supported,_=ground_native_evidence({'text':printed},{**item,'quoted_text':printed},'length')
+                    if supported.get('value') is not None:
+                        quote=printed;checked=supported;break
             if checked.get('value') is None and not user_declared_dimension(item,text,'length'):
                 raise ToolError('Calibration needs a reproduced source length and explicit source units.')
             spec=unit_spec(reference.get('unit'));value=reference.get('value')
             if not spec or spec[0]!='length' or type(value) not in (int,float) or not math.isfinite(value) or value<=0:raise ToolError('Invalid reference length.')
             self.calibrations[identity]={'points':points,'metres':value*spec[1], 'region':r,'quote':quote,'annotation_bbox':annotation}
-            result.update(calibration_id=identity,reference=reference,complete=data['complete'],warning='Source text was reproduced; endpoints and scale applicability still require visual review.')
+            result.update(calibration_id=identity,reference={**reference,'quote':quote},complete=data['complete'],warning='Source text was reproduced; endpoints and scale applicability still require visual review.')
         elif tool in {'polygon','path','room','network','vectors'}:
             calibration=self.calibrations.get(request.get('calibration_id'))
             if calibration is None or not contains(calibration['region'],r):raise ToolError('Use an established calibration valid for this entire region.')
@@ -444,6 +454,7 @@ class DrawingSession:
             b=_bbox(geometry)
             operand['bbox']=[max(0,b[0]-1e-5),max(0,b[1]-1e-5),min(1,b[2]+1e-5),min(1,b[3]+1e-5)]
             if result['unit']=='m²':operand['polygon']=geometry
+            else:operand['polyline']=geometry
         return operand
 
     @staticmethod

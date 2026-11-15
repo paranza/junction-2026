@@ -90,11 +90,15 @@ def config_signature():
     model = os.environ.get('STOA_COMPLEX_MODEL', 'gemini-4-argon').strip()
     if model not in {'gemini-4-argon', 'gemini-4-carbon'}:
         raise ValueError('STOA_COMPLEX_MODEL must be gemini-4-argon or gemini-4-carbon.')
+    dense = os.environ.get('STOA_PARTITIONED_COUNTS', 'off').strip().lower()
+    if dense not in {'off','on'}:
+        raise ValueError('STOA_PARTITIONED_COUNTS must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': 16, 'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
-            'partitioned_count': {'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3},
+            'maximum_requests': 16 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS,
+            'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
+            'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3},
             'maximum_detail_views': MAX_DETAILS,
-            'drawing_tools': 'drawing-tools-v1', 'maximum_local_tools': 10}
+            'drawing_tools': 'drawing-tools-v2-located-unit-suffix', 'maximum_local_tools': 10}
 
 
 def eligible(document, path, page=1):
@@ -314,7 +318,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     overview = rendering.render_region(path, page, bounds, 1800)
     if llm.requested_quantity(question) == 'count':
         from . import count_reader
-        if count_reader.eligible(document,path,page,bounds):
+        if config_signature()['partitioned_count']['mode']=='on' and count_reader.eligible(document,path,page,bounds):
             return count_reader.answer(question,document,path,page,bounds,overview,
                                        model=config_signature()['model'],policy=POLICY,previous=previous)
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
