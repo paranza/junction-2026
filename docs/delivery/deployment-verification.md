@@ -1,5 +1,34 @@
 # Deployment verification
 
+## Actual Discord task audit and evidence interaction fix
+
+Reviewed application `3251c4581baf3b81143137011c618b233cf62580` is on main,
+deployed on the existing protected Verda VM and loaded by both local apps.
+461 backend tests, 59 frontend tests and a fresh production frontend build
+passed. Source and compiled assets match the running container. Native solver
+files and the native app flow are unchanged; the full easy/native benchmark
+and both reserved evaluations were not repeated.
+
+SQLite backup integrity, retained previous image, authentication, native
+211-door answer/evidence, preview, review/export, restart persistence and the
+installed OCR/geometry smoke passed. Prior answers, uploads, event history,
+credentials and configured model/provider policy are preserved. Production
+remains **17/1,000** attempts and the local runtimes remain **4/1,000** and
+**140/200**. Deployment checks made zero model requests.
+
+The release fixes linear-measurement intent, unit suffix qualification from
+the same positioned source token and evidence-detail clicks dismissing the
+Cloudinary control. The partitioned inventory experiment remains off by default:
+it recovered missing hall chairs but still omitted an office chair and added
+window candidates. This gate confirms release compatibility and tested behavior,
+not that all sponsor drawing questions are accurate. The original nine-question
+API run and all failure/changed-input follow-ups remain recorded separately.
+
+[Actual task results and limitations](../evaluation/discord-task-audit.md),
+[deployment and hashes](../../stoa-trace/ops/reports/discord-task-audit/deployment.json),
+[tests/build](../../stoa-trace/ops/reports/discord-task-audit/build-checks.json),
+[local continuity](../../stoa-trace/ops/reports/discord-task-audit/local-continuity.json).
+
 ## Drawing geometry and complex stress checks, Sunday
 
 Reviewed application `98f9bca5977f08615cb42728829d6c173c7c3723` is on main,

@@ -2,7 +2,30 @@
 
 15 November 2026. Metria/Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
-Latest release: application `98f9bca` adds source-bound positional OCR,
+Latest release: application `3251c45` is on main, deployed and loaded in both
+local apps. The real task audit now uses the four exact Stoa Discord drawings.
+The initial API run answered five of nine operational questions, but answer
+coverage is not accuracy: hall area and the dormitory summary are verified;
+counts, slab units and whole-network takeoff expose remaining gaps. The
+baseboard intent fix now returns a number but its geometric estimate misses
+the initial source-audit tolerance. A 61.69 m² slab calculation succeeds only
+when drawing units are supplied explicitly. No all-questions success is claimed.
+[Full results and failures](../evaluation/discord-task-audit.md).
+
+The tile inventory prototype recovered the hall's 136 chairs and raised the
+school total from 306 to 323, but still missed an office chair and added window
+candidates. It remains disabled by default. The Cloudinary evidence-button
+regression is fixed and actual transformed-image browser delivery was verified.
+[Current sponsor contribution and submission preparation](technical-challenge-evidence.md)
+separates Gemini's central role, Cloudinary close-ups, Verda hosting and the
+previous rejected GPU detector experiment. No award form or message was sent.
+
+461 backend tests, 59 frontend tests and the production build passed. Production
+verification used no model requests, preserved all persisted state and left
+counters at 17/1,000 in production and 4/1,000 plus 140/200 locally. The separate
+87-attempt development studies did not consume those existing counters.
+
+Previous release: application `98f9bca` adds source-bound positional OCR,
 calibrated polygon/polyline measurements, bounded centerline graphs, legend
 matching proposals and original PDF straight-vector access. Gemini chooses
 source views/tools and the host checks their operands. No per-drawing answer

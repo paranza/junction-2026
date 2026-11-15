@@ -14,5 +14,9 @@
   ],
   "ui_bug_reproduced_on_previous_release": true,
   "fix": "Evidence detail and dialog clicks retain selection; clicking outside drawing selection still clears it.",
-  "candidate_revision": "a6dc0e2"
+  "candidate_revision": "a6dc0e2",
+  "main_local_app_browser_verified": true,
+  "main_local_app_port": 8791,
+  "released_application_revision": "3251c4581baf3b81143137011c618b233cf62580",
+  "dialog_closed_to_original_unchanged_answer": true
 }

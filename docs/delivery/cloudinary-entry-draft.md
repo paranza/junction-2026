@@ -1,6 +1,15 @@
-# Trace: Cloudinary entry draft
+# Metria: Cloudinary entry draft
 
-**Status checked 14 November 2026:** the feature is implemented and live-verified at integrated code `70c1af2`, with 280 backend tests and 27 frontend tests passing. The submission text is a draft; no Cloudinary award form or Junction challenge selection has been submitted by this work. Confirm organizer access and final entry fields before using it.
+**15 November update:** the latest source is application `3251c45`. An
+outside-click regression in the current evidence artifact prevented its button
+from completing. It is fixed; a real browser check displayed a 396 by 284
+Cloudinary crop with unchanged answer rows and zero model calls. The reviewed
+release is on main, deployed and loaded locally, with 461 backend and 59 frontend
+tests plus a fresh frontend build passing. This strengthens the live feature
+proof; it is not a submitted survey or a sponsor eligibility decision. See
+[current technical challenge evidence](technical-challenge-evidence.md).
+
+**Historical status checked 14 November 2026:** the feature is implemented and live-verified at integrated code `70c1af2`, with 280 backend tests and 27 frontend tests passing. The submission text is a draft; no Cloudinary award form or Junction challenge selection has been submitted by this work. Confirm organizer access and final entry fields before using it.
 
 ## Checked challenge requirements
 
