@@ -85,13 +85,14 @@ class StagedSourceAudit(unittest.TestCase):
             source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
             with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
                  patch.object(cr,'propose',return_value=(proposed,False)) as propose, \
-                 patch.object(llm,'_request',side_effect=[{'categories':['chair']},old,llm.ModelError('Interrupted',recoverable=True),new]) as request:
+                 patch.object(llm,'_request',side_effect=[{'categories':['chair'],'context_regions':[[0,0,.3,.3]]},old,llm.ModelError('Interrupted',recoverable=True),new]) as request:
                 interrupted=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
                 self.assertIsNone(interrupted['value'])
                 self.assertTrue(interrupted['retryable_analysis'])
                 completed=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
                 self.assertEqual(completed['value'],2)
                 self.assertEqual(request.call_count,4)
+                self.assertTrue(any('classification legend' in p.get('text','') for p in request.call_args.args[0]))
                 self.assertEqual(len(propose.call_args.args[1]),1)
                 self.assertFalse(propose.call_args.kwargs['check_existing'])
                 self.assertEqual(completed['source_refinement']['original_locations_reviewed'],2)
@@ -110,3 +111,14 @@ class StagedSourceAudit(unittest.TestCase):
                 self.assertEqual(result['status'],'needs_review')
                 self.assertFalse(result['source_refinement']['discovery_complete'])
                 self.assertTrue(result['warnings'])
+
+    def test_invalid_source_legend_coordinates_do_not_become_context(self):
+        from server import llm
+        initial={'operation':'count','value':1,'unit':'count','evidence':[{'bbox':[.1,.1,.2,.2]}]}
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
+            with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
+                 patch.object(llm,'_request',return_value={'categories':['chair'],'context_regions':[[0,0,2,1]]}):
+                result=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
+                self.assertIsNone(result['value'])
+                self.assertTrue(result['retryable_analysis'])
