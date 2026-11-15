@@ -1,0 +1,604 @@
+{
+  "classification": "Complex-source development studies; no hidden/reference answers supplied to models",
+  "reserved_questions": 0,
+  "studies": [
+    {
+      "study": "source-route-v3-resumable-carbon-api",
+      "revision": "9fb124ed678f969949ef6c432690c377f87ddc8d",
+      "classification": "Cold API operational development test; not hidden evaluation",
+      "source_sha256": {
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 1,
+        "api_submissions": 1,
+        "initial_submission_answered": false,
+        "resumed_submission_answered": false,
+        "answered": 0,
+        "technical_errors": 1,
+        "attempts": 10,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794710856.110174
+      },
+      "cumulative_model_requests": 18,
+      "results": [
+        {
+          "id": "piping-plan-total",
+          "resume": 0,
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 919.6132443750103,
+          "error_type": "HTTPStatusError",
+          "source_refinement": null
+        }
+      ]
+    },
+    {
+      "study": "source-form-review-v1-replay",
+      "revision": "8043034ec21403c85e4c0fa0aad7f0baf8cd10d6",
+      "classification": "Source-only semantic refinement replay of a retained fallible first-pass inventory; not a new cold end-to-end evaluation",
+      "source_sha256": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+      "completed": true,
+      "summary": null,
+      "cumulative_model_requests": 4,
+      "results": [
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 322,
+          "unit": "count",
+          "evidence_count": 322,
+          "seconds": 17.56876012502471,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v1",
+            "proposed_forms": 80,
+            "rejected_old_locations": 1,
+            "accepted_new_locations": 0,
+            "complete": true
+          }
+        }
+      ]
+    },
+    {
+      "study": "source-form-review-v1-cold-api",
+      "revision": "8043034ec21403c85e4c0fa0aad7f0baf8cd10d6",
+      "classification": "Cold end-to-end development comparison on original Discord count questions and an already exposed external source control",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 4,
+        "answered": 2,
+        "technical_errors": 1,
+        "attempts": 22,
+        "finished_at": 1794713795.430669,
+        "reserved_questions": 0
+      },
+      "cumulative_model_requests": 22,
+      "results": [
+        {
+          "id": "school-doors",
+          "resume": null,
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 378.97071704201517,
+          "error_type": "HTTPStatusError",
+          "source_refinement": null
+        },
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 329,
+          "unit": "count",
+          "evidence_count": 329,
+          "seconds": 588.3046368749929,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v1",
+            "proposed_forms": 250,
+            "rejected_old_locations": 67,
+            "accepted_new_locations": 72,
+            "complete": true
+          }
+        },
+        {
+          "id": "school-windows",
+          "resume": null,
+          "value": null,
+          "unit": "count",
+          "evidence_count": 69,
+          "seconds": 259.21854554099264,
+          "error_type": null,
+          "source_refinement": null
+        },
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": 106,
+          "unit": "count",
+          "evidence_count": 106,
+          "seconds": 294.9765589579765,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v1",
+            "proposed_forms": 94,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true
+          }
+        }
+      ]
+    },
+    {
+      "study": "source-form-review-v1-fast-tiles-api",
+      "revision": "8043034ec21403c85e4c0fa0aad7f0baf8cd10d6",
+      "classification": "Frozen low-reasoning, source-tile inventory and audit policy comparison; same source questions plus an exposed external control",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 4,
+        "answered": 2,
+        "technical_errors": 0,
+        "attempts": 107,
+        "finished_at": 1794713763.707319,
+        "reserved_questions": 0
+      },
+      "cumulative_model_requests": 107,
+      "results": [
+        {
+          "id": "school-doors",
+          "resume": null,
+          "value": null,
+          "unit": "count",
+          "evidence_count": 115,
+          "seconds": 177.7271307919873,
+          "error_type": null,
+          "source_refinement": null
+        },
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 322,
+          "unit": "count",
+          "evidence_count": 322,
+          "seconds": 290.5813069999858,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v1",
+            "proposed_forms": 80,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true
+          }
+        },
+        {
+          "id": "school-windows",
+          "resume": null,
+          "value": null,
+          "unit": "count",
+          "evidence_count": 68,
+          "seconds": 151.524699667003,
+          "error_type": null,
+          "source_refinement": null
+        },
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": 116,
+          "unit": "count",
+          "evidence_count": 116,
+          "seconds": 138.09266695799306,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v1",
+            "proposed_forms": 103,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 10,
+            "complete": true
+          }
+        }
+      ]
+    },
+    {
+      "study": "staged-source-form-v2-replay",
+      "revision": "bec3b3f9ebb012bb8c6626898ad7aae11b5bd50f",
+      "classification": "Staged source-only replay of retained untrusted first-pass model inventories. Not a cold end-to-end evaluation. Source legends are found from the image, not provided answer maps.",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 4,
+        "answered": 3,
+        "technical_errors": 0,
+        "attempts": 55,
+        "reserved_questions": 0,
+        "finished_at": 1794714092.125406
+      },
+      "cumulative_model_requests": 56,
+      "results": [
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 322,
+          "unit": "count",
+          "evidence_count": 322,
+          "seconds": 71.47461629100144,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v2-staged-source-audit",
+            "proposed_forms": 402,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 322,
+            "new_forms_reviewed": 80
+          }
+        },
+        {
+          "id": "school-doors",
+          "resume": null,
+          "value": 119,
+          "unit": "count",
+          "evidence_count": 119,
+          "seconds": 116.4563489999855,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v2-staged-source-audit",
+            "proposed_forms": 722,
+            "rejected_old_locations": 1,
+            "accepted_new_locations": 5,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 115,
+            "new_forms_reviewed": 607
+          }
+        },
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": null,
+          "unit": "count",
+          "evidence_count": 106,
+          "seconds": 5.379430583998328,
+          "error_type": null,
+          "source_refinement": null
+        },
+        {
+          "id": "school-windows",
+          "resume": null,
+          "value": 68,
+          "unit": "count",
+          "evidence_count": 68,
+          "seconds": 65.50631674999022,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v2-staged-source-audit",
+            "proposed_forms": 389,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 68,
+            "new_forms_reviewed": 321
+          }
+        }
+      ]
+    },
+    {
+      "study": "staged-source-form-v3-kelsey-replay",
+      "revision": "b7885f028764735044f8ebfca30e7868d8044dfb",
+      "classification": "Staged source-only replay of retained untrusted first-pass model inventories. Not a cold end-to-end evaluation. Source legends are found from the image, not provided answer maps.",
+      "source_sha256": {
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 1,
+        "answered": 1,
+        "technical_errors": 0,
+        "attempts": 9,
+        "reserved_questions": 0,
+        "finished_at": 1794714409.486849
+      },
+      "cumulative_model_requests": 9,
+      "results": [
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": 106,
+          "unit": "count",
+          "evidence_count": 106,
+          "seconds": 46.37391550000757,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v2-staged-source-audit",
+            "proposed_forms": 209,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 106,
+            "new_forms_reviewed": 103
+          }
+        }
+      ]
+    },
+    {
+      "study": "physical-source-form-v3-replay",
+      "revision": "e2e1cd68266dee77357526a66fc691abbc64beb6",
+      "classification": "Staged source-only replay of retained untrusted first-pass model inventories. Not a cold end-to-end evaluation. Source legends are found from the image, not provided answer maps.",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 4,
+        "answered": 4,
+        "technical_errors": 0,
+        "attempts": 63,
+        "reserved_questions": 0,
+        "finished_at": 1794720328.320055
+      },
+      "cumulative_model_requests": 63,
+      "results": [
+        {
+          "id": "school-chairs",
+          "resume": null,
+          "value": 322,
+          "unit": "count",
+          "evidence_count": 322,
+          "seconds": 104.15461795902229,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 402,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 322,
+            "new_forms_reviewed": 80
+          }
+        },
+        {
+          "id": "school-doors",
+          "resume": null,
+          "value": 113,
+          "unit": "count",
+          "evidence_count": 113,
+          "seconds": 150.43842441699235,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 723,
+            "rejected_old_locations": 2,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 115,
+            "new_forms_reviewed": 608
+          }
+        },
+        {
+          "id": "school-windows",
+          "resume": null,
+          "value": 68,
+          "unit": "count",
+          "evidence_count": 68,
+          "seconds": 80.8082137919846,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 389,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 68,
+            "new_forms_reviewed": 321
+          }
+        },
+        {
+          "id": "real-school-chairs",
+          "resume": null,
+          "value": 106,
+          "unit": "count",
+          "evidence_count": 106,
+          "seconds": 70.71776187501382,
+          "error_type": null,
+          "source_refinement": {
+            "revision": "source-form-refinement-v3-physical-roles",
+            "proposed_forms": 209,
+            "rejected_old_locations": 0,
+            "accepted_new_locations": 0,
+            "complete": true,
+            "discovery_complete": true,
+            "original_locations_reviewed": 106,
+            "new_forms_reviewed": 103
+          }
+        }
+      ]
+    },
+    {
+      "study": "source-route-v4-low-argon-api",
+      "revision": "8043034ec21403c85e4c0fa0aad7f0baf8cd10d6",
+      "classification": "Cold API operational development test; not hidden evaluation",
+      "source_sha256": {
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 1,
+        "api_submissions": 1,
+        "initial_submission_answered": true,
+        "resumed_submission_answered": true,
+        "answered": 1,
+        "technical_errors": 0,
+        "attempts": 19,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794714008.376797
+      },
+      "cumulative_model_requests": 19,
+      "results": [
+        {
+          "id": "piping-plan-total",
+          "resume": 0,
+          "value": 414.59701294820815,
+          "unit": "m",
+          "evidence_count": 9,
+          "seconds": 228.99161008399096,
+          "error_type": null,
+          "source_refinement": null
+        }
+      ]
+    },
+    {
+      "study": "source-route-low-argon-external-control",
+      "revision": "e2e1cd68266dee77357526a66fc691abbc64beb6",
+      "classification": "Cold API operational development test; not hidden evaluation",
+      "source_sha256": {
+        "flannery-p101-source.png": "a7533048b73692d5644ac0fcab96148b33e7f3d1350060ebd4a0d39c413414d3"
+      },
+      "completed": true,
+      "summary": {
+        "questions": 1,
+        "api_submissions": 1,
+        "initial_submission_answered": true,
+        "resumed_submission_answered": true,
+        "answered": 1,
+        "technical_errors": 0,
+        "attempts": 5,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794720286.100668
+      },
+      "cumulative_model_requests": 5,
+      "results": [
+        {
+          "id": "real-service-pipe-length",
+          "resume": 0,
+          "value": 20.077988793263298,
+          "unit": "m",
+          "evidence_count": 4,
+          "seconds": 109.56332629200188,
+          "error_type": null,
+          "source_refinement": null
+        }
+      ]
+    },
+    {
+      "study": "source-count-profile-v3-cold-api",
+      "revision": "5f6111351c6312cadd676d9e02b0be8919519119",
+      "classification": "Cold end-to-end development run of the dedicated low-reasoning source-count profile plus original-source physical-role/legend review; includes exposed external chair control",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "kelsey-furniture-source.png": "811697fe6ed25f9c625d603cce0b7373f3be879db3b17f8e510ada1c532da299"
+      },
+      "completed": false,
+      "summary": null,
+      "cumulative_model_requests": 16,
+      "results": []
+    }
+  ],
+  "production_model_requests_consumed_by_studies": 0,
+  "original_technical_failures_preserved": true,
+  "post_source_review": {
+    "school_window_reference": 68,
+    "external_school_chair_reference": 106,
+    "school_chair_initial_reference_requires_adjudication": true,
+    "full_school_door_reference_independently_established": false,
+    "lift_retained_in_latest_source_replay": true,
+    "shallow_wall_cupboards_rejected_in_latest_source_replay": true,
+    "whole_pipe_network_exact_reference_available": false
+  },
+  "cpu_checker_alignment": {
+    "source_sha256": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b",
+    "classification": "CPU replay of unchanged fallible model paths, not a new inference or reference-accuracy score",
+    "model_requests": 0,
+    "prior_value_m": 414.59701294820815,
+    "aligned_value_m": 420.7745084411369,
+    "alignment": {
+      "points": [
+        [
+          0.6754901960784314,
+          0.9496969696969697
+        ],
+        [
+          0.734313725490196,
+          0.9496969696969697
+        ]
+      ],
+      "pattern_support": 0.9949579831932773,
+      "method": "source_checker_bar_edges",
+      "original_points": [
+        [
+          0.675,
+          0.9485
+        ],
+        [
+          0.7347,
+          0.9485
+        ]
+      ],
+      "source_span_pixels": 599.999999999999
+    },
+    "calibration": {
+      "points": [
+        [
+          0.6754901960784314,
+          0.9496969696969697
+        ],
+        [
+          0.734313725490196,
+          0.9496969696969697
+        ]
+      ],
+      "value": 8,
+      "unit": "ft",
+      "quote": "8\u2019",
+      "annotation_bbox": [
+        0.672,
+        0.938,
+        0.738,
+        0.953
+      ]
+    },
+    "lengths": [
+      39.560295558853404,
+      50.3885997865643,
+      23.528252967113907,
+      75.22128912918572,
+      96.17461201920013,
+      32.204422739035714,
+      16.547365000062918,
+      40.81230006032069,
+      46.33737118080012
+    ],
+    "independent_full_network_reference": false,
+    "geometry_semantics_still_require_review": true
+  },
+  "browser": {
+    "copied_development_runtime_only": true,
+    "exact_original_question_page_scope_selection_resubmitted": true,
+    "previous_answer_not_used_as_operand": true,
+    "model_requests_before": 18,
+    "model_requests_after": 18,
+    "successful_model_completion_not_claimed_from_disabled_browser_test": true,
+    "compact_progress_visible_after_refresh": true
+  }
+}

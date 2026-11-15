@@ -1,5 +1,15 @@
 # Deployment verification
 
+## Source recovery and saved chat restoration
+
+Reviewed main application `1d3597f953e3d180391ccd90c9897f57c58ae18a` is deployed on the existing protected VM and loaded in both local apps. The frozen backend passed 472 tests; the frontend follow-up passed 60 tests and a fresh build. Authentication, native answer/evidence, previews, review/export, restart persistence and installed OCR/geometry checks passed with zero model requests. Source/build hashes match the running container.
+
+The SQLite backup, previous Docker image, existing uploads, answers, reviews, event history, credentials and explicit provider/model policies are preserved. Production remains **17/1,000**; local runtimes remain **4/1,000** and **140/200**. Native solver files and the native-reachable analysis function are unchanged; neither reserved evaluation nor the full easy benchmark was rerun.
+
+The release adds bounded OCR scale-context recovery, closed perimeter and disjoint path source overlays, retained audited count tiles, and saved-chat answer alias restoration without duplicate messages. Dedicated dense-count and whole-route readers remain experimental and off by default. Compatibility verification does not establish arbitrary drawing accuracy.
+
+[Source recovery results](../evaluation/source-recovery.md), [deployment and source hashes](../../stoa-trace/ops/reports/source-recovery/deployment.json), [tests/build](../../stoa-trace/ops/reports/source-recovery/build-checks.json), [local continuity](../../stoa-trace/ops/reports/source-recovery/local-continuity.json).
+
 ## Actual Discord task audit and evidence interaction fix
 
 Reviewed application `3251c4581baf3b81143137011c618b233cf62580` is on main,

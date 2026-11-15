@@ -54,3 +54,37 @@ opening details, and resumable audited tiles bound to source, question and polic
 These are general mechanisms, without per-drawing answer profiles. Large tiled
 counts and whole-route tracing remain opt-in while the actual-source studies
 run. Research source was read, not copied into the application.
+
+## Open-vocabulary counting follow-up
+
+[CountGD](https://proceedings.neurips.cc/paper_files/paper/2024/hash/57c56985d9afe89bf78a8264c91071aa-Abstract-Conference.html)
+combines text and visual exemplars for open-world counting. The later
+[CountGD++ implementation](https://github.com/niki-amini-naieni/CountGDPlusPlus)
+adds exclusion prompts and inferred exemplars; its documented installation uses
+CUDA, compiled GroundingDINO operations and detectron2. These results do not
+establish accuracy on construction symbols or passage-versus-cabinet semantics.
+The applicable design principle is to discover candidates separately from deciding
+whether each source object satisfies the question, preserving explicit exclusions.
+
+The candidate implementation now finds compact source components and enclosed
+forms using the existing located objects' scale and ink style. It can propose an
+alternative shape without a filename-specific symbol template. A question-driven
+model classifies every supplied ID on original source crops; the host validates
+ID coverage and reconciles positions. Image processing alone never contributes a
+count. This is implemented with existing CPU dependencies, not a claim that a
+CountGD model was installed or trained.
+
+[SAM 3's official installation](https://github.com/facebookresearch/sam3#installation)
+documents CUDA requirements and approved Hugging Face checkpoint access. It is a
+possible concept-segmentation experiment, not an already integrated feature.
+Neither a CUDA stack on the protected application VM nor another GPU VM was
+provisioned for this follow-up. Product inference and the independently recorded
+source-only studies continue with the authorized Gemini configuration.
+
+The implemented follow-up now audits all initial locations before discovery,
+reads original source keys for symbol meanings and requires a physical role for
+accepted objects. Source components only propose locations. This directly caught
+the difference between a walk-in store and a shallow wall cupboard, and between
+legend-defined chairs and excluded stools. A matching aggregate total alone is
+not sufficient evidence of correct object grounding. Checker-bar pixel alignment
+also separates source scale geometry from a model's approximate coordinates.

@@ -2,7 +2,11 @@
 
 15 November 2026. Metria/Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
-Latest release: application `3251c45` is on main, deployed and loaded in both
+Latest deployed application is `1d3597f`: source scale recovery, source geometry overlays and saved-chat restoration passed 472 backend tests, 60 frontend tests/build and production restart/persistence verification. Production and both local counters remain 17/1,000, 4/1,000 and 140/200, with no verification model requests. [Deployment record](deployment-verification.md).
+
+Further tested candidates add private resumable count observations, full source-position review, original legend classification, physical-role exclusions, source checker-bar endpoint alignment and a working Continue analysis action. 489 backend and 63 frontend tests/build pass. Dedicated dense-count/refinement and whole-route modes remain opt-in while the complete cold pipeline is checked. Source-only replay returns 322 school chairs, 113 passage openings including the lift, 68 exterior windows and the independent 106-chair external control; the complete school chair/door totals remain ungraded. A cold external pipe control returns 20.078 m against 20.019 m ±0.6 m. [Definitions, regressions and unresolved geometry](../evaluation/source-recovery.md).
+
+Previous release: application `3251c45` is on main, deployed and loaded in both
 local apps. The real task audit now uses the four exact Stoa Discord drawings.
 The initial API run answered five of nine operational questions, but answer
 coverage is not accuracy: hall area and the dormitory summary are verified;
@@ -13,8 +17,7 @@ when drawing units are supplied explicitly. No all-questions success is claimed.
 [Full results and failures](../evaluation/discord-task-audit.md).
 
 The tile inventory prototype recovered the hall's 136 chairs and raised the
-school total from 306 to 323, but still missed an office chair and added window
-candidates. It remains disabled by default. The Cloudinary evidence-button
+school total from 306 to 323, but a later source-location audit found an empty chair locator; a near-reference total did not establish object-level accuracy. Window candidates also included false positives. It remains disabled by default. The Cloudinary evidence-button
 regression is fixed and actual transformed-image browser delivery was verified.
 [Current sponsor contribution and submission preparation](technical-challenge-evidence.md)
 separates Gemini's central role, Cloudinary close-ups, Verda hosting and the
