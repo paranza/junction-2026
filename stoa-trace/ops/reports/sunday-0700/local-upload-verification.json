@@ -1,0 +1,22 @@
+{
+  "source_commit": "009801f01a45780e5aac3f76b0e2ec15c28b8304",
+  "frontend_only": true,
+  "backend_restarted": false,
+  "runtime_configuration_changed": false,
+  "model_calls_by_activation": 0,
+  "assets_sha256": {
+    "index.html": "4c4766a23232fee6e55ba8f5dca181d032d74f11bfb2f6c95a8c58b54ee05442",
+    "assets/index-GDIVWH2l.css": "53e6668fd9403139f3429583d3fc13371adcf1340a96d18b8a636b5ed6b438fe",
+    "assets/index-D00oBJEn.js": "fc431a43490e82c79ea069858e7b6aef98d41fae80454ebabb1c0df514a0584e"
+  },
+  "timestamp": 1794726867.600697,
+  "old_assets_retained": true,
+  "backend_revision": "5f6111351c6312cadd676d9e02b0be8919519119",
+  "browser_verified": [
+    "Empty-chat Upload drawing chooser and DXF attachment",
+    "Chrome native Attach floor plan chooser and original Discord plumbing PNG attachment"
+  ],
+  "browser_inference_requests": 0,
+  "original_user_request_not_interrupted": true,
+  "original_popup_failure_reproduced": false
+}

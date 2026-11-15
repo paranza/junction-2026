@@ -58,3 +58,18 @@ The reserved subset was not scored or inspected. The existing paired comparator 
 ## Automatic pipeline coverage check, 14 November evening
 
 The native regression does not measure the complete model-backed app. A targeted automatic-path run resolved 12 of 13 previously unanswered Opening Design PDF development questions correctly, while a four-crop symbol reader showed no gain on 22 development questions. The same run exposed incomplete-model scope being mistaken for a full IFC model; this is now refused before model inference. These targeted results are not a new overall accuracy estimate. See [the complete coverage, precision and limitation report](model-coverage-development.md).
+
+
+## Sunday one-time preview reserve, 15 November
+
+The frozen native application at `009801f` was evaluated once on the prospectively
+quarantined 48 groups / 924 questions after the development gate passed. It
+answered 188 questions, all correct numerically, and abstained on 736 raster
+questions. There were zero technical errors or model requests. A blank key and
+zero model-attempt ceiling were enforced. No reserved errors were used for
+tuning, and the independent Gemini file evaluation was not repeated.
+
+This preview had prior EDA/full-evaluation exposure before quarantine; it is not
+an untouched hidden test. Its Swiss/CubiCasa source coverage excludes IFC and
+Opening Design and does not establish performance on complex Discord plans or
+the model-backed path. [Frozen revision, manifest/result hashes and limitations](../../stoa-trace/ops/reports/sunday-0700/preview-reserve.json).
