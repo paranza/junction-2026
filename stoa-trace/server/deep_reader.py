@@ -94,9 +94,9 @@ def config_signature():
     if dense not in {'off','on'}:
         raise ValueError('STOA_PARTITIONED_COUNTS must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': 16 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS,
+            'maximum_requests': 32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS,
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
-            'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3},
+            'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True},
             'maximum_detail_views': MAX_DETAILS,
             'drawing_tools': 'drawing-tools-v2-located-unit-suffix', 'maximum_local_tools': 10}
 

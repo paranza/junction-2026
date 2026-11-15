@@ -12,6 +12,11 @@ from server import drawing_tools as dt, deep_reader
 
 
 class SourceTools(unittest.TestCase):
+    def test_ocr_deduplication_preserves_imperial_units_and_normalizes_prime_glyphs(self):
+        def word(text,confidence):return {'text':text,'confidence':confidence,'bbox':[.1,.1,.2,.2]}
+        result=dt.deduplicate_words([word('8',.999),word("8'",.9),word('8′',.8),word('8"',.7)])
+        self.assertEqual({r['text'] for r in result},{'8',"8'",'8"'})
+
     def setUp(self):
         self.directory=tempfile.TemporaryDirectory();self.addCleanup(self.directory.cleanup)
         self.path=Path(self.directory.name)/'drawing.png'

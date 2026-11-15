@@ -117,7 +117,10 @@ def _overlap(a, b):
 def deduplicate_words(rows):
     kept = []; by_text = {}
     for row in sorted(rows, key=lambda r: -r['confidence']):
-        text = re.sub(r'\W', '', row['text']).casefold()
+        # Prime marks are physical units, not cosmetic punctuation. A rotated
+        # OCR reading of 8 must not delete a lower-confidence reading of 8'.
+        text = row['text'].casefold().translate(str.maketrans({'′':"'",'’':"'",'″':'"'}))
+        text = re.sub(r'[^\w\'"²³]', '', text)
         if not any(_overlap(row['bbox'],r['bbox']) > .5 for r in by_text.get(text,[])):
             kept.append(row);by_text.setdefault(text,[]).append(row)
     return sorted(kept, key=lambda r: (round(r['bbox'][1], 3), r['bbox'][0]))

@@ -12,9 +12,15 @@ class PartitionedSourceCounts(unittest.TestCase):
         self.plan=[([0,0,.5,1],[0,0,.6,1]),([.5,0,1,1],[.4,0,1,1])]
         self.image=Image.new('RGB',(32,32),'white')
 
-    def call(self,request):
+    def call(self,request,review=None):
+        def dispatch(content,**kwargs):
+            result=request(content,**kwargs)
+            if kwargs.get('schema') is count_reader.AUDIT_SCHEMA:
+                return review(result) if review else {'keep_ids':list(range(len(result['items']))),
+                    'added':[],'complete':result['complete'],'warnings':result['warnings'],'coverage_note':result['coverage_note']}
+            return result
         with patch.object(count_reader,'tiles',return_value=iter(self.plan)),\
-             patch('server.rendering.render_region',return_value=self.image),patch.object(llm,'_request',side_effect=request):
+             patch('server.rendering.render_region',return_value=self.image),patch.object(llm,'_request',side_effect=dispatch):
             return count_reader.answer('How many doors?',self.doc,Path('new.png'),1,[0,0,1,1],self.image,model='test',policy={})
 
     def test_overlapping_context_has_disjoint_ownership_and_page_coordinates(self):
@@ -66,9 +72,20 @@ class PartitionedSourceCounts(unittest.TestCase):
             return {'items':[],'complete':True,'warnings':[],'coverage_note':'No objects'}
         with llm.usage_scope(session_id='s',message_id='m'):
             self.call(request)
-            self.assertEqual(llm._usage.get()['model_calls'],2)
-            self.assertEqual(llm._usage.get()['input_tokens'],22)
+            self.assertEqual(llm._usage.get()['model_calls'],4)
+            self.assertEqual(llm._usage.get()['input_tokens'],44)
             self.assertEqual(llm._usage.get()['_message_id'],'m')
+
+    def test_source_audit_can_reject_false_proposals_and_add_missed_styles(self):
+        self.plan=[([0,0,1,1],[0,0,1,1])]
+        def proposals(*a,**kw):return {'items':[{'label':'Chair','bbox':[.1,.1,.2,.2]},
+            {'label':'False wall pier','bbox':[.4,.4,.5,.5]}], 'complete':True,'warnings':[],'coverage_note':'Proposals'}
+        result=self.call(proposals,lambda raw:{'keep_ids':[0],
+            'added':[{'label':'Task chair','bbox':[.7,.7,.8,.8]}], 'complete':True,'warnings':[],'coverage_note':'Reviewed source'})
+        self.assertEqual(result['value'],2)
+        self.assertEqual([e['label'] for e in result['evidence']],['Chair','Task chair'])
+        bad=self.call(proposals,lambda raw:{'keep_ids':[99],'added':[], 'complete':True,'warnings':[],'coverage_note':'Invalid ID'})
+        self.assertIsNone(bad['value'])
 
 
 if __name__=='__main__':unittest.main()
