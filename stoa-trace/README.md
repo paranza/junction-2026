@@ -54,7 +54,14 @@ runtime's `drawing-index/` directory and contain source text and coordinates,
 never reference answers. Missing dependencies produce an explicit tool error.
 The existing Docker image includes the required system libraries.
 
-For complex drawing practice, use the [48-question source-linked bank](../docs/evaluation/complex-practice-questions.md).
+Very large raster counts (at least 25 MP in the requested scope) use up to 16
+source tiles with overlapping context and disjoint ownership cores. Compact
+per-object responses are merged by location; the backend never trusts model
+subtotals. Any incomplete tile withholds an exact full-scope count. At most three
+tile requests run together, with each attempt attached to the original message
+and cumulative provider ceiling. The smaller-image reader is retained.
+
+For complex drawing practice, use the [60-question source-linked bank](../docs/evaluation/complex-practice-questions.md).
 `ops/complex_eval.py --help` documents an isolated paired development runner.
 It requires a private, independently audited case file and a fresh output
 directory. Raw responses and expected answers stay outside Git and application

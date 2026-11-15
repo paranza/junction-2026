@@ -20,7 +20,7 @@ from .verification import (unit_spec, finite_number, normalized,
                            ground_native_evidence, ground_visual_evidence,
                            user_declared_dimension, convert_quantity)
 
-REVISION = 'source-inspection-geometry-v3'
+REVISION = 'source-inspection-geometry-v4-partitioned-count'
 MAX_ROUNDS = 3
 MAX_TOOL_ROUNDS = 3
 MAX_DETAILS = 8
@@ -91,7 +91,9 @@ def config_signature():
     if model not in {'gemini-4-argon', 'gemini-4-carbon'}:
         raise ValueError('STOA_COMPLEX_MODEL must be gemini-4-argon or gemini-4-carbon.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS, 'maximum_detail_views': MAX_DETAILS,
+            'maximum_requests': 16, 'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
+            'partitioned_count': {'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3},
+            'maximum_detail_views': MAX_DETAILS,
             'drawing_tools': 'drawing-tools-v1', 'maximum_local_tools': 10}
 
 
@@ -310,6 +312,11 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     tools = None; tool_rounds = 0; visual_rounds = 0; tool_outputs = []
     document = llm._scoped_context(document, path, page, scope, region, [page])
     overview = rendering.render_region(path, page, bounds, 1800)
+    if llm.requested_quantity(question) == 'count':
+        from . import count_reader
+        if count_reader.eligible(document,path,page,bounds):
+            return count_reader.answer(question,document,path,page,bounds,overview,
+                                       model=config_signature()['model'],policy=POLICY,previous=previous)
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
     if region and bounds != [0,0,1,1]:
         inputs.append({'image':rendering.render_region(path,page,[0,0,1,1],1800),'page':page,'region':[0,0,1,1],

@@ -247,7 +247,7 @@ function DrawingCanvas({
   useEffect(() => {
     if (!selectedEvidence) { setLocalHoveredKey(null); return; }
     const outside = event => {
-      if (event.target?.closest?.('.shape-popover, .evidence-shape, .evidence-marker, .evidence-select')) return;
+      if (event.target?.closest?.('.shape-popover, .evidence-shape, .evidence-marker, .evidence-item, .evidence-closeup-dialog')) return;
       setLocalHoveredKey(null); onHoverEvidence?.(null); onClearSelection?.();
     };
     window.addEventListener('pointerdown',outside,true);
