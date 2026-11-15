@@ -42,6 +42,19 @@ test('hydration fetches completed saved answers only and skips unavailable ones'
   assert.deepEqual(pendingAnswerIds(records, {}), ['first', 'missing']);
 });
 
+test('an answer linked by the server survives transcript hydration and refresh', () => {
+  const snapshot = { session_id: session, by_message: [{ message_id: 'saved:answer-1',
+    answer_id: 'answer-1', question: 'What is the measured perimeter?', created_at: 12, status: 'completed' }] };
+  const records = mergeConversation([], recordsFromSnapshot(snapshot, session));
+  assert.equal(records.length, 1);
+  assert.deepEqual(pendingAnswerIds(records, {}), ['answer-1']);
+  const storage = memory(); saveConversation(storage, session, records);
+  assert.deepEqual(readConversation(storage, session), records);
+  assert.deepEqual(mergeConversation([], [record('saved:../unsafe')]), []);
+  const badAnswer = mergeConversation([], [record('saved:safe-message', { answerId: '../unsafe' })]);
+  assert.equal(badAnswer[0].answerId, null);
+});
+
 test('server session mismatch and malformed stored IDs cannot introduce a transcript entry', () => {
   const rows = [{ message_id: 'first', answer_id: 'first', question: 'How many doors?', created_at: 12, status: 'completed' }];
   assert.deepEqual(recordsFromSnapshot({ session_id: 'other', by_message: rows }, session), []);

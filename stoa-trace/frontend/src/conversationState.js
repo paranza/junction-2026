@@ -1,10 +1,13 @@
 const MAX_TURNS = 24;
 const safeId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+// The server links an existing answer into a chat using saved:<answer id>.
+// Message identities have that legacy form; answer URL identities stay strict.
+const safeMessageId = value => safeId(value) || (typeof value === 'string' && /^saved:[A-Za-z0-9_-]{1,122}$/.test(value));
 const states = new Set(['pending', 'running', 'in_progress', 'completed', 'error', 'failed']);
 const terminal = status => ['completed', 'error', 'failed'].includes(status);
 
 function cleanRecord(value) {
-  if (!value || !safeId(value.id) || typeof value.question !== 'string' || !value.question.trim()
+  if (!value || !safeMessageId(value.id) || typeof value.question !== 'string' || !value.question.trim()
       || !Number.isFinite(value.timestamp) || value.timestamp < 0 || !states.has(value.status)) return null;
   return { id: value.id, answerId: safeId(value.answerId) ? value.answerId : null,
     question: value.question.slice(0, 2500), timestamp: value.timestamp,
