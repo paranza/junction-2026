@@ -1,5 +1,40 @@
 # Deployment verification
 
+## Drawing geometry and complex stress checks, Sunday
+
+Reviewed application `98f9bca5977f08615cb42728829d6c173c7c3723` is on main,
+deployed on the existing protected VM and loaded by both local apps. All 452
+backend tests passed. The frontend tree and compiled assets are unchanged, so
+the previous 59 tests and production build apply. Fourteen native solver files
+and the app analysis flow are unchanged. Native quote parsing additionally
+recognizes feet-only prime annotations; relevant native tests passed. The full
+7,066-case benchmark and both reserved evaluations were not repeated.
+
+SQLite backup integrity, retained previous image, authentication, native
+211-door evidence, preview, review/export and restart persistence passed. Actual
+installed CPU OCR, source calibration and colored centerline tracing also passed
+an offline generated-fixture smoke check. Deployment used zero model requests.
+All 36 prior answers, 11 uploads, prior event history, credentials and explicit
+provider/model configuration are preserved. Production remains **17/1,000**;
+local counters remain **4/1,000** and **140/200**, with persisted rows and uploads
+identical across restart. The adapter revision changes cache signatures for its
+bounded continuation support, without changing the configured model policy.
+
+The exposed development checks include seven previous and ten new correct
+numeric answers, two missing-information controls, and later real school and
+water-service stress questions. These are not a general accuracy estimate.
+The later stress study has four raw passes from five questions, with a
+source-audited fifth result after correcting a manual door reference from 16 to
+20. Original manifests, the false score and earlier continuation failures are
+retained. The two pipe questions reuse one shown route, not an entire installed
+network. See [results and limits](../evaluation/drawing-geometry-tools.md).
+
+[Deployment and source hashes](../../stoa-trace/ops/reports/drawing-geometry/deployment.json),
+[tests/build](../../stoa-trace/ops/reports/drawing-geometry/build-checks.json),
+[release gate](../../stoa-trace/ops/reports/drawing-geometry/release-validation.json),
+[development studies and audits](../../stoa-trace/ops/reports/drawing-geometry/complex-development-results.json),
+[local continuity](../../stoa-trace/ops/reports/drawing-geometry/local-continuity.json).
+
 ## Complex source inspection and visual follow-ups, early Sunday
 
 Reviewed main application `21f452f2003e3b709cbf003eb38dea1d1e84243c` is

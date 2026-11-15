@@ -2,7 +2,34 @@
 
 15 November 2026. Metria/Trace is the single application. Product quality and unknown uploads take priority over preparing or sending a scoreboard.
 
-Latest complex-reader release: application `21f452f` is on main, deployed and
+Latest release: application `98f9bca` adds source-bound positional OCR,
+calibrated polygon/polyline measurements, bounded centerline graphs, legend
+matching proposals and original PDF straight-vector access. Gemini chooses
+source views/tools and the host checks their operands. No per-drawing answer
+lookup or fine-tuned model was added. Bounded continuation requests now retain
+stateless input and account for every HTTP hop in the cumulative ledger.
+
+452 backend tests passed. Seventeen correct numeric development answers mean
+seven previously used complex checks and ten new public-drawing checks, not
+17 new whole-building takeoffs. Additional real stress questions correctly
+counted 106 individually drawn classroom chairs and three selected-region
+passage openings, and measured a shown incoming water route near its 20.02 m
+reference. A full-plan door result of 20 was confirmed after correcting a manual
+16-door reference; that post-inference audit is distinguished from blind scoring.
+Earlier synthetic continuation errors remain recorded; later confirmations
+passed. [Full results, timings and limits](../evaluation/drawing-geometry-tools.md).
+
+The release is on main, deployed and loaded in both local apps. Deployment
+verification and the installed OCR/geometry smoke used zero model requests.
+SQLite, prior answers/uploads, event history, credentials and configured policies
+are preserved. Production remains 17/1,000 attempts; local counters remain
+4/1,000 and 140/200. The previous 59 frontend tests/build apply to unchanged
+source/assets. No reserved evaluation or full easy/native benchmark was rerun.
+[Sixty source-linked practice prompts](../evaluation/complex-practice-questions.md)
+cover eight complex sheets; most are ungraded practice. Complete installed
+network quantities and general unseen-drawing accuracy are not established.
+
+Previous complex-reader release: application `21f452f` is on main, deployed and
 loaded in both local apps. Its default complex PDF/large-raster fallback uses
 question-driven original-resolution inspection with Argon and checked typed
 expressions. Source-aware visual follow-ups re-read prior evidence locations
