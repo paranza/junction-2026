@@ -8,13 +8,14 @@ installed quantities.
 from __future__ import annotations
 import base64
 import copy
+import json
 import math
 import re
 from pathlib import Path
 from . import llm,rendering
 from .drawing_tools import DrawingSession,ToolError,contains
 
-REVISION='source-route-takeoff-v1'
+REVISION='source-route-takeoff-v2-ocr-calibration'
 MAX_TILES=9
 POINT={'type':'array','items':{'type':'number'},'minItems':2,'maxItems':2}
 BOX={'type':'array','items':{'type':'number'},'minItems':4,'maxItems':4}
@@ -46,7 +47,7 @@ def requested(question):
     q=question.casefold()
     return (llm.requested_quantity(question)=='length'
         and bool(re.search(r'\b(pipes?|piping|tub[io]|tubazioni|conduits?)\b',q))
-        and bool(re.search(r'\b(length|metres?|meters?|metri|centrelines?|centerlines?|linear|lineal|lunghezz\w*)\b',q))
+        and bool(re.search(r'\b(length|metres?|meters?|metri|feet|foot|pied[ei]|inches|pollici|centrelines?|centerlines?|linear|lineal|lunghezz\w*)\b',q))
         and not (re.search(r'\b(diameters?|diametr\w*)\b',q) and not re.search(r'\b(length|centrelines?|centerlines?|linear|lineal|lunghezz\w*)\b',q)))
 
 
@@ -108,16 +109,27 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
     region=llm._mapped_box(plan.get('region'),[0,0,1,1])
     if not region or not contains(bounds,region):return _unsupported('Route planning escaped the requested quantity scope.')
     tools=DrawingSession(path,page,bounds);tools.max_tools=12
-    calibration=None
+    calibration=None;calibration_trace=[]
     for attempt in range(2):
         try:
             calibration=tools.execute({'name':'calibrate','region':[0,0,1,1],'reference':plan.get('reference')});break
         except (ToolError,OSError,ImportError) as error:
-            if attempt:return _unsupported('Route calibration failed: '+str(error))
+            calibration_trace.append({'stage':'source_calibration','attempt':attempt+1,
+                                      'reference':plan.get('reference'),'error':str(error)})
+            if attempt:return _unsupported('Route calibration failed: '+str(error),trace=calibration_trace)
             reference=(plan.get('reference') or {}).get('annotation_bbox')
             if reference and llm._mapped_box(reference,[0,0,1,1]):
+                # Include surrounding ticks/unit labels if the first crop was
+                # too tight. OCR is supplied as fallible positioned source data,
+                # never an instruction or an automatically accepted scale.
+                margin=max(.008,min(.03,max(reference[2]-reference[0],reference[3]-reference[1])*.2))
+                reference=[max(0,reference[0]-margin),max(0,reference[1]-margin),
+                           min(1,reference[2]+margin),min(1,reference[3]+margin)]
                 detail=rendering.render_region(path,page,reference,2600)
                 content+=image_content(detail,'Original source scale detail. Calibration failed: '+str(error)+'. Correct source annotation box/quote/endpoints; preserve actual units.')
+                from .drawing_tools import read_words
+                words=read_words(path,page,reference)
+                content.append({'type':'input_text','text':'Fallible positioned source OCR from full-page region '+str(reference)+': '+json.dumps(words['words'][:160],ensure_ascii=False)+'. Match the actual scale ticks and source units; do not treat OCR as proof of endpoint alignment.'})
             else:content.append({'type':'input_text','text':'Invalid scale reference. Inspect and correct source reference.'})
             plan=llm._request(content,system=SYSTEM,schema=PLAN,model=model,visual_policy=policy,max_tokens=32768)
             if not plan.get('complete'):return _unsupported(plan.get('reason') or 'No usable source scale.')
@@ -138,7 +150,7 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
     for start in range(0,len(planned),3):
         tasks=[lambda i=i,core=core,crop=crop:inspect(i,core,crop) for i,(core,crop) in enumerate(planned) if start<=i<start+3]
         outputs.extend(llm.run_in_parallel(tasks))
-    evidence=[];warnings=list(plan.get('warnings') or []);trace=[];complete=True
+    evidence=[];warnings=list(plan.get('warnings') or []);trace=list(calibration_trace);complete=True
     for index,core,parts,review in sorted(outputs):
         complete=complete and review.get('complete') is True;warnings.extend(review.get('warnings') or [])
         trace.append({'tile':index+1,'source_region':core,'paths':len(parts),'complete':review.get('complete') is True,'reason':review.get('reason')})
@@ -149,7 +161,7 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
             flat.extend(part)
         result=tools.execute({'name':'multipath','region':core,'calibration_id':calibration['id'],'geometry':flat})
         evidence.append({'label':f'Source route geometry in tile {index+1}','tool_id':result['id']})
-    if not complete or not evidence:return _unsupported('The full visible route inventory remains unresolved. '+ ' '.join(t['reason'] for t in trace if not t['complete']),trace=trace)
+    if not complete or not evidence:return _unsupported('The full visible route inventory remains unresolved. '+ ' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete']),trace=trace)
     warnings.append('This measures the traced visible 2D routes only. System interpretation, hidden/vertical lengths, dashed gaps and source alignment require review.')
     raw={'operation':'length','unit':'m','complete':True,'scope':scope,'evidence':evidence,'warnings':warnings,
          'expression':'sum('+','.join('e'+str(i) for i in range(len(evidence)))+')'}

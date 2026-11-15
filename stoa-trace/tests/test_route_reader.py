@@ -10,6 +10,7 @@ class SourceRouteTakeoff(unittest.TestCase):
     def test_intent_is_length_not_nominal_diameter_or_hidden_quantity_substitution(self):
         self.assertTrue(rr.requested('How many metres of pipe centreline are drawn?'))
         self.assertTrue(rr.requested('Quanti metri di tubi ci sono nel progetto?'))
+        self.assertTrue(rr.requested('How many feet of pipe are actually drawn?'))
         self.assertFalse(rr.requested('What is the nominal pipe diameter in metres?'))
         self.assertFalse(rr.requested('How many pipes are shown?'))
         self.assertFalse(rr.requested('What is the floor area?'))
@@ -45,6 +46,31 @@ class SourceRouteTakeoff(unittest.TestCase):
              patch('server.rendering.render_region',return_value=Image.new('RGB',(32,32))):
             result=rr.answer('How many metres of pipes including all vertical runs?',{},Path('x.png'),1,'document',[0,0,1,1],model='test',policy={})
         self.assertIsNone(result['value']);self.assertIn('vertical',result['answer'])
+
+    def test_calibration_retry_sees_positioned_source_words_and_preserves_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'unknown.png';Image.new('RGB',(1000,600),'white').save(path)
+            doc={'page_count':1,'pages':[{'page':1,'width':1000,'height':600}],'objects':[]}
+            plan={'region':[0,0,1,1],'reference':{'points':[[.1,.2],[.6,.2]],
+                  'value':10,'unit':'m','quote':'10 m','annotation_bbox':[.1,.02,.3,.1]},
+                  'complete':True,'warnings':[],'reason':'Located source'}
+            words={'words':[{'text':'10 m','bbox':[.1,.02,.2,.05]}],'complete':True}
+            empty={'paths':[],'complete':False,'warnings':[],'reason':'Unresolved pipe route'}
+            execute=rr.DrawingSession.execute;attempts=[]
+            def calibration(session,request):
+                if request['name']=='calibrate':
+                    attempts.append(request)
+                    if len(attempts)==1:raise ToolError('Source quote mismatch')
+                return execute(session,request)
+            with patch.object(llm,'_request',side_effect=[plan,plan,empty,empty]) as request,\
+                 patch.object(rr.DrawingSession,'execute',calibration),\
+                 patch('server.drawing_tools.read_words',return_value=words),\
+                 patch.object(rr,'tile_plan',return_value=iter([([0,0,1,1],[0,0,1,1])])):
+                result=rr.answer('How many metres of pipes?',doc,path,1,'page',[0,0,1,1],model='test',policy={})
+            correction=request.call_args_list[1].args[0]
+            self.assertTrue(any('Fallible positioned source OCR' in c.get('text','') and '10 m' in c['text'] for c in correction))
+            self.assertIsNone(result['value'])
+            self.assertEqual(result['inspection'][0]['stage'],'source_calibration')
 
 
 if __name__=='__main__':unittest.main()
