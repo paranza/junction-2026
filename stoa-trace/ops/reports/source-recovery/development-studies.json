@@ -1,0 +1,219 @@
+{
+  "classification": "Development source audits, not a hidden evaluation",
+  "reserved_questions": 0,
+  "hardcoded_reference_answers_in_inference": false,
+  "studies": [
+    {
+      "study": "source-audit-v2-api",
+      "revision": "6b815ab2677a8c6ac8ce97a4a1d537667e81ce7a",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d"
+      },
+      "policy_override": null,
+      "completed": true,
+      "summary": {
+        "questions": 3,
+        "answered": 1,
+        "technical_errors": 2,
+        "attempts": 41,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794707634.954816
+      },
+      "results": [
+        {
+          "id": "school-chairs",
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 615.2799817500054,
+          "error_type": "HTTPStatusError",
+          "export_ok": null
+        },
+        {
+          "id": "school-doors",
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 616.6491698329919,
+          "error_type": "HTTPStatusError",
+          "export_ok": null
+        },
+        {
+          "id": "school-windows",
+          "value": 68,
+          "unit": "count",
+          "evidence_count": 68,
+          "seconds": 448.98842979199253,
+          "error_type": null,
+          "export_ok": true
+        }
+      ]
+    },
+    {
+      "study": "source-audit-v2-carbon-api",
+      "revision": "c8cba5310690f08dbcc9a8512d3a119ae98ff982",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d"
+      },
+      "policy_override": {
+        "image_resolution": "high",
+        "thinking_level": "medium",
+        "max_output_tokens": 24000
+      },
+      "completed": false,
+      "summary": null,
+      "results": [
+        {
+          "id": "school-chairs",
+          "value": 320,
+          "unit": "count",
+          "evidence_count": 320,
+          "seconds": 960.8487977080076,
+          "error_type": null,
+          "export_ok": true
+        }
+      ]
+    },
+    {
+      "study": "source-route-v1-carbon-api",
+      "revision": "c8cba5310690f08dbcc9a8512d3a119ae98ff982",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b"
+      },
+      "policy_override": {
+        "image_resolution": "high",
+        "thinking_level": "medium",
+        "max_output_tokens": 24000
+      },
+      "completed": true,
+      "summary": {
+        "questions": 2,
+        "answered": 1,
+        "technical_errors": 0,
+        "attempts": 7,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794708131.379669
+      },
+      "results": [
+        {
+          "id": "piping-plan-total",
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 166.52474554200307,
+          "error_type": null,
+          "export_ok": true
+        },
+        {
+          "id": "school-baseboard",
+          "value": 29.76839458610889,
+          "unit": "m",
+          "evidence_count": 5,
+          "seconds": 561.8673700829968,
+          "error_type": null,
+          "export_ok": true
+        }
+      ]
+    },
+    {
+      "study": "source-route-v2-carbon-api",
+      "revision": "2ce7f0781502aa0130477ebfb5ff7c4ccfcd21d0",
+      "source_sha256": {
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b"
+      },
+      "policy_override": {
+        "image_resolution": "high",
+        "thinking_level": "medium",
+        "max_output_tokens": 24000
+      },
+      "completed": true,
+      "summary": {
+        "questions": 1,
+        "answered": 0,
+        "technical_errors": 0,
+        "attempts": 2,
+        "ungraded_until_independent_source_audit": true,
+        "reserved_questions": 0,
+        "finished_at": 1794708502.9892411
+      },
+      "results": [
+        {
+          "id": "piping-plan-total",
+          "value": null,
+          "unit": null,
+          "evidence_count": 0,
+          "seconds": 256.8467016670038,
+          "error_type": null,
+          "export_ok": true
+        }
+      ]
+    },
+    {
+      "study": "source-geometry-v3-carbon-api",
+      "revision": "e3aa03fdeaaa1ae4958b91e72bfe2f1e6bed49ea",
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d",
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b"
+      },
+      "policy_override": {
+        "image_resolution": "high",
+        "thinking_level": "medium",
+        "max_output_tokens": 24000
+      },
+      "completed": false,
+      "summary": null,
+      "results": []
+    }
+  ],
+  "independent_audit": {
+    "school_windows": {
+      "reference": 68,
+      "timing": "post-inference source audit",
+      "breakdown": {
+        "west_block": 38,
+        "east_block": 30
+      },
+      "earlier_manual_reference_corrected": true,
+      "reason": "Original marked proposals included a solid pier and shifted/missed openings. All 68 new locations were checked on source crops and the full facade."
+    },
+    "school_chairs": {
+      "initial_clear_symbol_reference": 324,
+      "desk_pedestal_ambiguities_not_added": 8,
+      "best_earlier_tile_value": 323,
+      "new_carbon_audit_value": 320,
+      "new_count_variant_promoted": false
+    },
+    "school_baseboard": {
+      "initial_reference_m": 29.189647,
+      "initial_tolerance_m": 0.6,
+      "new_measured_value_m": 29.76839458610889,
+      "within_initial_tolerance": true,
+      "unresolved_source_detail": "One proposed doorway deduction follows a leaf rather than the full clear gap. Further focused review was implemented; this does not establish exact geometry."
+    },
+    "whole_visible_pipe_network": {
+      "independent_reference_available": false,
+      "exact_accuracy_established": false
+    }
+  },
+  "calibration": {
+    "actual_original_source_ocr_reproduced_both_model_proposed_boxes": true,
+    "reference_m": 2.4384,
+    "paid_model_requests": 0
+  },
+  "browser": {
+    "linked_saved_answer_restored_after_refresh": true,
+    "duplicate_alias_removed": true,
+    "perimeter_and_three_disjoint_opening_polylines_visible": true,
+    "copied_study_runtime_only": true,
+    "model_requests_during_browser_check": 0
+  },
+  "operational_limits": {
+    "existing_provider_and_model_policy_preserved": true,
+    "experimental_count_default": "off",
+    "experimental_route_default": "off",
+    "independent_reserved_evaluation_rerun": false
+  }
+}
