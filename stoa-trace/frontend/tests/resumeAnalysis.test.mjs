@@ -32,3 +32,10 @@ test('changed sources, another drawing and invalid saved scopes cannot resume', 
   }
   assert.equal(resumeAnalysisRequest(answer, 'other'), null);
 });
+
+test('native detail areas count separately inside the same coarse tile', () => {
+  const partial = {retryable_analysis:true,value:null,route_inspection:{source_tiles:4},
+    inspection:[{tile:1,detail:1,complete:true},{tile:1,detail:2,complete:true},
+      {tile:1,detail:3,complete:false},{tile:1,detail:4,complete:true}]};
+  assert.equal(interruptedAnalysisText(partial),'3 of 4 source areas inspected. Continue analysis to finish.');
+});

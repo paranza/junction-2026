@@ -22,7 +22,8 @@ export function interruptedAnalysisText(answer) {
     .filter(item => Number.isInteger(item.tile) && item.tile > 0);
   const total = answer.route_inspection?.source_tiles ?? answer.count_inspection?.source_tiles;
   if (Number.isInteger(total) && total > 0 && tiles.length === total) {
-    const completed = new Set(tiles.filter(item => item.complete === true).map(item => item.tile)).size;
+    const completed = new Set(tiles.filter(item => item.complete === true)
+      .map(item => `${item.tile}:${item.detail ?? ''}`)).size;
     return `${completed} of ${total} source areas inspected. Continue analysis to finish.`;
   }
   return 'Analysis was interrupted. Continue to finish checking the source.';

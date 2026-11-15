@@ -121,3 +121,36 @@ modified by this UI check.
 The frozen `5f61113` cold upload/API run returned 322 school chairs, 68 school windows and 106 external-control chairs. The door question returned no number because one of 16 tiles marked its owned scope incomplete despite describing out-of-core exclusions. This is three of four numerical responses, zero technical HTTP failures and 136 requests in the original summary, not a new general accuracy estimate. The source-only four-answer replay above did not predict this end-to-end failure. Local recovery and resumable incomplete-count handling are being implemented as a separate candidate; the failure is retained rather than overwritten.
 
 Reviewed source `5f61113` is on main, deployed and loaded locally with the experimental modes still off by default. Verification preserved the production counter at 17/1,000 and local counters at 4/1,000 and 140/200, using zero model requests.
+
+
+## Native-detail pipe coverage and local count recovery — 15 November
+
+The follow-up adds bounded local recovery for incomplete count cores, with named
+source coordinates and retained completed inspections. The cold original door
+question now returns 111, but source comparison found a genuine storage-room
+entrance wrongly excluded by the refinement pass. This is not a validated correct
+count and does not justify promoting that experimental policy.
+
+The opt-in route reader now reviews dense regions in four closer, overlapping
+source details with disjoint measurement ownership. Each detail returns a full
+replacement trace, including previously unmarked areas. Explicit equipment-body
+polygons are subtracted by host geometry; adjacent bypasses are retained. Failed
+closer reads preserve partial evidence, withhold the whole-network total and
+resume only unfinished inspections. Method planning uses the meaning of a length
+question rather than requiring the word “pipe”; unrelated length questions and
+printed quantities delegate to the general source reader.
+
+Backend validation passed 500 tests; frontend validation passed 64 tests and the
+production build. Controls cover a previously missing branch, equipment cutouts,
+shared boundaries and resumption after an interrupted closer inspection. The
+external incoming-service development control returned 20.2429682746 m against
+an already exposed manual reference of 20.018686381 m (about 1.12% difference).
+The same question through the earlier generic source agent returned
+20.0381763196 m in a separate run; retain both observations. Neither is evidence
+that every pipe in the Discord network is recognized.
+
+The whole-network study is recorded separately in
+[the development record](../../stoa-trace/ops/reports/source-pipe-coverage/development-study.json),
+including its completion status, failures and cumulative request count. No
+reserved evaluation was opened or rerun. The deployed feature flags and provider
+policies were not changed by this source update.

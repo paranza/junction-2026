@@ -288,19 +288,21 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
             if flat:flat.append(None)
             flat.extend(part)
         result=tools.execute({'name':'multipath','region':core,'calibration_id':calibration['id'],'geometry':flat})
-        evidence.append({'label':f'Source route geometry in tile {index+1}'+(f', detail {detail}' if detail else ''),'tool_id':result['id']})
+        evidence.append({'label':f'Visible pipe routes — area {len(evidence)+1}','tool_id':result['id']})
+    inspection={'revision':REVISION,'source_tiles':len(coverage),'coarse_tiles':len(planned),
+        'native_detail_regions':sum(item[-1] is not None for item in coverage),'source_calibration':calibration['reference'],
+        'plan_region':region,'plan_cache_hit':plan_cached,'cached_tiles':sum(t.get('cache_hit',False) for t in trace),
+        'retryable_regions':sum(t.get('retryable',False) for t in trace)}
     if not evidence:
         result=_unsupported('The full visible route inventory remains unresolved. '+ ' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete']),trace=trace)
         result['retryable_analysis']=any(t.get('retryable') for t in trace)
+        result['route_inspection']=inspection
         return result
     warnings.append('This measures the traced visible 2D routes only. System interpretation, hidden/vertical lengths, dashed gaps and source alignment require review.')
     raw={'operation':'length','unit':'m','complete':complete,'scope':scope,'evidence':evidence,'warnings':warnings,
          'expression':'sum('+','.join('e'+str(i) for i in range(len(evidence)))+')'}
     result=finalize(raw,[{'image':full,'page':page,'region':[0,0,1,1],'kind':'overview'}],document,question,bounds,trace,tools)
-    result['route_inspection']={'revision':REVISION,'source_tiles':len(coverage),'coarse_tiles':len(planned),
-        'native_detail_regions':sum(item[-1] is not None for item in coverage),'source_calibration':calibration['reference'],
-        'plan_region':region,'plan_cache_hit':plan_cached,'cached_tiles':sum(t.get('cache_hit',False) for t in trace),
-        'retryable_regions':sum(t.get('retryable',False) for t in trace)}
+    result['route_inspection']=inspection
     if not complete:
         reasons=' '.join(t['reason'] for t in trace if 'complete' in t and not t['complete'])
         result['answer']='The full visible pipe inventory is incomplete. '+reasons

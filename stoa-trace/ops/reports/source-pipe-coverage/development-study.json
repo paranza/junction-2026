@@ -1,0 +1,185 @@
+{
+  "recorded_at": "2026-11-15T06:55:56.689251+00:00",
+  "classification": "Exposed-source development studies; no independent whole-network gold",
+  "production_model_requests_made_by_this_change": 0,
+  "live_feature_policy_changed": false,
+  "validation": {
+    "backend_suite": {
+      "passed": 500,
+      "log_sha256": "05041f3f174a15bb53da4d4ede01622db825593fa8f691c7a9bf6005d810a777"
+    },
+    "frontend_tests_passed": 64,
+    "frontend_build_passed": true
+  },
+  "studies": [
+    {
+      "study": "source-count-local-resolution-v4-cold-api",
+      "source_revision": "0c5ed45d3072b689e2aeb8938a8eb00ca719fb4c",
+      "completed": true,
+      "recorded_model_attempts": 63,
+      "reference_answers_in_model_inputs": false,
+      "reserved_questions": 0,
+      "rows": [],
+      "source_sha256": {
+        "uk_dfe_sen-dfe-xx-00-d-x-0201-special_school_plan_level_00-a-c01_p001.png": "20615c86bedfc9b14762d2112d530f4df85e6079d9e7d949eb3c51e51d1e809d"
+      },
+      "server_source_sha256": {},
+      "max_attempts": 200
+    },
+    {
+      "study": "source-route-v5-detail-equipment-api",
+      "source_revision": "6e7e4ba63264c597daa4bee46c1efb37972bc087",
+      "completed": false,
+      "recorded_model_attempts": 47,
+      "reference_answers_in_model_inputs": false,
+      "reserved_questions": 0,
+      "rows": [
+        {
+          "case": "real-service-pipe-length",
+          "resume": 0,
+          "http_status": 200,
+          "seconds": 234.77832058400963,
+          "value": 20.038176319601266,
+          "unit": "m",
+          "method": "source_inspection_agent",
+          "technical_error": null,
+          "source_tiles": null,
+          "complete_regions": 0,
+          "numeric_result_is_not_an_accuracy_score": true
+        }
+      ],
+      "source_sha256": {
+        "us_aw_078-24-28_march_2020_p096.png": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b",
+        "flannery-p101-source.png": "a7533048b73692d5644ac0fcab96148b33e7f3d1350060ebd4a0d39c413414d3"
+      },
+      "server_source_sha256": {
+        "detector.py": "8d161106c3cd758ddf00fbe479bca4cb8de759a895a13c072404f2266efe785a",
+        "inspection_cache.py": "640bb00ae3418c1c297b3942e7e201304b8bb47cfa06997e3e5160a6c816d125",
+        "count_refinement.py": "a74f629fd7f3f1730ace4b6a70f60f1cde12723b9e5ca20e708724000ce86c6e",
+        "deep_reader.py": "0f575b69809a0f0bd32af763fb5538e79e2061b43d852bae31ac45228a534d80",
+        "store.py": "4f1da25ac43494f5c1df51f377f486e1b7ef0f7432146f1ddf7696514f9d113d",
+        "native_query.py": "4b7afda855fbca1ccb7ef07f8043a148e05b55dba5f295a163cb42344fbcf135",
+        "verification.py": "fd08c6c655964ea297a4c1259c2654c976ff7e2d075dbc1e0d72fed14877e3e5",
+        "receipts.py": "1cb1245355d827c60ed222eac06017f72b86996a9d26e36467e457992dd62ed2",
+        "config.py": "005a0f7f645ccd877a4d65a3c7dd86a283ddbc0b77f870112b5e015c6461a978",
+        "native_worker.py": "2b0182686ba4acb0d87df83b7064049677a8794166d68ffe882eca8386462c7d",
+        "rendering.py": "0fadab049a407539abe80f0522ee7292e89e39830a0156273164dd4cefb31c07",
+        "source_scope.py": "e16f767be6ec458256d060f886911e038b0e0664736c6df9b6b397a1dddb7fc9",
+        "normalize.py": "cfe6d285b43c5667fc9a51b3d58cc272a9dcc0cf7f179a507f9e3ee607e5cbd2",
+        "visual_audit.py": "e31916b8b7268df94328387c2158005e461272d2f90db9c617682e18b0632c29",
+        "schedule_planner.py": "8eb77d2a4fda754fbc1d09622bcdd74207ddc584e58172d826f509f225ec305d",
+        "inspector.py": "ab1c0f4a39247ca9f5d787d7ba08eadb6b12f5aba3f477ae3f328eaf99a3fc2b",
+        "__init__.py": "a1e061e4f730018d77407e45925f78bc9ee407038c97b2af65f4055266249a05",
+        "takeoff.py": "cd139d00a31051318c0b4a8ac4b25ced2a06caa97d645e851b6ba69e0e71142b",
+        "llm.py": "dc7799406e22bbf170b5290dfbf6f49201e226295efdfa401f8c526460156850",
+        "quantities.py": "9c40db11df0994c4d63469bc22e5f3bf7595c573d2a414a2b71aae616d29a36c",
+        "extraction.py": "80a493b6f6f820b2fcd0b618a3cc0f8d71820abacb575e6ed4ff22a51fef6f11",
+        "costs.py": "495962ee59dfb52a7979d94faaba3ef97f9119d11317a4518c9537cdb3cabbcd",
+        "app.py": "be4631371f736dc712a426fdc00355ea5fac163b47c4d632e892c64323f7c69a",
+        "cloudinary_media.py": "63c46298eb30f9730036d22c88fbc3e99f7547eeefa70bb9830e3c1cae4568c1",
+        "selection.py": "27c9973a47d058c95a0aa52570c3262dd72886058baae5fc9e9f877d9c08d50c",
+        "native_qa.py": "954f24b6e50d4218c0e033217c6029eca80e8efbf6ff5dfbd31eab417494bc6f",
+        "scale_alignment.py": "21254bebf6d129ab63a83e5fa991a375d731d75f86d26bb0785554e2d55a4c9a",
+        "symbol_proposals.py": "15593168bacadee9aabfcd3636ca3adcc3a4acebe6b9b695d96ee0d25097f9a4",
+        "count_reader.py": "be483091b9c0ed38ad59a789b4a7aa919f29becef86d7e64e4b8a08ca8d1ad35",
+        "gemini_provider.py": "63e98e12575e507f5a953fcad75e6ae81425882ddac10b67845699247eea974a",
+        "drawing_tools.py": "48c105338e418cca29d91cba74986686dbda39294fe56d2b1ae6f148d1fc3bb4",
+        "measurements.py": "d1df1f24bbb0dcec3affa3f4335fcfd44c6a5296e69972e26ba96cf480d6ba21",
+        "schedules.py": "db91892dd54eb8b9ce57e186a98aee4f7942330a87d28e33bd1e9c38b80f7c13",
+        "route_reader.py": "d23c0578010402d3caf8f56e3cb604b0c81bf29b3b0a38e89212c96238262aed",
+        "inventory.py": "bc1f37987c944542f7ac3f3b4e115adcd85c53000cd12c614c5bccb7e20ef77b"
+      },
+      "route_policy": {
+        "image_resolution": "ultra_high",
+        "thinking_level": "low",
+        "max_output_tokens": 16384
+      },
+      "generic_policy": {
+        "image_resolution": "ultra_high",
+        "thinking_level": "high",
+        "max_output_tokens": 65536
+      },
+      "max_attempts": 160
+    },
+    {
+      "study": "source-route-v5-semantic-external-control",
+      "source_revision": "0a4fa21afc9d49503fc9efe88898d95b309c7fa2",
+      "completed": true,
+      "recorded_model_attempts": 7,
+      "reference_answers_in_model_inputs": false,
+      "reserved_questions": 0,
+      "rows": [
+        {
+          "case": "real-service-pipe-length",
+          "resume": 0,
+          "http_status": 200,
+          "seconds": 94.84958841698244,
+          "value": 20.242968274632926,
+          "unit": "m",
+          "method": "source_inspection_agent",
+          "technical_error": null,
+          "source_tiles": 4,
+          "complete_regions": 4,
+          "numeric_result_is_not_an_accuracy_score": true
+        }
+      ],
+      "source_sha256": {
+        "flannery-p101-source.png": "a7533048b73692d5644ac0fcab96148b33e7f3d1350060ebd4a0d39c413414d3"
+      },
+      "server_source_sha256": {
+        "detector.py": "8d161106c3cd758ddf00fbe479bca4cb8de759a895a13c072404f2266efe785a",
+        "inspection_cache.py": "640bb00ae3418c1c297b3942e7e201304b8bb47cfa06997e3e5160a6c816d125",
+        "count_refinement.py": "a74f629fd7f3f1730ace4b6a70f60f1cde12723b9e5ca20e708724000ce86c6e",
+        "deep_reader.py": "0f575b69809a0f0bd32af763fb5538e79e2061b43d852bae31ac45228a534d80",
+        "store.py": "4f1da25ac43494f5c1df51f377f486e1b7ef0f7432146f1ddf7696514f9d113d",
+        "native_query.py": "4b7afda855fbca1ccb7ef07f8043a148e05b55dba5f295a163cb42344fbcf135",
+        "verification.py": "fd08c6c655964ea297a4c1259c2654c976ff7e2d075dbc1e0d72fed14877e3e5",
+        "receipts.py": "1cb1245355d827c60ed222eac06017f72b86996a9d26e36467e457992dd62ed2",
+        "config.py": "005a0f7f645ccd877a4d65a3c7dd86a283ddbc0b77f870112b5e015c6461a978",
+        "native_worker.py": "2b0182686ba4acb0d87df83b7064049677a8794166d68ffe882eca8386462c7d",
+        "rendering.py": "0fadab049a407539abe80f0522ee7292e89e39830a0156273164dd4cefb31c07",
+        "source_scope.py": "e16f767be6ec458256d060f886911e038b0e0664736c6df9b6b397a1dddb7fc9",
+        "normalize.py": "cfe6d285b43c5667fc9a51b3d58cc272a9dcc0cf7f179a507f9e3ee607e5cbd2",
+        "visual_audit.py": "e31916b8b7268df94328387c2158005e461272d2f90db9c617682e18b0632c29",
+        "schedule_planner.py": "8eb77d2a4fda754fbc1d09622bcdd74207ddc584e58172d826f509f225ec305d",
+        "inspector.py": "ab1c0f4a39247ca9f5d787d7ba08eadb6b12f5aba3f477ae3f328eaf99a3fc2b",
+        "__init__.py": "a1e061e4f730018d77407e45925f78bc9ee407038c97b2af65f4055266249a05",
+        "takeoff.py": "cd139d00a31051318c0b4a8ac4b25ced2a06caa97d645e851b6ba69e0e71142b",
+        "llm.py": "dc7799406e22bbf170b5290dfbf6f49201e226295efdfa401f8c526460156850",
+        "quantities.py": "9c40db11df0994c4d63469bc22e5f3bf7595c573d2a414a2b71aae616d29a36c",
+        "extraction.py": "80a493b6f6f820b2fcd0b618a3cc0f8d71820abacb575e6ed4ff22a51fef6f11",
+        "costs.py": "495962ee59dfb52a7979d94faaba3ef97f9119d11317a4518c9537cdb3cabbcd",
+        "app.py": "be4631371f736dc712a426fdc00355ea5fac163b47c4d632e892c64323f7c69a",
+        "cloudinary_media.py": "63c46298eb30f9730036d22c88fbc3e99f7547eeefa70bb9830e3c1cae4568c1",
+        "selection.py": "27c9973a47d058c95a0aa52570c3262dd72886058baae5fc9e9f877d9c08d50c",
+        "native_qa.py": "954f24b6e50d4218c0e033217c6029eca80e8efbf6ff5dfbd31eab417494bc6f",
+        "scale_alignment.py": "21254bebf6d129ab63a83e5fa991a375d731d75f86d26bb0785554e2d55a4c9a",
+        "symbol_proposals.py": "15593168bacadee9aabfcd3636ca3adcc3a4acebe6b9b695d96ee0d25097f9a4",
+        "count_reader.py": "be483091b9c0ed38ad59a789b4a7aa919f29becef86d7e64e4b8a08ca8d1ad35",
+        "gemini_provider.py": "63e98e12575e507f5a953fcad75e6ae81425882ddac10b67845699247eea974a",
+        "drawing_tools.py": "48c105338e418cca29d91cba74986686dbda39294fe56d2b1ae6f148d1fc3bb4",
+        "measurements.py": "d1df1f24bbb0dcec3affa3f4335fcfd44c6a5296e69972e26ba96cf480d6ba21",
+        "schedules.py": "db91892dd54eb8b9ce57e186a98aee4f7942330a87d28e33bd1e9c38b80f7c13",
+        "route_reader.py": "b1a76b973a50ede35da324003605174525adc69ea181750e954bfcc17b147260",
+        "inventory.py": "bc1f37987c944542f7ac3f3b4e115adcd85c53000cd12c614c5bccb7e20ef77b"
+      },
+      "route_policy": {
+        "image_resolution": "ultra_high",
+        "thinking_level": "low",
+        "max_output_tokens": 16384
+      },
+      "generic_policy": {
+        "image_resolution": "ultra_high",
+        "thinking_level": "high",
+        "max_output_tokens": 65536
+      },
+      "max_attempts": 160
+    }
+  ],
+  "limitations": [
+    "The full Discord pipe network is not independently digitized or accuracy-validated.",
+    "The dedicated route and count-refinement features remain opt-in; no deployed configuration was changed.",
+    "The 111-door cold result still excludes at least one genuine storage-room entrance and is not promoted as a correct total.",
+    "The external 20.018686381 m development reference was already exposed, so its agreement is not a blind generalization score."
+  ]
+}
