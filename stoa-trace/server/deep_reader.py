@@ -95,11 +95,14 @@ def config_signature():
         raise ValueError('STOA_PARTITIONED_COUNTS must be off or on.')
     routes = os.environ.get('STOA_ROUTE_READER', 'off').strip().lower()
     if routes not in {'off','on'}:raise ValueError('STOA_ROUTE_READER must be off or on.')
+    refine = os.environ.get('STOA_COUNT_REFINEMENT', 'off').strip().lower()
+    if refine not in {'off','on'}:raise ValueError('STOA_COUNT_REFINEMENT must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': max(32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS,20 if routes=='on' else 0),
+            'maximum_requests': max((32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(9 if refine=='on' else 0),20 if routes=='on' else 0),
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
             'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True},
             'route_reader':{'mode':routes,'maximum_source_tiles':9,'maximum_local_tools':12},
+            'count_refinement':{'mode':refine,'maximum_proposals':256,'maximum_audit_batches':8},
             'maximum_detail_views': MAX_DETAILS,
             'drawing_tools': 'drawing-tools-v3-source-geometry-review', 'maximum_local_tools': 12}
 
@@ -318,6 +321,26 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     bounds = list(region or [0, 0, 1, 1]); inputs = []; trace = []
     tools = None; tool_rounds = 0; visual_rounds = 0; tool_outputs = []
     document = llm._scoped_context(document, path, page, scope, region, [page])
+    count_cache = None
+    refine_counts = config_signature()['count_refinement']['mode']=='on' and llm.requested_quantity(question)=='count'
+    if refine_counts:
+        from . import count_refinement
+        from .inspection_cache import InspectionCache
+        from .drawing_tools import fingerprint
+        import hashlib
+        names=('deep_reader.py','count_reader.py','count_refinement.py','symbol_proposals.py','llm.py','gemini_provider.py','verification.py')
+        count_cache=InspectionCache({'kind':'unrefined-source-count','source':fingerprint(Path(path)),
+            'question':question,'page':page,'scope':scope,'bounds':bounds,'previous':previous,
+            'model':config_signature()['model'],'provider':llm.provider_signature(),'config':config_signature(),
+            'code':{n:hashlib.sha256((Path(__file__).parent/n).read_bytes()).hexdigest() for n in names}})
+        cached=count_cache.get('source-observations')
+        if cached and isinstance(cached.get('result'),dict):
+            return count_refinement.refine(question,document,path,page,bounds,cached['result'],model=config_signature()['model'])
+
+    def finish(result):
+        if not refine_counts or result.get('operation')!='count' or result.get('value') is None:return result
+        count_cache.put('source-observations',{'complete':True,'result':result})
+        return count_refinement.refine(question,document,path,page,bounds,result,model=config_signature()['model'])
     if config_signature()['route_reader']['mode']=='on':
         from . import route_reader
         if route_reader.requested(question):
@@ -327,8 +350,8 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
     if llm.requested_quantity(question) == 'count':
         from . import count_reader
         if config_signature()['partitioned_count']['mode']=='on' and count_reader.eligible(document,path,page,bounds):
-            return count_reader.answer(question,document,path,page,bounds,overview,
-                                       model=config_signature()['model'],policy=POLICY,previous=previous)
+            return finish(count_reader.answer(question,document,path,page,bounds,overview,
+                                       model=config_signature()['model'],policy=POLICY,previous=previous))
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
     if region and bounds != [0,0,1,1]:
         inputs.append({'image':rendering.render_region(path,page,[0,0,1,1],1800),'page':page,'region':[0,0,1,1],
@@ -416,7 +439,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         visual_rounds += 1
         if decision.get('action') == 'answer' and isinstance(decision.get('result'), dict):
             if len(inputs) > 1 or region:
-                return finalize(decision['result'], inputs, document, question, bounds, trace,tools)
+                return finish(finalize(decision['result'], inputs, document, question, bounds, trace,tools))
             # A large source requires at least one original-resolution detail.
             for box in grid(bounds, 2, 2): add_view(box)
         elif visual_rounds < MAX_ROUNDS:

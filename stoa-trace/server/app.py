@@ -371,7 +371,7 @@ def _evidence(result, doc_id):
 
 def _source_revision():
     digest = hashlib.sha256()
-    for name in ('app.py', 'deep_reader.py', 'count_reader.py', 'route_reader.py', 'inspection_cache.py', 'drawing_tools.py', 'native_qa.py', 'source_scope.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
+    for name in ('app.py', 'deep_reader.py', 'count_reader.py', 'count_refinement.py', 'symbol_proposals.py', 'route_reader.py', 'inspection_cache.py', 'drawing_tools.py', 'native_qa.py', 'source_scope.py', 'takeoff.py', 'native_query.py', 'schedule_planner.py', 'schedules.py', 'quantities.py', 'detector.py', 'extraction.py', 'selection.py', 'llm.py', 'costs.py', 'gemini_provider.py', 'inventory.py', 'verification.py', 'rendering.py', 'store.py', 'measurements.py', 'visual_audit.py', 'normalize.py', 'question_templates.json'):
         path = Path(__file__).parent / name
         if path.exists():
             digest.update(path.read_bytes())
@@ -790,6 +790,9 @@ def _ask_question(payload: AskRequest, answer_id: str):
         from .inventory import answer_category, categories_for_count
         result.setdefault('category', answer_category(to_english(question), result))
         result['allowed_count_categories'] = list(categories_for_count(result.get('category')))
+        declared = result.get('source_count_categories')
+        if result.get('method') == 'source_inspection_agent' and isinstance(declared, list) and 1 <= len(declared) <= 8 and all(isinstance(c, str) and re.fullmatch(r'[a-z][a-z0-9_]{0,47}', c) for c in declared):
+            result['allowed_count_categories'] = list(dict.fromkeys(declared))
     result['usage']['inventory_cache_hit'] = bool(result.get('inventory_cache_hit'))
     result.setdefault('can_review', result['operation'] == 'count' and result.get('value') is not None and result.get('value') == len(result['evidence']))
     result['question'] = payload.question
