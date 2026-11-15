@@ -85,6 +85,12 @@ class SourceInspection(unittest.TestCase):
         self.assertEqual(llm.requested_quantity('What is the area of room A?'),'area')
         self.assertEqual(llm.requested_quantity('How many doors in Area B?'),'count')
 
+    def test_linear_measurement_after_how_many_is_not_an_object_count(self):
+        self.assertEqual(llm.requested_quantity('How many linear metres of baseboard are needed?'),'length')
+        self.assertEqual(llm.requested_quantity('How many lineal feet of piping?'),'length')
+        self.assertEqual(llm.requested_quantity('How many doors wider than two linear metres?'),'count')
+        self.assertEqual(llm.requested_quantity('How many square metres of slab?'),'area')
+
     def test_feet_only_scale_marks_are_typed_without_truncating_combined_dimensions(self):
         from server.verification import _text_candidates,convert_quantity
         self.assertEqual([r['value'] for r in _text_candidates("0' 4' 8'",'length')],[0,4,8])

@@ -342,7 +342,7 @@ def requested_quantity(question):
     q = re.sub(r'\barea\s+[a-z](?:[-.]?\d+)?\b', ' ', q)
     # The object after "how many" may itself be a measurement unit.
     # A later threshold, as in "how many doors wider than 2 m", stays a count.
-    measured_count=re.search(r'\b(?:how many|quanti|quante)\s+(?:(square|cubic)\s+)?(met(?:er|re)s?|(?:milli|centi)?metr[io]|feet|foot|pied[ei]|inches|pollici|m[²³23]|sq\.?\s*(?:m|ft))(?:\s+(quadrati|quadri|cubi))?\b',q)
+    measured_count=re.search(r'\b(?:how many|quanti|quante)\s+(?:(?:linear|lineal)\s+)?(?:(square|cubic)\s+)?(met(?:er|re)s?|(?:milli|centi)?metr[io]|feet|foot|pied[ei]|inches|pollici|m[²³23]|sq\.?\s*(?:m|ft))(?:\s+(quadrati|quadri|cubi))?\b',q)
     if measured_count:
         phrase=measured_count.group(0)
         return 'volume' if measured_count.group(1)=='cubic' or measured_count.group(3)=='cubi' or re.search(r'm[³3]',phrase) else 'area' if measured_count.group(1)=='square' or measured_count.group(3) in {'quadrati','quadri'} or re.search(r'm[²2]|sq',phrase) else 'length'
