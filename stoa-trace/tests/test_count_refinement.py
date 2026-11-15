@@ -85,7 +85,7 @@ class StagedSourceAudit(unittest.TestCase):
             source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
             with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
                  patch.object(cr,'propose',return_value=(proposed,False)) as propose, \
-                 patch.object(llm,'_request',side_effect=[{'categories':['chair'],'context_regions':[[0,0,.3,.3]]},old,llm.ModelError('Interrupted',recoverable=True),new]) as request:
+                 patch.object(llm,'_request',side_effect=[{'categories':['chair'],'context_regions':[{'left':0,'top':0,'right':.3,'bottom':.3}]},old,llm.ModelError('Interrupted',recoverable=True),new]) as request:
                 interrupted=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
                 self.assertIsNone(interrupted['value'])
                 self.assertTrue(interrupted['retryable_analysis'])

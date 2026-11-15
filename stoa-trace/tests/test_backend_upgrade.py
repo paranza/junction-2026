@@ -244,6 +244,19 @@ class BackendUpgrade(unittest.TestCase):
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(result.json()['added_evidence'][0]['category'], 'window')
 
+    def test_source_count_review_accepts_declared_open_vocabulary_categories(self):
+        original={'id':'source-types','document_id':self.doc['id'],'question':'Count seats and air terminals',
+                  'method':'source_inspection_agent','category':'chair+air_terminal',
+                  'source_count_categories':['chair','air_terminal'],'can_review':True,
+                  'value':0,'unit':'count','evidence':[],'warnings':[]}
+        store.save_answer(original['id'],self.doc['id'],original['question'],original)
+        item={'id':'manual-form','label':'Missed source object','page':1,'bbox':[.1,.1,.2,.2]}
+        for category in ('chair','air_terminal'):
+            result=self.client.post('/api/answers/source-types/review',json={'added_evidence':[{**item,'category':category}]})
+            self.assertEqual(result.status_code,200,result.text)
+            self.assertEqual(result.json()['value'],1)
+        self.assertEqual(self.client.post('/api/answers/source-types/review',json={'added_evidence':[{**item,'category':'door'}]}).status_code,422)
+
     def _write_pdf(self, path, color):
         pdf = pymupdf.open()
         page = pdf.new_page(width=100, height=100)

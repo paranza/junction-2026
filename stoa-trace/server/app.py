@@ -930,6 +930,9 @@ def review_answer(answer_id: str, payload: ReviewRequest):
         from .inventory import answer_category, canonical_category, categories_for_count
         expected_category = canonical_category(original.get('category') or answer_category(original.get('question', ''), original))
         allowed_categories = categories_for_count(expected_category) or ((expected_category,) if expected_category else ())
+        declared = original.get('source_count_categories')
+        if original.get('method') == 'source_inspection_agent' and isinstance(declared, list) and 1 <= len(declared) <= 8 and all(isinstance(c, str) and re.fullmatch(r'[a-z][a-z0-9_]{0,47}', c) for c in declared):
+            allowed_categories = tuple(dict.fromkeys(declared))
         added = []
         for item in payload.added_evidence:
             box = item.bbox
