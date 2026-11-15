@@ -25,7 +25,7 @@ REFERENCE={'type':'object','additionalProperties':False,'properties':{
     'unit':{'type':'string'},'quote':{'type':'string'},'annotation_bbox':BOX},
     'required':['points','value','unit','quote','annotation_bbox']}
 PLAN={'type':'object','additionalProperties':False,'properties':{
-    'method':{'type':'string','enum':['source_geometry','source_annotation']},
+    'method':{'type':'string','enum':['source_geometry','source_annotation','source_reader']},
     'region':{**BOX,'type':['array','null']},'reference':{**REFERENCE,'type':['object','null']},
     'complete':{'type':'boolean'},'warnings':{'type':'array','items':{'type':'string'}},'reason':{'type':'string'}},
     'required':['method','region','reference','complete','warnings','reason']}
@@ -49,13 +49,12 @@ For tracing, IMAGE 0 is full-page context and IMAGE 1 is an original source tile
 When reviewing a trace, inspect original source and the colored proposed polylines. Correct false paths and missed branches; return the complete corrected path list for this tile. Check end/boundary routes, paired outlines, crossing systems, dashed segments and bends. Colored paths are computed proposals, not source annotations or proof of correctness. Do not adjust a trace toward a desired length; no reference length is supplied except the printed scale. If visible systems cannot be resolved, complete=false with the specific missing interpretation.'''
 SYSTEM+='''\nReturn exclusions as tight original-source equipment BODY polygons in LOCAL IMAGE 1 coordinates when the question excludes equipment internals. The host subtracts those polygons from the traced routes; merely saying that internals were excluded is insufficient. Bound the actual pump, motor, vessel, inline-device or valve body as appropriate to the question, not an entire foundation pad, maintenance zone, room or enclosing equipment base. Connecting pipework and adjacent bypasses must remain outside the masks. Supports, annotation dots, leaders and unrelated structural outlines are not equipment-body cutouts. For an explicitly requested gross route through inline fittings, respect that definition instead of subtracting those fittings. Return [] where no applicable equipment body overlaps the requested routes. Mask polygons cannot introduce unshown connections. During review the blue polygons are fallible exclusion proposals: check their tight source boundaries independently, remove false masks and add missing bodies before returning the corrected paths AND exclusions.'''
 SYSTEM+='''\nPlanning method source_annotation delegates questions answered by actually printed LENGTH quantities, schedules or dimension records to the source-reading agent; use null region/reference for that method. Nominal diameters are not route lengths and do not justify that method. Use source_geometry when the question requires tracing/measuring actual routes. Missing unshown installed/vertical runs remain complete=false rather than a substituted visible or nominal quantity.'''
+SYSTEM+='''\nFirst choose the method from the physical meaning of the question, not specific keywords. source_geometry is for length takeoffs of distribution routes/networks, including water services, drains, process lines and other routed systems even when the word pipe is absent. Use source_reader with null region/reference for other length questions such as room dimensions or baseboard perimeters; the general source agent handles those. Do not reinterpret these as piping or invent a route. source_annotation remains for printed route-length quantities.'''
 
 
 def requested(question):
     q=question.casefold()
     return (llm.requested_quantity(question)=='length'
-        and bool(re.search(r'\b(pipes?|piping|tub[io]|tubazioni|conduits?)\b',q))
-        and bool(re.search(r'\b(length|metres?|meters?|metri|feet|foot|pied[ei]|inches|pollici|centrelines?|centerlines?|linear|lineal|lunghezz\w*)\b',q))
         and not (re.search(r'\b(diameters?|diametr\w*)\b',q) and not re.search(r'\b(length|centrelines?|centerlines?|linear|lineal|lunghezz\w*)\b',q)))
 
 
@@ -178,7 +177,7 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
     content=[{'type':'input_text','text':f'Plan source inspection for this exact question: {question}\nScope: {scope}, page {page}, quantity bounds {bounds}. Fallible positioned/native source context: '+str(llm._native_context(document,question))}]+image_content(full,'Full source page. Locate applicable plan region and physical scale.')
     plan=cache.get('calibrated-plan');plan_cached=plan is not None
     if plan is None:plan=llm._request(content,system=SYSTEM,schema=PLAN,model=model,visual_policy=policy,max_tokens=32768)
-    if plan.get('method')=='source_annotation':return None
+    if plan.get('method') in {'source_annotation','source_reader'}:return None
     if not plan.get('complete'):return _unsupported(plan.get('reason') or 'The requested route scope is not established by this source.')
     region=llm._mapped_box(plan.get('region'),[0,0,1,1])
     if not region or not contains(bounds,region):return _unsupported('Route planning escaped the requested quantity scope.')
@@ -210,7 +209,7 @@ def answer(question,document,path,page,scope,bounds,*,model,policy):
                 content.append({'type':'input_text','text':'Fallible positioned source OCR from full-page region '+str(reference)+': '+json.dumps(words['words'][:160],ensure_ascii=False)+'. Match the actual scale ticks and source units; do not treat OCR as proof of endpoint alignment.'})
             else:content.append({'type':'input_text','text':'Invalid scale reference. Inspect and correct source reference.'})
             plan=llm._request(content,system=SYSTEM,schema=PLAN,model=model,visual_policy=policy,max_tokens=32768)
-            if plan.get('method')=='source_annotation':return None
+            if plan.get('method') in {'source_annotation','source_reader'}:return None
             if not plan.get('complete'):return _unsupported(plan.get('reason') or 'No usable source scale.')
     region=llm._mapped_box(plan.get('region'),[0,0,1,1])
     if not region or not contains(bounds,region):return _unsupported('Revised route plan escaped the requested quantity scope.')

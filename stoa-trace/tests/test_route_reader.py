@@ -19,6 +19,7 @@ class SourceRouteTakeoff(unittest.TestCase):
         self.assertTrue(rr.requested('How many metres of pipe centreline are drawn?'))
         self.assertTrue(rr.requested('Quanti metri di tubi ci sono nel progetto?'))
         self.assertTrue(rr.requested('How many feet of pipe are actually drawn?'))
+        self.assertTrue(rr.requested('What is the 2D centerline length in metres of the incoming cold-water service?'))
         self.assertFalse(rr.requested('What is the nominal pipe diameter in metres?'))
         self.assertFalse(rr.requested('How many pipes are shown?'))
         self.assertFalse(rr.requested('What is the floor area?'))
@@ -100,6 +101,15 @@ class SourceRouteTakeoff(unittest.TestCase):
             result=rr.answer('What pipe length is listed in the schedule?',{},Path('unknown.png'),1,'page',[0,0,1,1],model='test',policy={})
             self.assertIsNone(result)
             self.assertEqual(request.call_count,1)
+
+    def test_non_network_length_semantically_delegates_without_pipe_tracing(self):
+        with patch.object(llm,'_request',return_value={'method':'source_reader','region':None,'reference':None,
+            'complete':True,'reason':'This asks for baseboard along room walls, not a routed service','warnings':[]}) as request, \
+             patch('server.drawing_tools.fingerprint',return_value='mock-source'), \
+             patch('server.rendering.render_region',return_value=Image.new('RGB',(32,32))):
+            self.assertTrue(rr.requested('How many linear metres of baseboard are required?'))
+            result=rr.answer('How many linear metres of baseboard are required?',{},Path('unknown.png'),1,'page',[0,0,1,1],model='test',policy={})
+            self.assertIsNone(result);self.assertEqual(request.call_count,1)
 
     def test_closer_coverage_replaces_coarse_trace_and_adds_previously_missed_branch(self):
         with tempfile.TemporaryDirectory() as directory:
