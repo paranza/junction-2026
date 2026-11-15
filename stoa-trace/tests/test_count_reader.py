@@ -1,9 +1,10 @@
 """Coverage and accounting of partitioned counts, without model calls."""
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 from PIL import Image
-from server import count_reader,llm
+from server import count_reader,llm,store
 
 
 class PartitionedSourceCounts(unittest.TestCase):
@@ -12,7 +13,7 @@ class PartitionedSourceCounts(unittest.TestCase):
         self.plan=[([0,0,.5,1],[0,0,.6,1]),([.5,0,1,1],[.4,0,1,1])]
         self.image=Image.new('RGB',(32,32),'white')
 
-    def call(self,request,review=None):
+    def call(self,request,review=None,**kwargs):
         def dispatch(content,**kwargs):
             result=request(content,**kwargs)
             if kwargs.get('schema') is count_reader.AUDIT_SCHEMA:
@@ -24,7 +25,7 @@ class PartitionedSourceCounts(unittest.TestCase):
              patch('server.drawing_tools.fingerprint',return_value='mock-source'),\
              patch('server.inspection_cache.InspectionCache.get',return_value=None),\
              patch('server.inspection_cache.InspectionCache.put'):
-            return count_reader.answer('How many doors?',self.doc,Path('new.png'),1,[0,0,1,1],self.image,model='test',policy={})
+            return count_reader.answer('How many doors?',self.doc,Path('new.png'),1,[0,0,1,1],self.image,model='test',policy={},**kwargs)
 
     def test_overlapping_context_has_disjoint_ownership_and_page_coordinates(self):
         def request(content,**kwargs):
@@ -89,6 +90,45 @@ class PartitionedSourceCounts(unittest.TestCase):
         self.assertEqual([e['label'] for e in result['evidence']],['Chair','Task chair'])
         bad=self.call(proposals,lambda raw:{'keep_ids':[99],'added':[], 'complete':True,'warnings':[],'coverage_note':'Invalid ID'})
         self.assertIsNone(bad['value'])
+
+    def test_incomplete_owned_scope_gets_one_bounded_local_resolution(self):
+        requests=[]
+        def source(content,**kwargs):
+            requests.append(content[0]['text'])
+            return {'items':[{'label':'Door','bbox':[.2,.2,.3,.3]}],
+                    'complete':True,'warnings':[],'coverage_note':'Owned core inspected'}
+        result=self.call(source,lambda raw:{'keep_ids':[0],'added':[], 'complete':False,
+            'warnings':[],'coverage_note':'Excluded an object in overlap context'},resolution_policy={'thinking_level':'medium'})
+        self.assertEqual(result['value'],2)
+        self.assertEqual(sum(text.startswith('Resolve the incomplete') for text in requests),2)
+        self.assertTrue(all(t['audit']['resolution_attempted'] for t in result['inspection']))
+
+    def test_named_fractional_boxes_preserve_xy_axes_and_invalid_shapes_are_not_zero(self):
+        self.assertEqual(count_reader.normalized_items([{'label':'Door','bbox':{
+            'left':.1,'top':.2,'right':.3,'bottom':.4}}])[0]['bbox'],[.1,.2,.3,.4])
+        self.assertIsNone(llm._mapped_box(count_reader.normalized_items(None)[0]['bbox'],[0,0,1,1]))
+
+    def test_transient_source_failure_retains_other_tiles_and_retry_resumes(self):
+        failed=[]
+        def request(content,**kwargs):
+            if 'Tile 1/2.' in content[0]['text'] and not failed:
+                failed.append(True);raise llm.ModelError('Read timed out',recoverable=True)
+            if kwargs['schema'] is count_reader.AUDIT_SCHEMA:
+                return {'keep_ids':[0],'added':[],'complete':True,'warnings':[],'coverage_note':'Source checked'}
+            return {'items':[{'label':'Door','bbox':[.2,.2,.3,.3]}],
+                    'complete':True,'warnings':[],'coverage_note':'Source checked'}
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'new.png';self.image.save(path)
+            with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
+                 patch.object(count_reader,'tiles',side_effect=lambda *a:iter(self.plan)), \
+                 patch('server.rendering.render_region',return_value=self.image), \
+                 patch.object(llm,'_request',side_effect=request) as calls:
+                first=count_reader.answer('How many doors?',self.doc,path,1,[0,0,1,1],self.image,model='test',policy={})
+                self.assertIsNone(first['value']);self.assertTrue(first['retryable_analysis'])
+                second=count_reader.answer('How many doors?',self.doc,path,1,[0,0,1,1],self.image,model='test',policy={})
+                self.assertEqual(second['value'],2)
+                self.assertEqual(second['count_inspection']['cached_tiles'],1)
+                self.assertEqual(calls.call_count,5)
 
 
 if __name__=='__main__':unittest.main()

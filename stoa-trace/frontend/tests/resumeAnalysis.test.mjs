@@ -19,6 +19,7 @@ test('interrupted route summaries use actual progress and preserve completed qua
   const partial = { retryable_analysis: true, value: null, route_inspection: {source_tiles:3},
     inspection: [{tile:1,complete:true}, {tile:2,complete:false}, {tile:3,complete:true}] };
   assert.equal(interruptedAnalysisText(partial), '2 of 3 source areas inspected. Continue analysis to finish.');
+  assert.equal(interruptedAnalysisText({...partial,route_inspection:null,count_inspection:{source_tiles:3}}), '2 of 3 source areas inspected. Continue analysis to finish.');
   assert.equal(interruptedAnalysisText({...partial,value:20}), null);
   assert.equal(interruptedAnalysisText({retryable_analysis:true}), 'Analysis was interrupted. Continue to finish checking the source.');
 });

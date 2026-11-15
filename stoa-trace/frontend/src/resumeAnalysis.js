@@ -20,7 +20,7 @@ export function interruptedAnalysisText(answer) {
   if (answer?.retryable_analysis !== true || answer.value != null) return null;
   const tiles = (Array.isArray(answer.inspection) ? answer.inspection : [])
     .filter(item => Number.isInteger(item.tile) && item.tile > 0);
-  const total = answer.route_inspection?.source_tiles;
+  const total = answer.route_inspection?.source_tiles ?? answer.count_inspection?.source_tiles;
   if (Number.isInteger(total) && total > 0 && tiles.length === total) {
     const completed = new Set(tiles.filter(item => item.complete === true).map(item => item.tile)).size;
     return `${completed} of ${total} source areas inspected. Continue analysis to finish.`;

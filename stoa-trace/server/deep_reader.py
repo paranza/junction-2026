@@ -26,6 +26,7 @@ MAX_TOOL_ROUNDS = 4
 MAX_DETAILS = 8
 POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'high', 'max_output_tokens': 65536}
 COUNT_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'low', 'max_output_tokens': 16384}
+COUNT_RESOLUTION_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'medium', 'max_output_tokens': 16384}
 ANSWER_SCHEMA = copy.deepcopy(llm.SCHEMA)
 ANSWER_SCHEMA['properties']['expression'] = {'type': ['string', 'null']}
 ANSWER_SCHEMA['required'].append('expression')
@@ -99,10 +100,11 @@ def config_signature():
     refine = os.environ.get('STOA_COUNT_REFINEMENT', 'off').strip().lower()
     if refine not in {'off','on'}:raise ValueError('STOA_COUNT_REFINEMENT must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': max((32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),20 if routes=='on' else 0),
+            'maximum_requests': max(((48 if refine=='on' else 32) if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),20 if routes=='on' else 0),
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
             'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True,
-                                  'count_policy':COUNT_POLICY if dense=='on' else POLICY},
+                                  'count_policy':COUNT_POLICY if dense=='on' else POLICY,
+                                  'local_resolution_policy':COUNT_RESOLUTION_POLICY if refine=='on' else None},
             'route_reader':{'mode':routes,'maximum_source_tiles':9,'maximum_local_tools':12},
             'count_refinement':{'mode':refine,'maximum_locations':768,'maximum_audit_batches':25},
             'maximum_detail_views': MAX_DETAILS,
@@ -358,7 +360,8 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         from . import count_reader
         if config_signature()['partitioned_count']['mode']=='on' and count_reader.eligible(document,path,page,bounds):
             return finish(count_reader.answer(question,document,path,page,bounds,overview,
-                                       model=config_signature()['model'],policy=active_policy,previous=previous))
+                                       model=config_signature()['model'],policy=active_policy,previous=previous,
+                                       resolution_policy=COUNT_RESOLUTION_POLICY if refine_counts else None))
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
     if region and bounds != [0,0,1,1]:
         inputs.append({'image':rendering.render_region(path,page,[0,0,1,1],1800),'page':page,'region':[0,0,1,1],
