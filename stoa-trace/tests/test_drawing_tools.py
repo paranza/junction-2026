@@ -54,6 +54,10 @@ class SourceTools(unittest.TestCase):
         preview,region=self.session.preview(measured['id'])
         self.assertGreater(preview.width,0)
         self.assertLessEqual(region[0],.1)
+        _,detail=self.session.preview(measured['id'],part=measured['polylines'][-1])
+        self.assertGreater(detail[0],region[0])
+        self.assertLess(detail[2]-detail[0],region[2]-region[0])
+        with self.assertRaises(dt.ToolError):self.session.preview(measured['id'],part=[[0,0],[1,1]])
 
     def test_fabricated_reference_and_scope_escape_rejected(self):
         with patch.object(self.session,'_words',return_value={'words':[],'complete':True}):
@@ -72,6 +76,23 @@ class SourceTools(unittest.TestCase):
             result=self.session.execute({'name':'calibrate','reference':{
                 'points':[[.1,.2],[.6,.2]],'value':8,'unit':'ft','quote':'8','annotation_bbox':[0,0,.3,.2]}})
         self.assertEqual(result['reference']['quote'],"8'")
+
+    def test_scale_context_recovers_prime_without_borrowing_a_nearby_quantity(self):
+        reference={'points':[[.1,.2],[.6,.2]],'value':8,'unit':'ft',
+                   'quote':"0 2' 4' 8'",'annotation_bbox':[.1,.02,.3,.1]}
+        original=reference['annotation_bbox']
+        def words(region):
+            return {'complete':True,'words':[{'text':'8','bbox':[.2,.04,.23,.07]}] if region==original else
+                [{'text':"8'",'bbox':[.2,.04,.23,.07]}]}
+        with patch.object(self.session,'_words',side_effect=words):
+            result=self.session.execute({'name':'calibrate','reference':reference})
+        self.assertEqual(result['reference']['quote'],"8'")
+        # A matching dimension from outside the original located scale label
+        # must not be borrowed even if visible in the wider OCR context.
+        other=dt.DrawingSession(self.path,1,[0,0,1,1])
+        with patch.object(other,'_words',return_value={'complete':True,'words':[
+                {'text':"8'",'bbox':[.4,.04,.45,.07]}]}):
+            with self.assertRaises(dt.ToolError):other.execute({'name':'calibrate','reference':reference})
         self.assertAlmostEqual(self.session.calibrations[result['id']]['metres'],2.4384)
         self.assertFalse(result['source_verified'])
 

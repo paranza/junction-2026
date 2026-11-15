@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import llm, rendering
 
-REVISION = 'partitioned-count-v2-source-audit'
+REVISION = 'partitioned-count-v3-resumable-source-audit'
 MAX_TILES = 16
 SCHEMA = {'type':'object','additionalProperties':False,'properties':{
     'items':{'type':'array','items':{'type':'object','additionalProperties':False,'properties':{
@@ -97,7 +97,16 @@ def answer(question,document,path,page,bounds,overview,*,model,policy,previous=N
         import json
         previous_context=json.dumps({'question':previous.get('question'),'locations':[
             {k:e.get(k) for k in ('label','page','bbox')} for e in previous.get('evidence',[])[:200]]})[:24000]
+    import hashlib
+    from .drawing_tools import fingerprint
+    from .inspection_cache import InspectionCache
+    cache=InspectionCache({'revision':REVISION,'implementation':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        'source':fingerprint(Path(path)),'page':page,'question':question,'bounds':bounds,
+        'model':model,'provider':llm.provider_signature(),'policy':policy,'previous_locations':previous_context})
     def inspect(index,core,crop):
+        key={'core':core,'crop':crop}
+        cached=cache.get(key)
+        if cached is not None:return index,core,crop,{**cached,'cache_hit':True}
         detail=rendering.render_region(path,page,crop,3600)
         local_core=[(core[0]-crop[0])/(crop[2]-crop[0]),(core[1]-crop[1])/(crop[3]-crop[1]),
                     (core[2]-crop[0])/(crop[2]-crop[0]),(core[3]-crop[1])/(crop[3]-crop[1])]
@@ -118,6 +127,7 @@ def answer(question,document,path,page,bounds,overview,*,model,policy,previous=N
                 'warnings':(result.get('warnings') or [])+(audit.get('warnings') or []),
                 'coverage_note':audit.get('coverage_note',''),
                 'audit':{'proposed':len(items),'kept':len(kept),'added':len(audit.get('added') or []),'valid_ids':valid}}
+        if all(llm._mapped_box(item.get('bbox'),[0,0,1,1]) for item in result['items']):cache.put(key,result)
         return index,core,crop,result
     outputs=[]
     # Reuse the application's thread-local usage merge so every request stays
@@ -130,7 +140,7 @@ def answer(question,document,path,page,bounds,overview,*,model,policy,previous=N
         complete=complete and result.get('complete') is True
         warnings.extend(result.get('warnings') or [])
         trace.append({'tile':index+1,'core':core,'source_region':crop,'complete':result.get('complete') is True,
-                      'reason':result.get('coverage_note',''),'located_before_ownership':len(result.get('items') or []),'audit':result.get('audit')})
+                      'reason':result.get('coverage_note',''),'located_before_ownership':len(result.get('items') or []),'audit':result.get('audit'),'cache_hit':result.get('cache_hit',False)})
         for item in result.get('items') or []:
             box=llm._mapped_box(item.get('bbox'),crop)
             if not box:invalid=True;continue

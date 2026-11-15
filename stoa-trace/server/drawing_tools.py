@@ -22,7 +22,7 @@ from . import rendering
 from .verification import ground_native_evidence, user_declared_dimension, unit_spec
 
 REVISION = 'drawing-tools-v1'
-MAX_TOOLS = 10
+MAX_TOOLS = 12
 MAX_TILES = 48
 MAX_GRAPH_PIXELS = 100_000
 _engine = None
@@ -316,10 +316,32 @@ class DrawingSession:
             if len(points)!=2:raise ToolError('Calibration requires two endpoints.')
             points=[point(p,r) for p in points];annotation=box(reference.get('annotation_bbox'))
             data=self._words(annotation)
-            streams=[' '.join(w['text'] for w in data['words'] if w.get('orientation',0)==angle) for angle in (0,90)]
             quote=str(reference.get('quote') or '').strip()
             clean=lambda t:re.sub(r'[^\w.,\'"²³]+','',t.casefold())
-            text=next((text for text in streams if quote and clean(quote) in clean(text)),None)
+            def quoted_stream(words):
+                streams=[' '.join(w['text'] for w in words if w.get('orientation',0)==angle) for angle in (0,90)]
+                return next((text for text in streams if quote and clean(quote) in clean(text)),None)
+            def source_reference(words):
+                for word in words:
+                    wb=word.get('bbox')
+                    if not wb or not (annotation[0]<=(wb[0]+wb[2])/2<=annotation[2] and annotation[1]<=(wb[1]+wb[3])/2<=annotation[3]):continue
+                    printed=str(word.get('text') or '')
+                    checked,_=ground_native_evidence({'text':printed},{'quoted_text':printed,
+                        'value':reference.get('value'),'unit':reference.get('unit')},'length')
+                    if checked.get('value') is not None:return printed
+            text=quoted_stream(data['words'])
+            # Scale labels are often separate OCR tokens and a tight crop can
+            # lose a foot/inch prime. Re-read with bounded surrounding context,
+            # but a replacement scalar token must remain INSIDE the original
+            # annotation box. Nearby unrelated unit labels cannot qualify it.
+            supported_word=source_reference(data['words'])
+            if text is None and supported_word is None:
+                margin=max(.015,min(.06,max(annotation[2]-annotation[0],annotation[3]-annotation[1])*.5))
+                expanded=[max(0,annotation[0]-margin),max(0,annotation[1]-margin),min(1,annotation[2]+margin),min(1,annotation[3]+margin)]
+                data=self._words(expanded)
+                text=quoted_stream(data['words']);supported_word=source_reference(data['words'])
+            if supported_word and (text is None or not quote):
+                quote=supported_word;text=supported_word
             if text is None:raise ToolError('Calibration quote was not reproduced by positioned source OCR/text. Inspect its annotation region.')
             item={'value':reference.get('value'),'unit':reference.get('unit'),'quoted_text':quote}
             checked,_=ground_native_evidence({'text':quote},item,'length')
@@ -470,10 +492,13 @@ class DrawingSession:
         self.results[identity]=result
         return result
 
-    def preview(self,identity):
+    def preview(self,identity,*,part=None):
         """Render computed geometry over the actual source, never an answer label."""
         result=self.results.get(identity,{})
         parts=result.get('polylines') or ([result['geometry']] if result.get('geometry') else [])
+        if part is not None:
+            if part not in parts:raise ToolError('Preview geometry is not part of this source measurement.')
+            parts=[part]
         if not parts:return None
         pts=[p for part in parts for p in part];r=_bbox(pts)
         margin=.012;r=[max(self.bounds[0],r[0]-margin),max(self.bounds[1],r[1]-margin),min(self.bounds[2],r[2]+margin),min(self.bounds[3],r[3]+margin)]

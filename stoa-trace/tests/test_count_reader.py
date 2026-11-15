@@ -20,7 +20,10 @@ class PartitionedSourceCounts(unittest.TestCase):
                     'added':[],'complete':result['complete'],'warnings':result['warnings'],'coverage_note':result['coverage_note']}
             return result
         with patch.object(count_reader,'tiles',return_value=iter(self.plan)),\
-             patch('server.rendering.render_region',return_value=self.image),patch.object(llm,'_request',side_effect=dispatch):
+             patch('server.rendering.render_region',return_value=self.image),patch.object(llm,'_request',side_effect=dispatch),\
+             patch('server.drawing_tools.fingerprint',return_value='mock-source'),\
+             patch('server.inspection_cache.InspectionCache.get',return_value=None),\
+             patch('server.inspection_cache.InspectionCache.put'):
             return count_reader.answer('How many doors?',self.doc,Path('new.png'),1,[0,0,1,1],self.image,model='test',policy={})
 
     def test_overlapping_context_has_disjoint_ownership_and_page_coordinates(self):
