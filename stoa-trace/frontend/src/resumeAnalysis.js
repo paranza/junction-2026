@@ -15,3 +15,15 @@ export function resumeAnalysisRequest(answer, selectedDocumentId) {
   return { document_id: answer.document_id, question: answer.question,
     page: context.page, scope: context.scope, ...(region ? { region: [...region] } : {}) };
 }
+
+export function interruptedAnalysisText(answer) {
+  if (answer?.retryable_analysis !== true || answer.value != null) return null;
+  const tiles = (Array.isArray(answer.inspection) ? answer.inspection : [])
+    .filter(item => Number.isInteger(item.tile) && item.tile > 0);
+  const total = answer.route_inspection?.source_tiles;
+  if (Number.isInteger(total) && total > 0 && tiles.length === total) {
+    const completed = new Set(tiles.filter(item => item.complete === true).map(item => item.tile)).size;
+    return `${completed} of ${total} source areas inspected. Continue analysis to finish.`;
+  }
+  return 'Analysis was interrupted. Continue to finish checking the source.';
+}

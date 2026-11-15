@@ -3,6 +3,7 @@ import { ArrowUpRight, LoaderCircle } from 'lucide-react';
 import { messageCost } from './inferenceUsage.js';
 import { formatQuantityValue } from './reviewState.js';
 import AgentThinking from './boardui/AgentThinking.jsx';
+import { interruptedAnalysisText } from './resumeAnalysis.js';
 import { acceptHydratedAnswer, mergeConversation, pendingAnswerIds, readConversation, recordFromAnswer, recordsFromSnapshot, saveConversation } from './conversationState.js';
 
 export function useConversation({ sessionId, snapshot, answer, answerQuestion, documentName, request }) {
@@ -66,7 +67,7 @@ export default function ChatThread({ conversation, activeAnswer, asking, onInspe
         <div className="chat-user-message"><span className="chat-user-label">You</span><p>{record.question}</p>{(response?.document?.name || record.documentName) && <span className="chat-user-context">{response?.document?.name || record.documentName}</span>}</div>
         {active ? children : <div className="chat-assistant-message">
           <span className="chat-assistant-label">Metria</span>
-          {response ? <>{response.source_changed && <p className="chat-message-source-state" role="status">Source changed. Recompute this answer before using it.</p>}<p className="chat-message-summary">{response.answer || response.message || (quantity ? `${formatQuantityValue(quantity.value, quantity.unit)} ${quantity.unit || ''}` : 'Saved answer')}</p><div className="chat-message-actions"><button type="button" onClick={() => onInspect({ id: response.id, question: record.question, documentId: response.document_id, documentName: response.document?.name || record.documentName })}>View evidence <ArrowUpRight size={14} /></button></div></> : ['error', 'failed'].includes(record.status) ? <><p className="chat-message-summary">This question could not be completed.</p></> : conversation.unavailableIds.includes(record.answerId) ? <p className="chat-message-summary">This saved answer is unavailable.</p> : record.status === 'completed' ? <p className="chat-message-loading"><LoaderCircle size={14} className="spin"/>Opening saved answer…</p> : <AgentThinking/>}
+          {response ? <>{response.source_changed && <p className="chat-message-source-state" role="status">Source changed. Recompute this answer before using it.</p>}<p className="chat-message-summary">{interruptedAnalysisText(response) || response.answer || response.message || (quantity ? `${formatQuantityValue(quantity.value, quantity.unit)} ${quantity.unit || ''}` : 'Saved answer')}</p><div className="chat-message-actions"><button type="button" onClick={() => onInspect({ id: response.id, question: record.question, documentId: response.document_id, documentName: response.document?.name || record.documentName })}>View evidence <ArrowUpRight size={14} /></button></div></> : ['error', 'failed'].includes(record.status) ? <><p className="chat-message-summary">This question could not be completed.</p></> : conversation.unavailableIds.includes(record.answerId) ? <p className="chat-message-summary">This saved answer is unavailable.</p> : record.status === 'completed' ? <p className="chat-message-loading"><LoaderCircle size={14} className="spin"/>Opening saved answer…</p> : <AgentThinking/>}
         </div>}
       </article>;
     })}

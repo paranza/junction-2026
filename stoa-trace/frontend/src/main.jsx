@@ -1,4 +1,4 @@
-import { resumeAnalysisRequest } from './resumeAnalysis.js';
+import { resumeAnalysisRequest, interruptedAnalysisText } from './resumeAnalysis.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -1380,7 +1380,7 @@ function App({thread, chatWorkspace}) {
             {answer.human_reviewed && <div className="reviewed-badge"><ShieldCheck size={13} /> Review saved{answer.review?.revision ? ` · revision ${answer.review.revision}` : ''}</div>}
 
             {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
-            <p className="answer-text">{answer.can_review && hasReviewChanges ? draftCountSummary(answer, manualAdditions, excluded) : shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
+            <p className="answer-text">{answer.can_review && hasReviewChanges ? draftCountSummary(answer, manualAdditions, excluded) : shortText(interruptedAnalysisText(answer) || answer.answer || answer.message || 'No answer was returned.')}</p>
             {hasReviewChanges && answer.can_review && <p className="review-draft-status" role="status">Changes not saved yet.</p>}
             {resumeAnalysisRequest(answer, selectedId) && <button type="button" className="btn-secondary" disabled={asking} onClick={event => ask(event, false, undefined, resumeAnalysisRequest(answer, selectedId))}>Continue analysis</button>}
             <AnswerTable rows={answer.rows} evidence={evidence} onSelect={selectEvidence} />

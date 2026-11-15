@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resumeAnalysisRequest } from '../src/resumeAnalysis.js';
+import { resumeAnalysisRequest, interruptedAnalysisText } from '../src/resumeAnalysis.js';
 
 const answer = { document_id: 'drawing', question: 'Count the openings in this area', retryable_analysis: true,
   request_context: { document_id: 'drawing', page: 2, scope: 'page', region: [.2, .3, .8, .9] } };
@@ -13,6 +13,14 @@ test('continuing keeps the original page and selection without a follow-up answe
   assert.equal(result.previous_answer_id, undefined);
   result.region[0] = .1;
   assert.equal(answer.request_context.region[0], .2);
+});
+
+test('interrupted route summaries use actual progress and preserve completed quantities', () => {
+  const partial = { retryable_analysis: true, value: null, route_inspection: {source_tiles:3},
+    inspection: [{tile:1,complete:true}, {tile:2,complete:false}, {tile:3,complete:true}] };
+  assert.equal(interruptedAnalysisText(partial), '2 of 3 source areas inspected. Continue analysis to finish.');
+  assert.equal(interruptedAnalysisText({...partial,value:20}), null);
+  assert.equal(interruptedAnalysisText({retryable_analysis:true}), 'Analysis was interrupted. Continue to finish checking the source.');
 });
 
 test('changed sources, another drawing and invalid saved scopes cannot resume', () => {
