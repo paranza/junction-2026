@@ -1,5 +1,42 @@
 # Deployment verification
 
+## Sunday scheduled release and native upload controls, 15 November
+
+Reviewed main application `009801f01a45780e5aac3f76b0e2ec15c28b8304` is deployed
+on the existing protected VM. The image built before replacement; SQLite backup
+integrity, retained previous image, authentication, native 211-door answer and
+evidence, PNG preview, review/export, restart persistence and installed
+OCR/geometry smoke passed. All previous business rows and uploads are retained.
+Credentials, runtime configuration and explicit provider/model policy are
+identical. The cumulative production counter remains **17/1,000**, with zero
+verification model requests. No new VM was provisioned.
+
+The frozen backend passed **500 tests**, the frontend **64 tests** and the
+production build. All **7,066 development questions** retained exactly their
+previous outcomes: 3,234/6,801 numeric correct, zero source changes, errors,
+previously correct losses or model requests. This is native compatibility, not
+complex blueprint or Gemini accuracy.
+
+The separate Sunday preview reserve was scored once in native mode after this
+freeze, with no model key and a zero-request ceiling: **188/924 answered, all
+188 numeric answers correct; 736 raster nonanswers**. The 48-group subset was
+prospectively quarantined after earlier preview exposure, includes Swiss/CubiCasa
+only and does not represent the complex sponsor drawings. Errors were not used
+for tuning. The already released independent Gemini file evaluation was not
+rerun. Gold-bearing manifests/raw results remain private.
+
+The local file-picker controls now use directly activated native inputs. Actual
+chooser, DXF attachment, Discord PNG attachment and preview were verified. The
+reported original popup failure was not reproduced. Tested frontend assets are
+also active on localhost:8791, with the 5f61113 backend left running during the
+user's inference; no local process, credential or counter was reset.
+
+[Deployment and hashes](../../stoa-trace/ops/reports/sunday-0700/deployment.json),
+[tests/build](../../stoa-trace/ops/reports/sunday-0700/build-checks.json),
+[paired native development](../../stoa-trace/ops/reports/sunday-0700/native-development.json),
+[one-time preview reserve and limitations](../../stoa-trace/ops/reports/sunday-0700/preview-reserve.json),
+[actual local upload flow](../../stoa-trace/ops/reports/sunday-0700/local-upload-verification.json).
+
 ## Count source review, checker scale alignment and continuation
 
 Reviewed main application `5f6111351c6312cadd676d9e02b0be8919519119` is deployed on the existing protected VM and loaded by both local apps. 489 backend tests, 63 frontend tests and the production build passed. Source/build hashes match the container. SQLite backup API integrity, previous image retention, authentication, native 211-door evidence, PNG preview, review/export, restart persistence and installed OCR/geometry checks passed. Verification made zero model requests.
