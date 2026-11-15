@@ -1,3 +1,4 @@
+import { resumeAnalysisRequest } from './resumeAnalysis.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -956,8 +957,8 @@ function App({thread, chatWorkspace}) {
     if (targetDocument && String(targetDocument) !== String(selectedId)) selectDocument(targetDocument, true, item.page);
     else if (evidenceBBox(item) && item.page && Number(item.page) !== page) { setPage(Number(item.page)); setRegion(null); }
   }, [selectedEvidence, clearEvidenceSelection, answerDocumentId, selectedId, page, selectDocument, cancelAsk, cancelHistory, cancelManual]);
-  const ask = async (event, crossCheck = false, overrideQuestion) => {
-    const questionText = (overrideQuestion ?? question).trim();
+  const ask = async (event, crossCheck = false, overrideQuestion, resumed = null) => {
+    const questionText = (resumed?.question ?? overrideQuestion ?? question).trim();
     event?.preventDefault();
     if (!questionText || !selectedId || asking) return;
     initialConversationRestore.current = true;
@@ -968,9 +969,11 @@ function App({thread, chatWorkspace}) {
     activeAskRef.current = { sequence, controller, context };
     try {
       const previousAnswer = answerRef.current;
-      const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}), ...(previousAnswer?.document_id === documentId && !previousAnswer.source_changed ? {previous_answer_id: previousAnswer.id} : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
+      const sourceRequest = resumed || { document_id: documentId, question: questionText, page, scope: region ? 'page' : scope, ...(region ? { region } : {}) };
+      const result = await jsonRequest('/api/ask', { session_id: sessionUsage.sessionId, ...sourceRequest, ...(!resumed && previousAnswer?.document_id === documentId && !previousAnswer.source_changed ? {previous_answer_id: previousAnswer.id} : {}), mode: 'auto', cross_check: crossCheck, verify_visual: verifyVisual }, { signal: controller.signal });
       if (controller.signal.aborted || activeAskRef.current?.sequence !== sequence || contextRef.current !== context) return;
       activeAskRef.current = null; setAsking(false);
+      if (resumed) { setPage(resumed.page); setScope(resumed.scope); setRegion(resumed.region || null); }
       setFocusToken(0); setAnswer(result); setAnswerDocumentId(documentId); setAnswerQuestion(questionText); setAnswerDocumentName(sourceName); loadReviewDraft(result);
       const primaryEvidence = allEvidence(result).find(item => evidenceBBox(item)) || allEvidence(result)[0];
       setSelectedEvidence(null);
@@ -1379,6 +1382,7 @@ function App({thread, chatWorkspace}) {
             {answer.interpreted_question && <p className="answer-interpretation">Interpreted as: {answer.interpreted_question}</p>}
             <p className="answer-text">{answer.can_review && hasReviewChanges ? draftCountSummary(answer, manualAdditions, excluded) : shortText(answer.answer || answer.message || 'No answer was returned.')}</p>
             {hasReviewChanges && answer.can_review && <p className="review-draft-status" role="status">Changes not saved yet.</p>}
+            {resumeAnalysisRequest(answer, selectedId) && <button type="button" className="btn-secondary" disabled={asking} onClick={event => ask(event, false, undefined, resumeAnalysisRequest(answer, selectedId))}>Continue analysis</button>}
             <AnswerTable rows={answer.rows} evidence={evidence} onSelect={selectEvidence} />
             {(evidence.length > 0 || answer.can_review || answer.calculation) && <DrawingArtifact key={answer.id} count={answer.can_review ? reviewedCount : evidence.length} focusRequest={focusToken}>
 
