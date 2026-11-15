@@ -284,6 +284,7 @@ class DrawingSession:
     def __init__(self,path,page,bounds):
         self.path=Path(path);self.page=page;self.bounds=box(bounds)
         self.source=fingerprint(self.path);self.results={};self.calibrations={};self.calls=0
+        self.max_tools=MAX_TOOLS
 
     def _region(self,value):
         r=box(value or self.bounds)
@@ -295,7 +296,7 @@ class DrawingSession:
     def _image(self,region):return rendering.render_region(self.path,self.page,region,2600)
 
     def execute(self,request):
-        if self.calls>=MAX_TOOLS:raise ToolError('Local tool budget reached.')
+        if self.calls>=self.max_tools:raise ToolError('Local tool budget reached.')
         self.calls+=1
         if fingerprint(self.path)!=self.source:raise ToolError('Source changed during inspection.')
         tool=request.get('name')
@@ -338,7 +339,7 @@ class DrawingSession:
             if not spec or spec[0]!='length' or type(value) not in (int,float) or not math.isfinite(value) or value<=0:raise ToolError('Invalid reference length.')
             self.calibrations[identity]={'points':points,'metres':value*spec[1], 'region':r,'quote':quote,'annotation_bbox':annotation}
             result.update(calibration_id=identity,reference={**reference,'quote':quote},complete=data['complete'],warning='Source text was reproduced; endpoints and scale applicability still require visual review.')
-        elif tool in {'polygon','path','room','network','vectors'}:
+        elif tool in {'polygon','perimeter','path','multipath','room','network','vectors'}:
             calibration=self.calibrations.get(request.get('calibration_id'))
             if calibration is None or not contains(calibration['region'],r):raise ToolError('Use an established calibration valid for this entire region.')
             image=self._image(r);w,h=image.size
@@ -347,15 +348,36 @@ class DrawingSession:
             if pixels<8:raise ToolError('Calibration endpoints are too close for reliable measurement.')
             scale=calibration['metres']/pixels;geometry=request.get('geometry') or []
             result.update(calibration_id=request['calibration_id'],reference_quote=calibration['quote'],complete=True)
-            if tool in {'polygon','path'}:
+            if tool in {'polygon','perimeter','path','multipath'}:
                 from shapely.geometry import Polygon,LineString
-                if not (3 if tool=='polygon' else 2)<=len(geometry)<=160:raise ToolError('Invalid geometry point count.')
-                geometry=[point(p,r) for p in geometry];px=[((p[0]-r[0])*sx,(p[1]-r[1])*sy) for p in geometry]
-                shape=Polygon(px) if tool=='polygon' else LineString(px)
-                if not shape.is_valid or shape.is_empty or (tool=='path' and not shape.is_simple):raise ToolError('Geometry intersects itself or is invalid.')
-                result.update(value=shape.area*scale**2 if tool=='polygon' else shape.length*scale,
-                              unit='m²' if tool=='polygon' else 'm',geometry=geometry,
-                              perimeter_m=shape.length*scale,measurement_basis='source_calibrated_selected_geometry')
+                from shapely.ops import unary_union
+                if not (3 if tool in {'polygon','perimeter'} else 2)<=len(geometry)<=640:raise ToolError('Invalid geometry point count.')
+                parts=[[]]
+                for p in geometry:
+                    if p is None and tool=='multipath':
+                        if parts[-1]:parts.append([])
+                    else:parts[-1].append(point(p,r))
+                parts=[part for part in parts if part]
+                if any(len(part)<2 for part in parts):raise ToolError('Each measured path needs two points.')
+                # Analytic geometry uses a fixed source aspect, independent of
+                # arbitrary preview sizes or per-tool crop rounding.
+                if self.path.suffix.lower() in rendering.RASTER_SUFFIXES:
+                    meta=rendering.raster_metadata(self.path)[0][self.page-1];gx,gy=meta['width'],meta['height']
+                else:
+                    import pymupdf
+                    with pymupdf.open(self.path) as pdf:gx,gy=pdf[self.page-1].rect.width,pdf[self.page-1].rect.height
+                shapes=[LineString([(x*gx,y*gy) for x,y in part]) for part in parts]
+                if tool in {'polygon','perimeter'}:shape=Polygon([(x*gx,y*gy) for x,y in parts[0]])
+                else:shape=unary_union(shapes)
+                if shape.is_empty or not shape.is_valid or (tool=='path' and not shapes[0].is_simple):raise ToolError('Geometry intersects itself or is invalid.')
+                a,b=calibration['points'];metres_per_source=calibration['metres']/math.hypot((a[0]-b[0])*gx,(a[1]-b[1])*gy)
+                flat=[p for part in parts for p in part]
+                if tool=='perimeter':flat=flat+[flat[0]]
+                result.update(value=shape.area*metres_per_source**2 if tool=='polygon' else shape.length*metres_per_source,
+                    unit='m²' if tool=='polygon' else 'm',geometry=flat,
+                    perimeter_m=shape.length*metres_per_source,measurement_basis='source_calibrated_selected_geometry')
+                if tool=='multipath':result['polylines']=parts
+                result['bbox']=_bbox(flat)
                 result['measurement_key']=hashlib.sha256((str(request['calibration_id'])+shape.normalize().wkb_hex).encode()).hexdigest()
             elif tool=='vectors':
                 if self.path.suffix.lower()!='.pdf':raise ToolError('Vector paths require a vector PDF. Use raster geometry tools for scans.')
@@ -448,6 +470,23 @@ class DrawingSession:
         self.results[identity]=result
         return result
 
+    def preview(self,identity):
+        """Render computed geometry over the actual source, never an answer label."""
+        result=self.results.get(identity,{})
+        parts=result.get('polylines') or ([result['geometry']] if result.get('geometry') else [])
+        if not parts:return None
+        pts=[p for part in parts for p in part];r=_bbox(pts)
+        margin=.012;r=[max(self.bounds[0],r[0]-margin),max(self.bounds[1],r[1]-margin),min(self.bounds[2],r[2]+margin),min(self.bounds[3],r[3]+margin)]
+        image=rendering.render_region(self.path,self.page,r,2600).convert('RGB')
+        from PIL import ImageDraw
+        draw=ImageDraw.Draw(image)
+        for part in parts:
+            points=[((p[0]-r[0])/(r[2]-r[0])*image.width,(p[1]-r[1])/(r[3]-r[1])*image.height) for p in part]
+            if result.get('name')=='polygon':points.append(points[0])
+            draw.line(points,fill='#dd2048',width=3)
+            for x,y in points:draw.ellipse((x-3,y-3,x+3,y+3),fill='#2459ff')
+        return image,r
+
     def operand(self,identity):
         result=self.results.get(identity)
         if not result or not result.get('complete') or result.get('value') is None:return None
@@ -457,6 +496,7 @@ class DrawingSession:
             b=_bbox(geometry)
             operand['bbox']=[max(0,b[0]-1e-5),max(0,b[1]-1e-5),min(1,b[2]+1e-5),min(1,b[3]+1e-5)]
             if result['unit']=='m²':operand['polygon']=geometry
+            elif result.get('polylines'):operand['polylines']=result['polylines']
             else:operand['polyline']=geometry
         return operand
 

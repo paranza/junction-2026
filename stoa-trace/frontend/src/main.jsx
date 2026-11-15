@@ -548,6 +548,14 @@ function DrawingCanvas({
                     },
                   };
 
+                  if (item.polylines?.length || item.polyline?.length) {
+                    const paths = item.polylines || [item.polyline];
+                    return <g key={item._key}>{paths.map((path, index) => <polyline
+                      {...commonProps} key={`${item._key}-${index}`}
+                      style={{ ...commonProps.style, fill: 'none' }}
+                      points={path.map(([x, y]) => `${x * 1000},${y * 1000}`).join(' ')}
+                    />)}</g>;
+                  }
                   if (item.polygon?.length) {
                     return (
                       <polygon

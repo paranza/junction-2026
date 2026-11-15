@@ -41,6 +41,20 @@ class SourceTools(unittest.TestCase):
         self.assertEqual(self.session.operand(path['id'])['polyline'],path['geometry'])
         self.assertFalse(result['source_verified'])
 
+    def test_closed_perimeter_and_disconnected_paths_do_not_count_gaps_or_shared_edges(self):
+        cal=self.calibrated()
+        outline=[[.1,.2],[.6,.2],[.6,.7],[.1,.7]]
+        perimeter=self.session.execute({'name':'perimeter','calibration_id':cal['id'],'geometry':outline})
+        self.assertAlmostEqual(perimeter['value'],32)
+        self.assertEqual(perimeter['geometry'][0],perimeter['geometry'][-1])
+        measured=self.session.execute({'name':'multipath','calibration_id':cal['id'],
+            'geometry':[[.1,.2],[.6,.2],None,[.3,.2],[.6,.2],None,[.6,.3],[.6,.7]]})
+        self.assertAlmostEqual(measured['value'],14.8)
+        self.assertEqual(len(self.session.operand(measured['id'])['polylines']),3)
+        preview,region=self.session.preview(measured['id'])
+        self.assertGreater(preview.width,0)
+        self.assertLessEqual(region[0],.1)
+
     def test_fabricated_reference_and_scope_escape_rejected(self):
         with patch.object(self.session,'_words',return_value={'words':[],'complete':True}):
             with self.assertRaises(dt.ToolError):self.calibrated_unmocked()
