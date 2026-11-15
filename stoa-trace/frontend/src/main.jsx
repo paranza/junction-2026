@@ -55,6 +55,7 @@ import { focusDrawingBox } from './canvasFocus.js';
 import { WorkspaceNavigation, DatasetPage, SpendingPage } from './WorkspacePages.jsx';
 import ChatThread, { useConversation } from './ChatThread.jsx';
 import EvidenceCloseup from './EvidenceCloseup.jsx';
+import DrawingFileButton, {DRAWING_FILE_ACCEPT} from './DrawingFileButton.jsx';
 import { MessageInferenceCost } from './InferenceCost.jsx';
 import useSessionUsage from './useSessionUsage.js';
 import { messageCost, requestFailure } from './inferenceUsage.js';
@@ -1147,7 +1148,7 @@ function App({thread, chatWorkspace}) {
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tif,.tiff,.svg,.dxf,.dwg,.ifc"
+              accept={DRAWING_FILE_ACCEPT}
               hidden
               onChange={event => uploadFiles(event.target.files)}
             />
@@ -1222,10 +1223,10 @@ function App({thread, chatWorkspace}) {
           </div>
 
           <div className="library-footer">
-            <button type="button" className="btn-upload" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+            <DrawingFileButton className="btn-upload" onFiles={uploadFiles} disabled={uploading}>
               {uploading ? <LoaderCircle size={14} className="spin" /> : <Upload size={14} />}
               {uploading ? 'Uploading...' : 'Upload drawing'}
-            </button>
+            </DrawingFileButton>
             {uploadMessage && <span className="setting-row-desc">{uploadMessage}</span>}
           </div>
         </aside>
@@ -1329,16 +1330,9 @@ function App({thread, chatWorkspace}) {
                 <h2 className="dropzone-title">Drop a drawing to start</h2>
                 <p className="dropzone-desc">Plans, scans and BIM models. Ask about rooms, quantities or dimensions.</p>
                 <div className="dropzone-actions">
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={event => {
-                      event.stopPropagation();
-                      fileInputRef.current?.click();
-                    }}
-                  >
+                  <DrawingFileButton className="btn-primary" onFiles={uploadFiles} disabled={uploading}>
                     Upload drawing
-                  </button>
+                  </DrawingFileButton>
                   <button
                     type="button"
                     className="btn-secondary"
@@ -1462,7 +1456,7 @@ function App({thread, chatWorkspace}) {
                 }}
               />
 
-              <div className="docked-composer-footer"><button type="button" className="composer-attach" aria-label="Attach floor plan" title="Attach floor plan" disabled={uploading} onClick={()=>fileInputRef.current?.click()}><Plus size={18}/></button>
+              <div className="docked-composer-footer"><DrawingFileButton className="composer-attach" label="Attach floor plan" disabled={uploading} onFiles={uploadFiles}><Plus size={18}/></DrawingFileButton>
                 <div className="composer-actions-group">
                   {region && (
                     <button type="button" className="quick-chip" onClick={() => askRegion(null)}>
