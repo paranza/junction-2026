@@ -98,11 +98,11 @@ def config_signature():
     refine = os.environ.get('STOA_COUNT_REFINEMENT', 'off').strip().lower()
     if refine not in {'off','on'}:raise ValueError('STOA_COUNT_REFINEMENT must be off or on.')
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
-            'maximum_requests': max((32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(9 if refine=='on' else 0),20 if routes=='on' else 0),
+            'maximum_requests': max((32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),20 if routes=='on' else 0),
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
             'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True},
             'route_reader':{'mode':routes,'maximum_source_tiles':9,'maximum_local_tools':12},
-            'count_refinement':{'mode':refine,'maximum_proposals':256,'maximum_audit_batches':8},
+            'count_refinement':{'mode':refine,'maximum_locations':768,'maximum_audit_batches':25},
             'maximum_detail_views': MAX_DETAILS,
             'drawing_tools': 'drawing-tools-v3-source-geometry-review', 'maximum_local_tools': 12}
 

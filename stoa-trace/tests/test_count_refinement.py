@@ -70,3 +70,43 @@ class ResumeSourceInventory(unittest.TestCase):
                 self.assertEqual(refine.call_args.args[5],initial)
                 deep_reader.answer('Count windows',{'page_count':1},source)
                 self.assertEqual(first_pass.call_count,2)
+
+
+class StagedSourceAudit(unittest.TestCase):
+    def test_discovery_uses_cleaned_locations_and_interrupted_review_resumes(self):
+        from server import llm
+        initial={'operation':'count','value':2,'unit':'count','evidence':[
+            {'bbox':[.1,.1,.2,.2],'label':'A seat'}, {'bbox':[.3,.1,.4,.2],'label':'A false locator'}]}
+        old={'accept_new':[],'confirm_existing':[0],'reject':[1],'uncertain':[],'complete':True,'reason':'Source checked'}
+        new={'accept_new':[{'id':2,'label':'Different seat','category':'chair'}],
+             'confirm_existing':[],'reject':[],'uncertain':[],'complete':True,'reason':'Source checked'}
+        proposed=[{'id':0,'kind':'new source form','bbox':[.6,.6,.8,.8]}]
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
+            with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
+                 patch.object(cr,'propose',return_value=(proposed,False)) as propose, \
+                 patch.object(llm,'_request',side_effect=[{'categories':['chair']},old,llm.ModelError('Interrupted',recoverable=True),new]) as request:
+                interrupted=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
+                self.assertIsNone(interrupted['value'])
+                self.assertTrue(interrupted['retryable_analysis'])
+                completed=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
+                self.assertEqual(completed['value'],2)
+                self.assertEqual(request.call_count,4)
+                self.assertEqual(len(propose.call_args.args[1]),1)
+                self.assertFalse(propose.call_args.kwargs['check_existing'])
+                self.assertEqual(completed['source_refinement']['original_locations_reviewed'],2)
+
+    def test_optional_discovery_budget_does_not_erase_a_source_audited_count(self):
+        from server import llm
+        initial={'operation':'count','value':1,'unit':'count','evidence':[{'bbox':[.1,.1,.2,.2]}]}
+        old={'accept_new':[],'confirm_existing':[0],'reject':[],'uncertain':[],'complete':True,'reason':'Source checked'}
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'source.png';Image.new('RGB',(80,60),'white').save(source)
+            with patch.object(store,'RUNTIME',Path(folder)/'runtime'), \
+                 patch.object(cr,'propose',return_value=([],True)), \
+                 patch.object(llm,'_request',side_effect=[{'categories':['chair']},old]):
+                result=cr.refine('Count seats',{},source,1,[0,0,1,1],initial,model='gemini-4-carbon')
+                self.assertEqual(result['value'],1)
+                self.assertEqual(result['status'],'needs_review')
+                self.assertFalse(result['source_refinement']['discovery_complete'])
+                self.assertTrue(result['warnings'])

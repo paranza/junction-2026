@@ -16,8 +16,8 @@ from . import llm,rendering,symbol_proposals as symbols
 from .drawing_tools import fingerprint
 from .inspection_cache import InspectionCache
 
-REVISION='source-form-refinement-v1'
-MAX_ITEMS=256
+REVISION='source-form-refinement-v2-staged-source-audit'
+MAX_ITEMS=768
 BATCH_SIZE=32
 _source_lock=threading.BoundedSemaphore(1)
 PLAN={'type':'object','additionalProperties':False,'properties':{
@@ -79,13 +79,13 @@ def gallery(source,entries):
     return canvas
 
 
-def propose(source,evidence,bounds):
+def propose(source,evidence,bounds,check_existing=True):
     items=[{'bbox':e.get('bbox'),'label':e.get('label','')} for e in evidence]
     style=symbols.source_style(source,items)
     suspicious=set(style['unsupported_ids'])
-    known=[e for i,e in enumerate(items) if i not in suspicious]
+    known=[e for i,e in enumerate(items) if not check_existing or i not in suspicious]
     entries=[{'kind':'existing locator to check','old_index':i,'bbox':items[i]['bbox'],'label':items[i]['label']}
-             for i in sorted(suspicious) if symbols.valid_box(items[i].get('bbox'))]
+             for i in sorted(suspicious) if check_existing and symbols.valid_box(items[i].get('bbox'))]
     a,b,c,d=bounds;nx=max(1,math.ceil(source.width*(c-a)/2600));ny=max(1,math.ceil(source.height*(d-b)/2600))
     if nx*ny>64:return [],True
     margin=max(80,style['span']*1.5)
@@ -150,25 +150,12 @@ def refine(question,document,path,page,bounds,initial,*,model):
     if initial.get('operation')!='count' or initial.get('value') is None:return initial
     if Path(path).suffix.lower() not in rendering.RASTER_SUFFIXES:return initial
     evidence=initial.get('evidence') or []
-    if initial['value']!=len(evidence):return initial
-    if any(not symbols.valid_box(e.get('bbox')) for e in evidence):return initial
+    if initial['value']!=len(evidence) or any(not symbols.valid_box(e.get('bbox')) for e in evidence):return initial
+    if len(evidence)>MAX_ITEMS:return initial
     cache=InspectionCache({'revision':REVISION,'code':hashlib.sha256(Path(__file__).read_bytes()+Path(symbols.__file__).read_bytes()).hexdigest(),
         'source':fingerprint(Path(path)),'page':page,'question':question,'bounds':bounds,'model':model,
         'provider':llm.provider_signature(),'policy':policy(),'initial_locations':[
             {k:e.get(k) for k in ('bbox','label','category')} for e in evidence]})
-    with _source_lock:
-        meta=rendering.raster_metadata(Path(path))[0][page-1]
-        source,_=rendering.render_page(Path(path),page,max_edge=max(meta['width'],meta['height']))
-        entries,truncated=propose(source,evidence,bounds)
-        if truncated:
-            result=copy.deepcopy(initial);result.update(value=None,status='insufficient_evidence',can_review=False,
-                answer='Source discovery exceeds the bounded review budget. Select a smaller area to complete the count.')
-            return result
-        if not entries:return initial
-        batches=[entries[i:i+BATCH_SIZE] for i in range(0,len(entries),BATCH_SIZE)]
-        galleries=[[gallery(source,batch[i:i+16]) for i in range(0,len(batch),16)] for batch in batches]
-        overview=source.copy();overview.thumbnail((900,900),Image.Resampling.LANCZOS)
-        del source
     plan=cache.get('target-categories')
     if plan is None:
         plan=llm._request([{'type':'input_text','text':'Identify the positive physical object categories to count in this question. Exclude scope labels, examples and explicitly excluded objects. Return 1 to 8 singular English category names using lowercase letters and underscores only. Question: '+question}],
@@ -179,22 +166,64 @@ def refine(question,document,path,page,bounds,initial,*,model):
         result=copy.deepcopy(initial);result.update(value=None,status='insufficient_evidence',can_review=False,
             retryable_analysis=True,answer='The counted object types remain unresolved.');return result
     cache.put('target-categories',{'categories':categories,'complete':True})
-    def inspect(index):
-        batch=batches[index];key={'batch':batch,'categories':categories}
-        cached=cache.get(key)
-        if cached is not None and valid_review(batch,cached,categories):return batch,cached
-        content=[{'type':'input_text','text':'Question: '+question+'\nTarget categories: '+json.dumps(categories)+'\nSource locators: '+json.dumps(batch)}]
-        content+=image_content(overview,'Full source context only. Do not count context objects instead of marked locations.')
-        for picture in galleries[index]:content+=image_content(picture,'Original source gallery. Header IDs and red boxes are computed proposals, not printed annotations.')
-        review=llm._request(content,system=SYSTEM,schema=audit_schema(categories),model=model,visual_policy=policy(),max_tokens=8000)
-        # Reconciliation also validates exact ID coverage before numeric use.
-        if review.get('complete') and not review.get('uncertain') and valid_review(batch,review,categories):cache.put(key,review)
-        return batch,review
-    audits=[]
-    try:
+
+    def source_image():
+        meta=rendering.raster_metadata(Path(path))[0][page-1]
+        return rendering.render_page(Path(path),page,max_edge=max(meta['width'],meta['height']))[0]
+
+    def pictures(source,entries):
+        batches=[entries[i:i+BATCH_SIZE] for i in range(0,len(entries),BATCH_SIZE)]
+        galleries=[[gallery(source,batch[i:i+16]) for i in range(0,len(batch),16)] for batch in batches]
+        overview=source.copy();overview.thumbnail((900,900),Image.Resampling.LANCZOS)
+        return batches,galleries,overview
+
+    def audit(pictures):
+        batches,galleries,overview=pictures
+        def inspect(index):
+            batch=batches[index];key={'batch':batch,'categories':categories}
+            cached=cache.get(key)
+            if cached is not None and valid_review(batch,cached,categories):return batch,cached
+            content=[{'type':'input_text','text':'Question: '+question+'\nTarget categories: '+json.dumps(categories)+'\nSource locators: '+json.dumps(batch)}]
+            content+=image_content(overview,'Full source context only. Do not count context objects instead of marked locations.')
+            for picture in galleries[index]:content+=image_content(picture,'Original source gallery. Header IDs and red boxes are computed proposals, not printed annotations.')
+            review=llm._request(content,system=SYSTEM,schema=audit_schema(categories),model=model,visual_policy=policy(),max_tokens=8000)
+            if valid_review(batch,review,categories) and review.get('complete') and not review.get('uncertain'):cache.put(key,review)
+            return batch,review
+        audits=[]
         for start in range(0,len(batches),3):audits.extend(llm.run_in_parallel([lambda i=i:inspect(i) for i in range(start,min(start+3,len(batches)))]))
+        return audits
+
+    old_entries=[{'id':i,'kind':'existing locator to check','old_index':i,'bbox':e['bbox'],'label':e.get('label','')}
+                 for i,e in enumerate(evidence)]
+    try:
+        # Verify all original locations first. Empty-ink heuristics alone cannot
+        # distinguish a chair from a nearby table or source annotation.
+        with _source_lock:
+            source=source_image();old_pictures=pictures(source,old_entries);del source
+        old_audits=audit(old_pictures);del old_pictures
+        cleaned=reconcile(initial,old_entries,old_audits,categories,page)
+        if cleaned.get('value') is None:return cleaned
+        with _source_lock:
+            source=source_image()
+            entries,truncated=propose(source,cleaned['evidence'],bounds,check_existing=False)
+            truncated=truncated or len(old_entries)+len(entries)>MAX_ITEMS
+            if not truncated:
+                for i,entry in enumerate(entries):entry['id']=len(old_entries)+i
+                new_pictures=pictures(source,entries)
+            del source
+        if truncated:
+            # Optional discovery does not invalidate the independently completed
+            # first-pass count and source-location audit. Keep it reviewable,
+            # explicitly recording that omission discovery was budget-limited.
+            cleaned['source_refinement'].update(discovery_complete=False,discovery_state='budget_limited')
+            cleaned.setdefault('warnings',[]).append('Additional source-form discovery exceeded its review budget; the located count was retained after source-position review. A smaller selection can extend omission checks.')
+            return cleaned
+        new_audits=audit(new_pictures);del new_pictures
+        result=reconcile(initial,old_entries+entries,old_audits+new_audits,categories,page)
+        if result.get('source_refinement'):
+            result['source_refinement'].update(discovery_complete=True,original_locations_reviewed=len(old_entries),new_forms_reviewed=len(entries))
+        return result
     except llm.ModelError as error:
         if not error.recoverable:raise
         result=copy.deepcopy(initial);result.update(value=None,status='insufficient_evidence',can_review=False,retryable_analysis=True,
             answer='Source review was interrupted. Retry this question to resume the retained inspection.');return result
-    return reconcile(initial,entries,audits,categories,page)
