@@ -25,6 +25,7 @@ MAX_ROUNDS = 3
 MAX_TOOL_ROUNDS = 4
 MAX_DETAILS = 8
 POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'high', 'max_output_tokens': 65536}
+COUNT_POLICY = {'image_resolution': 'ultra_high', 'thinking_level': 'low', 'max_output_tokens': 16384}
 ANSWER_SCHEMA = copy.deepcopy(llm.SCHEMA)
 ANSWER_SCHEMA['properties']['expression'] = {'type': ['string', 'null']}
 ANSWER_SCHEMA['required'].append('expression')
@@ -100,7 +101,8 @@ def config_signature():
     return {'revision': REVISION, 'mode': mode, 'model': model, 'policy': POLICY,
             'maximum_requests': max((32 if dense=='on' else MAX_ROUNDS + MAX_TOOL_ROUNDS)+(26 if refine=='on' else 0),20 if routes=='on' else 0),
             'standard_inspection_requests': MAX_ROUNDS + MAX_TOOL_ROUNDS,
-            'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True},
+            'partitioned_count': {'mode':dense,'minimum_source_pixels': 25000000, 'maximum_tiles': 16, 'parallel_requests': 3, 'source_audit': True,
+                                  'count_policy':COUNT_POLICY if dense=='on' else POLICY},
             'route_reader':{'mode':routes,'maximum_source_tiles':9,'maximum_local_tools':12},
             'count_refinement':{'mode':refine,'maximum_locations':768,'maximum_audit_batches':25},
             'maximum_detail_views': MAX_DETAILS,
@@ -319,6 +321,9 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         # Never downgrade an aggregate over a packet to a single-page answer.
         return None
     bounds = list(region or [0, 0, 1, 1]); inputs = []; trace = []
+    # Local count enumeration is separated from long geometric reasoning. The
+    # profile is opt-in; other source tasks retain the configured deep policy.
+    active_policy = COUNT_POLICY if config_signature()['partitioned_count']['mode']=='on' and llm.requested_quantity(question)=='count' else POLICY
     tools = None; tool_rounds = 0; visual_rounds = 0; tool_outputs = []
     document = llm._scoped_context(document, path, page, scope, region, [page])
     count_cache = None
@@ -353,7 +358,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
         from . import count_reader
         if config_signature()['partitioned_count']['mode']=='on' and count_reader.eligible(document,path,page,bounds):
             return finish(count_reader.answer(question,document,path,page,bounds,overview,
-                                       model=config_signature()['model'],policy=POLICY,previous=previous))
+                                       model=config_signature()['model'],policy=active_policy,previous=previous))
     inputs.append({'image': overview, 'page': page, 'region': bounds, 'kind': 'overview'})
     if region and bounds != [0,0,1,1]:
         inputs.append({'image':rendering.render_region(path,page,[0,0,1,1],1800),'page':page,'region':[0,0,1,1],
@@ -396,7 +401,7 @@ def answer(question, document, path, page=1, scope='document', region=None, prev
             if tool_rounds < MAX_TOOL_ROUNDS and round_index < MAX_ROUNDS+MAX_TOOL_ROUNDS-1: actions.append('tool')
             decision_schema['properties']['action']['enum'] = actions
             content.append({'type':'input_text','text':'No further image regions can be requested. Answer using existing source views or use an available local OCR/geometry tool. If evidence is incomplete, explain the specific missing source information.'})
-        decision = llm._request(content, system=SYSTEM, schema=decision_schema, model=config_signature()['model'], visual_policy=POLICY, max_tokens=65536)
+        decision = llm._request(content, system=SYSTEM, schema=decision_schema, model=config_signature()['model'], visual_policy=active_policy, max_tokens=65536)
         trace.append({'round': round_index+1, 'action': decision.get('action'), 'reason': decision.get('reason'), 'source_views': len(inputs)})
         if decision.get('action') == 'tool':
             if tool_rounds >= MAX_TOOL_ROUNDS: return _unsupported('The local source inspection budget was reached.',trace=trace)
