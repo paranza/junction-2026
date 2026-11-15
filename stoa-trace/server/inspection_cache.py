@@ -17,7 +17,7 @@ class InspectionCache:
         folder=Path(__file__).parent
         self.identity={'context':identity,'source_transform_code':{
             name:hashlib.sha256((folder/name).read_bytes()).hexdigest()
-            for name in ('inspection_cache.py','rendering.py','drawing_tools.py')}}
+            for name in ('inspection_cache.py','rendering.py','drawing_tools.py','scale_alignment.py')}}
         self.root=store.RUNTIME/'cache'/'source-inspection'
 
     def path(self,tile):

@@ -359,8 +359,13 @@ class DrawingSession:
                 raise ToolError('Calibration needs a reproduced source length and explicit source units.')
             spec=unit_spec(reference.get('unit'));value=reference.get('value')
             if not spec or spec[0]!='length' or type(value) not in (int,float) or not math.isfinite(value) or value<=0:raise ToolError('Invalid reference length.')
+            from .scale_alignment import align_reference
+            try:alignment=align_reference(self.path,self.page,points)
+            except (OSError,ValueError,ImportError):alignment=None
+            if alignment and all(r[0]<=p[0]<=r[2] and r[1]<=p[1]<=r[3] for p in alignment['points']):
+                points=alignment['points'];result['source_alignment']=alignment
             self.calibrations[identity]={'points':points,'metres':value*spec[1], 'region':r,'quote':quote,'annotation_bbox':annotation}
-            result.update(calibration_id=identity,reference={**reference,'quote':quote},complete=data['complete'],warning='Source text was reproduced; endpoints and scale applicability still require visual review.')
+            result.update(calibration_id=identity,reference={**reference,'points':points,'quote':quote},complete=data['complete'],warning='Source text was reproduced; endpoints and scale applicability still require visual review.')
         elif tool in {'polygon','perimeter','path','multipath','room','network','vectors'}:
             calibration=self.calibrations.get(request.get('calibration_id'))
             if calibration is None or not contains(calibration['region'],r):raise ToolError('Use an established calibration valid for this entire region.')
