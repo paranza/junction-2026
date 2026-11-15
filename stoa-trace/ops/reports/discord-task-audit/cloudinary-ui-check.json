@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "live_browser_closeup": true,
+  "original_answer_rows_identical": true,
+  "model_requests_before": 4,
+  "model_requests_after": 4,
+  "extra_model_requests": 0,
+  "closeups": [
+    {
+      "provider": "cloudinary",
+      "width": 396,
+      "height": 284
+    }
+  ],
+  "ui_bug_reproduced_on_previous_release": true,
+  "fix": "Evidence detail and dialog clicks retain selection; clicking outside drawing selection still clears it.",
+  "candidate_revision": "a6dc0e2"
+}

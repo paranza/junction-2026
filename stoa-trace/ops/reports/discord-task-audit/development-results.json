@@ -1,0 +1,265 @@
+{
+  "classification": "Exposed development audit of the four exact Stoa Discord attachments; operational questions from published categories, not literal hidden judge questions",
+  "release_revision": "3251c4581baf3b81143137011c618b233cf62580",
+  "reference_values_in_model_inputs": false,
+  "reserved_evaluations": 0,
+  "new_model_training": false,
+  "source_or_question_specific_answer_lookup": false,
+  "studies": {
+    "initial-api": {
+      "code_revision": "dc0b93ede0d0b6e41e3ccd65c1f51f242bdddcce",
+      "questions": 9,
+      "answered": 5,
+      "technical_errors": 0,
+      "actual_attempts": 29,
+      "rows_sha256": "2981f2bc25303c9c0ff98a6e9d6a708e13422e1fdd0995cf277d336b32138efe",
+      "freeze_sha256": "89321d62566bb5105c0f94c4559635f857ed2af731152f0b84f8c3264aa4242f",
+      "rows": [
+        {
+          "id": "school-windows",
+          "value": 67,
+          "unit": "count",
+          "seconds": 275.163,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-doors",
+          "value": 110,
+          "unit": "count",
+          "seconds": 437.36,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-chairs",
+          "value": 306,
+          "unit": "count",
+          "seconds": 445.103,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-hall-area",
+          "value": 245.632465317215,
+          "unit": "m\u00b2",
+          "seconds": 193.874,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "slab-150-d13",
+          "value": null,
+          "unit": "m\u00b2",
+          "seconds": 324.209,
+          "export_ok": true,
+          "status": "insufficient_evidence",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "slab-300-d16",
+          "value": null,
+          "unit": "m2",
+          "seconds": 397.856,
+          "export_ok": true,
+          "status": "insufficient_evidence",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "dorm-second-floor-area",
+          "value": 2467.69054848,
+          "unit": "m2",
+          "seconds": 32.803,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "piping-plan-total",
+          "value": null,
+          "unit": null,
+          "seconds": 179.594,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-baseboard",
+          "value": null,
+          "unit": null,
+          "seconds": 557.326,
+          "export_ok": true,
+          "status": "insufficient_evidence",
+          "method": "source_inspection_agent"
+        }
+      ]
+    },
+    "partitioned-api": {
+      "code_revision": "a6dc0e26e233318d9d3916488096a8aed556b429",
+      "questions": 3,
+      "answered": 3,
+      "technical_errors": 0,
+      "actual_attempts": 48,
+      "rows_sha256": "37d0b7b7de522768fcdb32947c181727d7c787e60523348f65e66b9b69f88a71",
+      "freeze_sha256": "afa57b0e26e3e11cc71d462da9d8083c75b305018781defd56e734de481d95c0",
+      "rows": [
+        {
+          "id": "school-chairs",
+          "value": 323,
+          "unit": "count",
+          "seconds": 420.03,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-doors",
+          "value": 116,
+          "unit": "count",
+          "seconds": 602.929,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "school-windows",
+          "value": 68,
+          "unit": "count",
+          "seconds": 244.168,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        }
+      ]
+    },
+    "baseboard-intent-fix-api": {
+      "code_revision": "26b8bd74d8ab7b60848a096e3e056e6f5cbac16f",
+      "questions": 1,
+      "answered": 1,
+      "technical_errors": 0,
+      "actual_attempts": 5,
+      "rows_sha256": "8419eabdd09c0038c74a89335162917bb9e00586e1cb3fbe6ba20f36eb8f5be9",
+      "freeze_sha256": "0059da387d9583385eb0552d54f011b1504e84e7c3cc2428625ea63047f684ba",
+      "rows": [
+        {
+          "id": "school-baseboard",
+          "value": 29.830307298118207,
+          "unit": "m",
+          "seconds": 329.113,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        }
+      ]
+    },
+    "metric-unit-context-api": {
+      "code_revision": "26b8bd74d8ab7b60848a096e3e056e6f5cbac16f",
+      "questions": 2,
+      "answered": 2,
+      "technical_errors": 0,
+      "actual_attempts": 5,
+      "rows_sha256": "4d45ad978581c282fc693f0a7f3da9b0d89766c7c9e674f3d0f4030e31ca9e04",
+      "freeze_sha256": "ab48fd2e38a77b1485cc9d3622f2c318ebdcd28581014169a7c35fe83fa3ef6d",
+      "rows": [
+        {
+          "id": "slab-150-d13-declared-units",
+          "value": 61.690000000000005,
+          "unit": "m2",
+          "seconds": 65.472,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        },
+        {
+          "id": "slab-300-d16-declared-units",
+          "value": 218.73,
+          "unit": "m2",
+          "seconds": 337.206,
+          "export_ok": true,
+          "status": "needs_review",
+          "method": "source_inspection_agent"
+        }
+      ]
+    }
+  },
+  "total_isolated_attempts": 87,
+  "independent_reference_before_results_sha256": "d925a7a3826bfe8b6cad353fc7531da074f40ec9889565a9889903ecb0254baf",
+  "audits": {
+    "school-hall-area": {
+      "reference_m2": 245.25110391617312,
+      "app_m2": 245.632465317215,
+      "absolute_tolerance_m2": 7.5,
+      "passed": true
+    },
+    "dorm-second-floor-area": {
+      "reference_m2": 2467.69054848,
+      "passed": true
+    },
+    "school-baseboard": {
+      "initial_result": "No numeric answer: linear metres misclassified as object count",
+      "repaired_value_m": 29.830307298118207,
+      "initial_reference_m": 29.18964785744591,
+      "initial_tolerance_m": 0.6,
+      "passed_initial_tolerance": false,
+      "status": "Intent fixed, geometric trace still needs audit; do not claim exact quantity"
+    },
+    "school-chairs": {
+      "initial": 306,
+      "partitioned": 323,
+      "independently_counted_hall": 136,
+      "initial_hall": 120,
+      "partitioned_hall": 136,
+      "remaining_visible_omission": "Rounded rectangular office task chair",
+      "manual_clear_symbol_estimate": 324,
+      "additional_ambiguous_teacher_pedestal_symbols": 8,
+      "exact_automatic_success": false
+    },
+    "school-windows": {
+      "initial": 67,
+      "partitioned": 68,
+      "source_audit": "At least one initial candidate lies on a solid corridor wall pier; subsequent partitioning adds extra candidates. No exact success claimed.",
+      "post_inference_reference_audit": true
+    },
+    "school-doors": {
+      "initial": 110,
+      "partitioned": 116,
+      "exact_reference_established": false,
+      "status": "Exterior plant/stair door symbols and the sliding entrance assembly require interpretation; not scored correct"
+    },
+    "slab-150-d13": {
+      "original_answered": false,
+      "with_explicit_drawing_units_m2": 61.69,
+      "reference_m2": 61.69,
+      "passed_only_with_supplied_units": true
+    },
+    "slab-300-d16": {
+      "original_answered": false,
+      "with_explicit_drawing_units_m2": 218.73,
+      "reference_boundary_still_requires_audit": true,
+      "not_strictly_scored": true
+    },
+    "piping-plan-total": {
+      "original_answered": false,
+      "complete_network_reference_established": false,
+      "unit_suffix_smoke": "Separate source-only OCR/calibration check; not a completed network takeoff"
+    }
+  },
+  "promotion": {
+    "partitioned_inventory_default": "off",
+    "reason": "Recovered hall rows but still missed an office chair and added window candidates; exact-count benefit not established",
+    "released_fixes": [
+      "Linear/lineal measurement intent",
+      "Printed unit suffix from the same OCR token",
+      "Evidence detail/dialog clicks retain selection"
+    ],
+    "unsupported_capabilities_not_claimed": [
+      "Complete pipe-network length on M-101A",
+      "All school counts exact",
+      "All Discord quantity questions answered"
+    ]
+  }
+}

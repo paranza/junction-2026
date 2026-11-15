@@ -1,0 +1,34 @@
+{
+  "code_revision": "3251c4581baf3b81143137011c618b233cf62580",
+  "backend_tests": {
+    "status": "passed",
+    "tests": 461,
+    "log_sha256": "065605139200147252afa164c18e1060d910523cf82730f04b8f5700db944b07",
+    "credentials_empty_in_test_process": true
+  },
+  "frontend_tests": {
+    "status": "passed",
+    "tests": 59,
+    "log_sha256": "1136e6cca72c1bfa18b116e973bec6fd07e22d432fe93c6025c0db57b7881c8d"
+  },
+  "frontend_build": {
+    "status": "passed",
+    "log_sha256": "491f979ca7f2cc65d745bf54954c579962514f85ede5fefd5b270976d5f73d28"
+  },
+  "frontend_build_sha256": {
+    "frontend/dist/index.html": "735e757768f93309468fa33d1d28ed5276e46a27af453b6e6ea54182ea68aadf",
+    "frontend/dist/assets/index-BUUlSPIs.js": "8059e3b5da2db5446571f1cd5925308a9fd58bf4f06ac0081ab52716d1096b4a",
+    "frontend/dist/assets/index-BJdZkLss.css": "7c9e96310156641f17b0f50c1273264723a1eb994260d4a95faa52debe818231"
+  },
+  "offline_calibration_smoke": {
+    "status": "passed_cached_source_token_replay",
+    "actual_organizer_source_sha256": "b25805c1c7511e6da13ce8a59ceb70fdefd88bfd73b4aa711882b30e1c43e35b",
+    "requested_quote": "8",
+    "source_ocr_token": "8'",
+    "reference_m": 2.4384,
+    "fresh_ocr_smoke": false,
+    "fresh_ocr_crop_failures_retained": 2,
+    "model_requests": 0,
+    "whole_network_measured": false
+  }
+}
